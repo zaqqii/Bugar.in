@@ -71,7 +71,7 @@
         .auth-title {
             font-size: var(--font-size-4xl);
             font-weight: 800;
-            color: #1e40af; /* Deep blue similar to screenshot */
+            color: #1e40af; 
             margin-bottom: var(--space-2);
             text-align: center;
         }
@@ -278,7 +278,7 @@
                 </div>
                 <h2 class="auth-card-title">Pengguna</h2>
                 <p class="auth-card-desc">Cari event, daftarkan diri, dan bergabung dengan komunitas olahraga favorit.</p>
-                <a href="#" class="auth-btn-blue">
+                <a href="{{ route('auth.user.register') }}" class="auth-btn-blue">
                     Masuk sebagai Pengguna 
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
