@@ -7,6 +7,7 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/css/auth-user.css',
+                'resources/css/penyedia-komunitas.css',
                 'resources/js/app.js',
             ],
             refresh: true,

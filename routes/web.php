@@ -52,3 +52,10 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::post('/logout', [UserAuthController::class, 'logout'])
         ->name('logout');
 });
+
+// ============================================================
+// PENYEDIA KOMUNITAS DASHBOARD ROUTE
+// ============================================================
+Route::get('/penyedia-komunitas/dashboard', function () {
+    return view('penyedia-komunitas.dashboard');
+})->name('penyedia-komunitas.dashboard');
