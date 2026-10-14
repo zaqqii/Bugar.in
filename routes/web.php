@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Auth\UserAuthController;
+use App\Http\Controllers\Auth\PenyediaKomunitasAuthController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\PenyediaKomunitas\DashboardController as PenyediaDashboardController;
 
@@ -35,8 +36,21 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
 });
 
 // ============================================================
-// PENYEDIA KOMUNITAS ROUTES (protected)
+// PENYEDIA KOMUNITAS AUTH ROUTES (publik)
 // ============================================================
-Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware('auth')->group(function () {
+Route::prefix('auth/penyedia-komunitas')->name('auth.penyedia-komunitas.')->group(function () {
+    Route::get('/register', [PenyediaKomunitasAuthController::class, 'showForm'])->name('register');
+    Route::get('/login', function () {
+        return app(PenyediaKomunitasAuthController::class)->showForm('login');
+    })->name('login');
+    Route::post('/register', [PenyediaKomunitasAuthController::class, 'register'])->name('register.post');
+    Route::post('/login', [PenyediaKomunitasAuthController::class, 'login'])->name('login.post');
+});
+
+// ============================================================
+// PENYEDIA KOMUNITAS ROUTES (protected, role: community_owner)
+// ============================================================
+Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware(['auth', 'community_owner'])->group(function () {
     Route::get('/dashboard', [PenyediaDashboardController::class, 'index'])->name('dashboard');
+    Route::post('/logout', [PenyediaKomunitasAuthController::class, 'logout'])->name('logout');
 });

@@ -49,5 +49,18 @@
                 </span>
             @endif
         </div>
+
+        {{-- Tombol Logout Host --}}
+        <form method="POST" action="{{ route('penyedia-komunitas.logout') }}" class="m-0">
+            @csrf
+            <button type="submit" id="btn-logout-penyedia"
+                class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-all duration-200 cursor-pointer shadow-sm"
+                title="Keluar dari Portal Host">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+                <span class="hidden sm:inline">Keluar</span>
+            </button>
+        </form>
     </div>
 </header>

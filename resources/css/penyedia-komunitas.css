@@ -4,6 +4,22 @@
 
 /* Tambahan custom CSS khusus yang sulit menggunakan utility */
 @layer base {
+    :root {
+        --color-primary-50:  #e0fafa;
+        --color-primary-100: #b3f3f5;
+        --color-primary-200: #7ee9ed;
+        --color-primary-300: #45dde6;
+        --color-primary-400: #14d2df;
+        --color-primary-500: #00bcd0;
+        --color-primary-600: #009aad;
+        --color-primary-700: #007a8a;
+        --color-primary-800: #005f6b;
+        --color-primary-900: #00424b;
+        --color-gray-200:    #e2e8f0;
+        --color-gray-800:    #1e293b;
+        --color-danger-500:  #e53935;
+    }
+
     body {
         @apply bg-slate-50 text-slate-800 antialiased;
         font-family: 'Plus Jakarta Sans', sans-serif;
@@ -293,10 +309,12 @@
         font-weight: 700;
     }
 
+    .badge,
     .badge--success,
     .badge--primary,
     .badge--primary-light,
-    .badge--cyan-light {
+    .badge--cyan-light,
+    .badge--danger {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -324,6 +342,11 @@
     .badge--cyan-light {
         background: #cffafe;
         color: #0f766e;
+    }
+
+    .badge--danger {
+        background: #fee2e2;
+        color: #b91c1c;
     }
 
     .admin-dashboard-grid {
@@ -454,6 +477,11 @@
         gap: 0.5rem;
         font-size: 0.8rem;
         margin-bottom: 0.45rem;
+    }
+
+    .quota-percentage {
+        font-size: 0.75rem;
+        font-weight: 700;
     }
 
     .quota-bar {
