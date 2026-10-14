@@ -9,16 +9,12 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'name',
         'username',
-        'email',
+        'email',x
         'password',
         'phone',
         'role',
@@ -26,25 +22,36 @@ class User extends Authenticatable
         'bio',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'password' => 'hashed',
         ];
     }
-}
 
+    public function ownedCommunities()
+    {
+        return $this->hasMany(Community::class, 'owner_id');
+    }
+
+    public function communityMemberships()
+    {
+        return $this->hasMany(CommunityMember::class);
+    }
+
+    public function isCommunityOwner(): bool
+    {
+        return $this->role === 'community_owner';
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+}
