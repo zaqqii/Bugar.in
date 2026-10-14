@@ -3,6 +3,59 @@
 DBMS: PostgreSQL (Neon). Framework: Laravel 13 (PHP 8.3).
 Ringkasan schema per 2026-10-14. **Sumber kebenaran tetap `database/migrations/`**; kalau dokumen ini beda dengan migration, migration yang menang.
 
+## Design System — Color Palette Bugar.in
+
+Gunakan palet ini secara konsisten pada halaman publik, halaman pengguna, dashboard pemilik komunitas, dan dashboard admin. Warna UI ini tidak mengubah schema database.
+
+### Warna brand
+
+| Token | Nama | Hex | Penggunaan |
+|---|---|---|---|
+| `primary` | Royal Blue | `#2563EB` | Warna utama brand, tombol CTA, navigasi aktif, dan link |
+| `secondary` | Cyan | `#06B6D4` | Aksen sekunder, ikon/elemen aktif, dan visual pendukung |
+| `gradient-signature` | Royal Blue → Cyan | `#2563EB` → `#06B6D4` | Gradien untuk elemen brand atau banner unggulan; gunakan seperlunya |
+
+### Warna pelengkap
+
+| Token | Nama | Hex | Penggunaan |
+|---|---|---|---|
+| `background` | Ice Blue | `#F0F7FF` | Latar belakang halaman |
+| `surface` | Pure White | `#FFFFFF` | Card, modal, pop-up, dan permukaan form |
+| `danger` | Alert Red | `#EF4444` | Error, aksi berbahaya, dan status urgent |
+| `accent-orange` | Orange | `#F97316` | Sorotan event atau CTA sekunder yang jarang digunakan |
+| `accent-orange-light` | Soft Orange | `#FFEDD5` | Latar badge atau informasi dengan aksen oranye |
+
+### Warna semantik dan status
+
+| Token | Nama | Hex | Penggunaan |
+|---|---|---|---|
+| `success` | Success Green | `#10B981` | Goal tercapai, streak aktif, pendaftaran berhasil, dan status sukses |
+| `success-light` | Success Light | `#D1FAE5` | Latar badge sukses, tag status berhasil, dan notifikasi positif |
+
+### Warna netral dan tipografi
+
+| Token | Nama | Hex | Penggunaan |
+|---|---|---|---|
+| `text-primary` | Dark Slate | `#0F172A` | Heading, teks utama, dan ikon penting |
+| `text-secondary` | Muted Slate | `#64748B` | Subteks, caption, placeholder, dan ikon nonaktif |
+| `border` | Soft Grey | `#E2E8F0` | Border card, divider, dan pemisah daftar |
+
+### Aksen kebugaran
+
+| Token | Nama | Hex | Penggunaan |
+|---|---|---|---|
+| `fitness-highlight` | Lime Energy | `#84CC16` | Progress aktivitas/kalori, badge level keaktifan, dan poin bonus |
+
+### Aturan penggunaan
+
+- Royal Blue adalah warna identitas utama; Cyan menjadi aksen pendamping.
+- Gunakan gradien biru-ke-cyan secara terbatas agar tidak mengganggu keterbacaan.
+- Gunakan Success Green hanya untuk feedback/status positif, bukan sebagai warna utama tombol di seluruh halaman.
+- Lime Energy untuk elemen highlight, bukan teks kecil.
+- Gunakan Dark Slate untuk teks utama dan Muted Slate untuk teks sekunder.
+- Pastikan kontras teks dan background tetap terbaca; tombol Royal Blue sebaiknya memakai teks putih.
+- Warna BMI harus mengikuti kategori dan hasil perhitungan yang benar; jangan menyimpulkan kategori medis hanya dari warna.
+
 ## Aturan untuk agent AI
 
 - Baca file ini sebelum membuat atau mengubah migration, model, query, seeder, atau controller yang menyentuh database.
