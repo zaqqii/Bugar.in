@@ -27,11 +27,15 @@ Route::prefix('auth/user')->name('auth.user.')->group(function () {
     Route::post('/login', [UserAuthController::class, 'login'])->name('login.post');
 });
 
+use App\Http\Controllers\User\ProfileController;
+
 // ============================================================
-// USER DASHBOARD ROUTES (protected)
+// USER DASHBOARD & PROFILE ROUTES
 // ============================================================
 Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/logout', [UserAuthController::class, 'logout'])->name('logout');
 });
 
