@@ -35,6 +35,9 @@ use App\Http\Controllers\User\ProfileController;
 Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('/explore', function () {
+        return view('user.explore');
+    })->name('explore');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/logout', [UserAuthController::class, 'logout'])->name('logout');
 });

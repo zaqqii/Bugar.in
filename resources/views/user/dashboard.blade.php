@@ -68,14 +68,14 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-3 flex-shrink-0">
-                <button type="button"
-                    @click="setSection('komunitas')"
+                {{-- 1. TOMBOL JELAJAH KOMUNITAS (INI YANG DIUBAH MENJADI LINK) --}}
+                <a href="{{ route('user.explore') }}"
                     class="px-5 py-2.5 rounded-xl font-semibold text-sm bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 text-white shadow-xs hover:shadow-sm transition-all duration-150 flex items-center gap-2 cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
                     </svg>
                     Jelajah Komunitas
-                </button>
+                </a>
 
                 <button type="button"
                     @click="setSection('bmi')"
