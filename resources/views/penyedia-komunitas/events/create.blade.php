@@ -63,7 +63,7 @@
                 </div>
 
                 {{-- STEP 2 --}}
-                <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="step > 1 ? goToStep(2) : null">
+                <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="goToStep(2)">
                     <div class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm"
                          :class="step === 2 
                             ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white ring-4 ring-primary-100 shadow-primary-500/25' 
@@ -87,7 +87,7 @@
                 </div>
 
                 {{-- STEP 3 --}}
-                <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="step > 2 ? goToStep(3) : null">
+                <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="goToStep(3)">
                     <div class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm"
                          :class="step === 3 
                             ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white ring-4 ring-primary-100 shadow-primary-500/25' 
@@ -240,6 +240,24 @@
                         <p x-show="errors.type" x-text="errors.type" class="text-xs text-red-500 mt-2 font-medium"></p>
                     </div>
 
+                    {{-- 3. Deskripsi Event --}}
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="description" class="block text-sm font-semibold text-slate-700">
+                                Deskripsi Event <span class="text-red-500">*</span>
+                            </label>
+                            <span class="text-xs text-slate-400" x-text="(form.description ? form.description.length : 0) + ' karakter'"></span>
+                        </div>
+                        <textarea id="description"
+                                  name="description"
+                                  rows="4"
+                                  x-model="form.description"
+                                  placeholder="Jelaskan gambaran umum kegiatan, tingkat kemampuan peserta (pemula / umum), fasilitas yang didapat, peraturan pakaian/alat..."
+                                  class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
+                                  :class="errors.description ? 'border-red-400 ring-2 ring-red-100' : ''"></textarea>
+                        <p x-show="errors.description" x-text="errors.description" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                    </div>
+
                     {{-- 4. Rundown / Susunan Acara --}}
                     <div>
                         <div class="flex items-center justify-between mb-2">
@@ -349,16 +367,156 @@
         </div>
 
         {{-- ============================================================ --}}
-        {{-- BAGIAN 2: JADWAL & LOKASI (Placeholder untuk Langkah Berikutnya) --}}
+        {{-- BAGIAN 2 : JADWAL & LOKASI                                   --}}
         {{-- ============================================================ --}}
-        <div x-show="step === 2" style="display: none;" class="space-y-6">
-            {{-- Konten Bagian 2 akan di-generate pada tahap berikutnya --}}
+        <div x-show="step === 2"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-3"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             class="space-y-6">
+
+            <div class="bg-white rounded-2xl border border-slate-200/90 p-6 md:p-8 shadow-sm">
+
+                <div class="space-y-6">
+
+                    {{-- 1. Tanggal Event & Batas Akhir Pendaftaran (Grid 2 Kolom) --}}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        {{-- Tanggal Pelaksanaan --}}
+                        <div>
+                            <label for="event_date" class="block text-sm font-semibold text-slate-700 mb-2">
+                                Tanggal Pelaksanaan <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date"
+                                   id="event_date"
+                                   name="event_date"
+                                   x-model="form.event_date"
+                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 cursor-pointer"
+                                   :class="errors.event_date ? 'border-red-400 ring-2 ring-red-100' : ''"
+                                   required>
+                            <p class="text-xs text-slate-400 mt-1.5">Hari H diselenggarakannya kegiatan olahraga.</p>
+                            <p x-show="errors.event_date" x-text="errors.event_date" class="text-xs text-red-500 mt-1 font-medium"></p>
+                        </div>
+
+                        {{-- Batas Akhir Pendaftaran --}}
+                        <div>
+                            <label for="registration_close_at" class="block text-sm font-semibold text-slate-700 mb-2">
+                                Batas Akhir Pendaftaran <span class="text-red-500">*</span>
+                            </label>
+                            <input type="datetime-local"
+                                   id="registration_close_at"
+                                   name="registration_close_at"
+                                   x-model="form.registration_close_at"
+                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 cursor-pointer"
+                                   :class="errors.registration_close_at ? 'border-red-400 ring-2 ring-red-100' : ''"
+                                   required>
+                            <p class="text-xs text-slate-400 mt-1.5">Pendaftaran otomatis ditutup setelah waktu ini tercapai.</p>
+                            <p x-show="errors.registration_close_at" x-text="errors.registration_close_at" class="text-xs text-red-500 mt-1 font-medium"></p>
+                        </div>
+
+                    </div>
+
+                    {{-- 2. Waktu Mulai & Waktu Selesai (Grid 2 Kolom) --}}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        {{-- Waktu Mulai --}}
+                        <div>
+                            <label for="start_time" class="block text-sm font-semibold text-slate-700 mb-2">
+                                Waktu Mulai <span class="text-red-500">*</span>
+                            </label>
+                            <input type="time"
+                                   id="start_time"
+                                   name="start_time"
+                                   x-model="form.start_time"
+                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 cursor-pointer"
+                                   :class="errors.start_time ? 'border-red-400 ring-2 ring-red-100' : ''"
+                                   required>
+                            <p class="text-xs text-slate-400 mt-1.5">Jam dimulainya rangkaian acara</p>
+                            <p x-show="errors.start_time" x-text="errors.start_time" class="text-xs text-red-500 mt-1 font-medium"></p>
+                        </div>
+
+                        {{-- Waktu Selesai --}}
+                        <div>
+                            <label for="end_time" class="block text-sm font-semibold text-slate-700 mb-2">
+                                Waktu Selesai (Opsional)
+                            </label>
+                            <input type="time"
+                                   id="end_time"
+                                   name="end_time"
+                                   x-model="form.end_time"
+                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 cursor-pointer">
+                            <p class="text-xs text-slate-400 mt-1.5">Estimasi waktu berakhirnya acara.</p>
+                        </div>
+
+                    </div>
+
+                    {{-- 3. Nama Lokasi & Venue --}}
+                    <div>
+                        <label for="location" class="block text-sm font-semibold text-slate-700 mb-2">
+                            Nama Tempat / Lokasi <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text"
+                               id="location"
+                               name="location"
+                               x-model="form.location"
+                               placeholder="Contoh : Lapangan Futsal Maestro, Jl. Tubagus Ismail No. 12, Bandung"
+                               class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
+                               :class="errors.location ? 'border-red-400 ring-2 ring-red-100' : ''"
+                               required>
+                        <p class="text-xs text-slate-400 mt-1.5">Tuliskan nama tempat, gedung, lapangan, beserta detail patokan jika ada.</p>
+                        <p x-show="errors.location" x-text="errors.location" class="text-xs text-red-500 mt-1 font-medium"></p>
+                    </div>
+
+                    {{-- 4. Tautan Google Maps --}}
+                    <div>
+                        <label for="maps_url" class="block text-sm font-semibold text-slate-700 mb-2">
+                            Tautan Google Maps (Opsional)
+                        </label>
+                        <div class="relative">
+                            <input type="url"
+                                   id="maps_url"
+                                   name="maps_url"
+                                   x-model="form.maps_url"
+                                   placeholder="Contoh : https://maps.app.goo.gl/..."
+                                   class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                    </div>
+
+                </div>
+
+                {{-- Action / Buttons --}}
+                <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+                    <button type="button"
+                            @click="goToStep(1)"
+                            class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors inline-flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Sebelumnya
+                    </button>
+                    <button type="button"
+                            @click="validateAndNext(2)"
+                            class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white text-sm font-bold shadow-lg shadow-primary-500/20 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5">
+                        Lanjut ke Pendaftaran & Pembayaran
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+
         </div>
 
         {{-- ============================================================ --}}
         {{-- BAGIAN 3: PENDAFTARAN & PEMBAYARAN (Placeholder untuk Langkah Berikutnya) --}}
         {{-- ============================================================ --}}
-        <div x-show="step === 3" style="display: none;" class="space-y-6">
+        <div x-show="step === 3" class="space-y-6">
             {{-- Konten Bagian 3 akan di-generate pada tahap berikutnya --}}
         </div>
 
@@ -407,7 +565,13 @@ function eventWizard() {
             sport_category: '{{ $community->sport_category ?? "" }}',
             description: '',
             rundown: '',
-            cover_image: null
+            cover_image: null,
+            event_date: '',
+            registration_close_at: '',
+            start_time: '',
+            end_time: '',
+            location: '',
+            maps_url: ''
         },
         goToStep(targetStep) {
             this.step = targetStep;
@@ -416,7 +580,7 @@ function eventWizard() {
         validateAndNext(currentStep) {
             this.errors = {};
             if (currentStep === 1) {
-                if (!this.form.title.trim()) {
+                if (!this.form.title || !this.form.title.trim()) {
                     this.errors.title = 'Nama event wajib diisi.';
                 }
                 if (!this.form.type) {
@@ -425,7 +589,7 @@ function eventWizard() {
                 if (!this.form.sport_category) {
                     this.errors.sport_category = 'Pilih kategori olahraga.';
                 }
-                if (!this.form.description.trim()) {
+                if (!this.form.description || !this.form.description.trim()) {
                     this.errors.description = 'Deskripsi event wajib diisi.';
                 }
                 if (!this.previewUrl && !this.form.cover_image) {
@@ -434,6 +598,46 @@ function eventWizard() {
 
                 if (Object.keys(this.errors).length === 0) {
                     this.goToStep(2);
+                } else {
+                    this.$nextTick(() => {
+                        const firstError = document.querySelector('[class*="border-red-400"]');
+                        if (firstError) {
+                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    });
+                }
+            } else if (currentStep === 2) {
+                if (!this.form.event_date) {
+                    this.errors.event_date = 'Tanggal pelaksanaan event wajib diisi.';
+                }
+                if (!this.form.registration_close_at) {
+                    this.errors.registration_close_at = 'Batas akhir pendaftaran wajib diisi.';
+                }
+                if (!this.form.start_time) {
+                    this.errors.start_time = 'Waktu mulai event wajib diisi.';
+                }
+                if (!this.form.location || !this.form.location.trim()) {
+                    this.errors.location = 'Nama tempat / lokasi event wajib diisi.';
+                }
+
+                // Validasi logis: batas pendaftaran tidak boleh melewati hari H
+                if (this.form.event_date && this.form.registration_close_at) {
+                    const eventDate = new Date(this.form.event_date);
+                    const regClose = new Date(this.form.registration_close_at);
+                    if (regClose > eventDate) {
+                        this.errors.registration_close_at = 'Batas pendaftaran tidak boleh melewati tanggal acara.';
+                    }
+                }
+
+                if (Object.keys(this.errors).length === 0) {
+                    this.goToStep(3);
+                } else {
+                    this.$nextTick(() => {
+                        const firstError = document.querySelector('[class*="border-red-400"]');
+                        if (firstError) {
+                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    });
                 }
             }
         },
