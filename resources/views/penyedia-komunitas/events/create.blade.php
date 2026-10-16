@@ -13,9 +13,6 @@
             </svg>
             Kembali ke Dashboard
         </a>
-        <span class="text-xs font-semibold px-3 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-200">
-            Form Wizard &bull; 3 Langkah
-        </span>
     </div>
 
     {{-- Page Header --}}
@@ -115,7 +112,7 @@
         @csrf
 
         {{-- ============================================================ --}}
-        {{-- BAGIAN 1: INFORMASI EVENT                                    --}}
+        {{-- BAGIAN 1 : INFORMASI EVENT                                    --}}
         {{-- ============================================================ --}}
         <div x-show="step === 1"
              x-transition:enter="transition ease-out duration-300"
@@ -124,19 +121,6 @@
              class="space-y-6">
 
             <div class="bg-white rounded-2xl border border-slate-200/90 p-6 md:p-8 shadow-sm">
-                
-                {{-- Card Header --}}
-                <div class="flex items-center gap-3 pb-6 border-b border-slate-100">
-                    <div class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-bold text-slate-900">Bagian 1: Informasi Event</h2>
-                        <p class="text-xs text-slate-500">Isi detail identitas event, jenis aktivitas, rundown, dan banner promosi.</p>
-                    </div>
-                </div>
 
                 {{-- Fields Container --}}
                 <div class="mt-6 space-y-6">
@@ -150,97 +134,117 @@
                                id="title"
                                name="title"
                                x-model="form.title"
-                               placeholder="Contoh: Bugar Fun Run 5K Bersama Komunitas"
+                               placeholder="Contoh : Bugar Fun Run 5K Bersama Komunitas"
                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
                                :class="errors.title ? 'border-red-400 ring-2 ring-red-100' : ''"
                                required>
                         <p x-show="errors.title" x-text="errors.title" class="text-xs text-red-500 mt-1.5 font-medium"></p>
                     </div>
 
-                    {{-- 2. Jenis Event & Kategori Olahraga (Grid 2 Kolom) --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   {{-- Kategori Olahraga --}}
+                    <div class="mb-6" x-data="{ 
+                        open: false, 
+                        categories: [
+                            { value: 'badminton', label: 'Badminton / Bulu Tangkis' },
+                            { value: 'running', label: 'Running / Lari' },
+                            { value: 'futsal', label: 'Futsal' },
+                            { value: 'basketball', label: 'Basket' },
+                            { value: 'football', label: 'Sepak Bola' },
+                            { value: 'cycling', label: 'Sepeda' },
+                            { value: 'swimming', label: 'Berenang' },
+                            { value: 'yoga', label: 'Yoga & Pilates' },
+                            { value: 'tennis', label: 'Tenis Lapangan' },
+                            { value: 'table_tennis', label: 'Tenis Meja' },
+                            { value: 'other', label: 'Olahraga Lainnya' }
+                        ],
+                        get selectedLabel() {
+                            let cat = this.categories.find(c => c.value === form.sport_category);
+                            return cat ? cat.label : 'Pilih Kategori Olahraga';
+                        }
+                    }">
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">
+                            Kategori Olahraga <span class="text-red-500">*</span>
+                        </label>
 
-                        {{-- Jenis Event --}}
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Jenis Event <span class="text-red-500">*</span>
-                            </label>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                                <template x-for="item in eventTypes" :key="item.value">
+                        <div class="relative" @click.outside="open = false">
+                            {{-- Trigger Button --}}
+                            <button type="button" 
+                                    @click="open = !open"
+                                    class="w-full px-4 py-3 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 cursor-pointer text-left shadow-sm"
+                                    :class="errors.sport_category ? 'border-red-400 ring-2 ring-red-100' : ''">
+                                
+                                <span :class="!form.sport_category ? 'text-slate-400' : 'text-slate-800 font-medium'" 
+                                    x-text="selectedLabel"></span>
+                                
+                                <svg xmlns="http://www.w3.org/2000/svg" 
+                                    class="w-4 h-4 text-slate-400 transition-transform duration-300" 
+                                    :class="open ? 'rotate-180 text-primary-500' : ''" 
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            <input type="hidden" name="sport_category" :value="form.sport_category ?? ''">
+
+                            {{-- Dropdown Menu --}}
+                            <div x-show="open"
+                                x-transition:enter="transition ease-out duration-200"
+                                x-transition:enter-start="opacity-0 -translate-y-2 scale-95"
+                                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                x-transition:leave="transition ease-in duration-150"
+                                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                x-transition:leave-end="opacity-0 -translate-y-2 scale-95"
+                                class="absolute top-full left-0 right-0 mt-2 z-50 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 space-y-0.5 custom-scrollbar"
+                                style="display: none;">
+                                
+                                <template x-for="cat in categories" :key="cat.value">
                                     <button type="button"
-                                            @click="form.type = item.value"
-                                            class="p-3 rounded-xl border text-left text-xs font-semibold flex flex-col justify-between transition-all duration-200 h-20"
-                                            :class="form.type === item.value 
-                                                ? 'border-primary-500 bg-primary-50/50 text-primary-800 ring-2 ring-primary-500/20 shadow-sm' 
-                                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50/60'">
-                                        <span x-html="item.icon" class="w-5 h-5 mb-1" :class="form.type === item.value ? 'text-primary-600' : 'text-slate-400'"></span>
-                                        <span x-text="item.label" class="line-clamp-1 font-bold"></span>
+                                            @click="form.sport_category = (form.sport_category === cat.value ? null : cat.value); open = false;"
+                                            class="w-full text-left px-3.5 py-2.5 rounded-lg text-sm transition-all duration-150 flex items-center justify-between"
+                                            :class="form.sport_category === cat.value 
+                                                ? 'bg-primary-50/80 text-primary-700 font-bold' 
+                                                : 'text-slate-700 hover:bg-slate-100/80'">
+                                        <span x-text="cat.label"></span>
+                                        <svg x-show="form.sport_category === cat.value" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
                                     </button>
                                 </template>
                             </div>
-                            <input type="hidden" name="type" :value="form.type">
-                            <p x-show="errors.type" x-text="errors.type" class="text-xs text-red-500 mt-1.5 font-medium"></p>
                         </div>
 
-                        {{-- Kategori Olahraga --}}
-                        <div>
-                            <label for="sport_category" class="block text-sm font-semibold text-slate-700 mb-2">
-                                Kategori Olahraga <span class="text-red-500">*</span>
-                            </label>
-                            <div class="relative">
-                                <select id="sport_category"
-                                        name="sport_category"
-                                        x-model="form.sport_category"
-                                        class="w-full px-4 py-3 appearance-none rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 cursor-pointer"
-                                        :class="errors.sport_category ? 'border-red-400 ring-2 ring-red-100' : ''">
-                                    <option value="" disabled>-- Pilih Kategori Olahraga --</option>
-                                    <option value="badminton">Badminton / Bulu Tangkis</option>
-                                    <option value="running">Running / Lari</option>
-                                    <option value="futsal">Futsal</option>
-                                    <option value="basketball">Bola Basket</option>
-                                    <option value="football">Sepak Bola</option>
-                                    <option value="cycling">Sepeda</option>
-                                    <option value="swimming">Berenang</option>
-                                    <option value="yoga">Yoga & Pilates</option>
-                                    <option value="tennis">Tenis Lapangan</option>
-                                    <option value="table_tennis">Tenis Meja</option>
-                                    <option value="other">Olahraga Lainnya</option>
-                                </select>
-                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
-                            <p class="text-xs text-slate-400 mt-1.5">Sesuai kategori aktivitas olahraga komunitas.</p>
-                            <p x-show="errors.sport_category" x-text="errors.sport_category" class="text-xs text-red-500 mt-1 font-medium"></p>
-                        </div>
-
+                        <p x-show="errors.sport_category" x-text="errors.sport_category" class="text-xs text-red-500 mt-1 font-medium"></p>
                     </div>
 
-                    {{-- 3. Deskripsi Event --}}
+                    {{-- Jenis Event --}}
                     <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <label for="description" class="block text-sm font-semibold text-slate-700">
-                                Deskripsi Event <span class="text-red-500">*</span>
-                            </label>
-                            <span class="text-xs text-slate-400" x-text="(form.description ? form.description.length : 0) + ' karakter'"></span>
+                        <label class="block text-sm font-semibold text-slate-700 mb-3">
+                            Jenis Event <span class="text-red-500">*</span>
+                        </label>
+                        
+                        <div class="flex flex-wrap gap-2.5">
+                            <template x-for="item in eventTypes" :key="item.value">
+                                <button type="button"
+                                        @click="form.type = (form.type === item.value ? null : item.value)"
+                                        class="px-5 py-2.5 rounded-full border text-xs font-semibold flex items-center gap-2 transition-all duration-200 shadow-sm"
+                                        :class="form.type === item.value 
+                                            ? 'border-primary-500 bg-primary-50/70 text-primary-800 ring-2 ring-primary-500/20' 
+                                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50/60'">
+                                    <span x-html="item.icon" class="w-4 h-4" :class="form.type === item.value ? 'text-primary-600' : 'text-slate-400'"></span>
+                                    <span x-text="item.label" class="font-bold"></span>
+                                </button>
+                            </template>
                         </div>
-                        <textarea id="description"
-                                  name="description"
-                                  rows="4"
-                                  x-model="form.description"
-                                  placeholder="Jelaskan gambaran umum kegiatan, tingkat kemampuan peserta (pemula / umum), fasilitas yang didapat, peraturan pakaian/alat..."
-                                  class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
-                                  :class="errors.description ? 'border-red-400 ring-2 ring-red-100' : ''"></textarea>
-                        <p x-show="errors.description" x-text="errors.description" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                        
+                        <input type="hidden" name="type" :value="form.type ?? ''">
+                        <p x-show="errors.type" x-text="errors.type" class="text-xs text-red-500 mt-2 font-medium"></p>
                     </div>
 
                     {{-- 4. Rundown / Susunan Acara --}}
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <label for="rundown" class="block text-sm font-semibold text-slate-700">
-                                Rundown / Susunan Acara
+                                Rundown / Susunan Acara (Opsional)
                             </label>
                             <button type="button"
                                     @click="insertRundownTemplate()"
@@ -248,14 +252,14 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                                 </svg>
-                                Gunakan Contoh Template
+                                Gunakan Template
                             </button>
                         </div>
                         <textarea id="rundown"
                                   name="rundown"
                                   rows="4"
                                   x-model="form.rundown"
-                                  placeholder="Contoh format:&#10;06.00 - 06.30 : Registrasi Ulang & Pemanasan&#10;06.30 - 08.00 : Sesi Olahraga Bersama&#10;08.00 - 08.30 : Cooling Down & Foto Bersama"
+                                  placeholder="Contoh format :&#10;06.00 - 06.30 : Registrasi Ulang & Pemanasan&#10;06.30 - 08.00 : Sesi Olahraga Bersama&#10;08.00 - 08.30 : Pembagian Hadiah &Foto Bersama"
                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm font-mono placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"></textarea>
                         <p class="text-xs text-slate-400 mt-1.5">Informasikan alur kegiatan agar peserta hadir tepat waktu.</p>
                     </div>
@@ -387,8 +391,8 @@ function eventWizard() {
                 icon: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>'
             },
             { 
-                value: 'workshop', 
-                label: 'Workshop',
+                value: 'conference', 
+                label: 'Conference',
                 icon: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>'
             },
             { 
