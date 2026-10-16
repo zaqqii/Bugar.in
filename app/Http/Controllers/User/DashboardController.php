@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Community;
 use App\Models\Event;
 use App\Models\Schedule;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -38,7 +39,7 @@ class DashboardController extends Controller
             ->get();
 
         // Data Keikutsertaan Komunitas User
-        $userMemberships = $user
+        $userMemberships = $user instanceof User
             ? $user->communityMemberships()->with('community')->get()
             : collect();
 
