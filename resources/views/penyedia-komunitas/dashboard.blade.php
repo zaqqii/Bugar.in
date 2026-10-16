@@ -75,13 +75,13 @@
                     </svg>
                     Broadcast Pengumuman
                 </button>
-                <button class="btn btn--primary btn--sm">
+                <a href="{{ route('penyedia-komunitas.events.create') }}" class="btn btn--primary btn--sm">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24"
                          stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
                     Buat Event Baru
-                </button>
+                </a>
             </div>
         </div>
 

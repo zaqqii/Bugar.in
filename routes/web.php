@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\Auth\PenyediaKomunitasAuthController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\PenyediaKomunitas\DashboardController as PenyediaDashboardController;
+use App\Http\Controllers\PenyediaKomunitas\EventController as PenyediaEventController;
 
 // Landing Page
 Route::get('/', [LandingController::class, 'index'])->name('landing');
@@ -52,5 +53,6 @@ Route::prefix('auth/penyedia-komunitas')->name('auth.penyedia-komunitas.')->grou
 // ============================================================
 Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware(['auth', 'community_owner'])->group(function () {
     Route::get('/dashboard', [PenyediaDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/events/create', [PenyediaEventController::class, 'create'])->name('events.create');
     Route::post('/logout', [PenyediaKomunitasAuthController::class, 'logout'])->name('logout');
 });
