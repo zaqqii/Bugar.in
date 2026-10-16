@@ -8,6 +8,62 @@
     filterCity: '',
     searchQuery: '',
     komunitasSubTab: 'komunitas', // 'komunitas' | 'jadwal'
+    agendaItems: @js($agendaItems),
+    agendaView: 'calendar',
+    agendaTypeFilter: 'all',
+    agendaCommunityFilter: 'all',
+    agendaMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    agendaSelectedDate: new Date().toLocaleDateString('sv-SE'),
+    agendaSelectedId: null,
+
+    agendaDateKey(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    },
+    agendaCalendarCells() {
+        const first = new Date(this.agendaMonth.getFullYear(), this.agendaMonth.getMonth(), 1);
+        const start = new Date(first);
+        start.setDate(first.getDate() - ((first.getDay() + 6) % 7));
+        return Array.from({ length: 42 }, (_, index) => {
+            const date = new Date(start);
+            date.setDate(start.getDate() + index);
+            return date;
+        });
+    },
+    agendaMatchesFilters(item) {
+        return (this.agendaTypeFilter === 'all' || item.type === this.agendaTypeFilter) &&
+            (this.agendaCommunityFilter === 'all' || item.community === this.agendaCommunityFilter);
+    },
+    agendaForDate(date) {
+        const key = this.agendaDateKey(date);
+        return this.agendaItems.filter(item => this.agendaMatchesFilters(item) &&
+            (item.date === key || (item.kind === 'schedule' && item.day === date.getDay())));
+    },
+    get agendaSelectedItem() {
+        return this.agendaItems.find(item => item.id === this.agendaSelectedId && this.agendaMatchesFilters(item)) ||
+            this.agendaForDate(new Date(`${this.agendaSelectedDate}T00:00:00`))[0] || null;
+    },
+    agendaSelectDate(date) {
+        this.agendaSelectedDate = this.agendaDateKey(date);
+        const firstItem = this.agendaForDate(date)[0];
+        this.agendaSelectedId = firstItem ? firstItem.id : null;
+    },
+    agendaShiftMonth(amount) {
+        this.agendaMonth = new Date(this.agendaMonth.getFullYear(), this.agendaMonth.getMonth() + amount, 1);
+    },
+    get agendaCommunities() {
+        return [...new Set(this.agendaItems.map(item => item.community))];
+    },
+    get agendaUpcoming() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const upcoming = [];
+        for (let offset = 0; offset < 60; offset++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + offset);
+            this.agendaForDate(date).forEach(item => upcoming.push({ ...item, occurrenceDate: this.agendaDateKey(date) }));
+        }
+        return upcoming;
+    },
 
     // BMI Calculator state
     bmiHeight: 170,
@@ -44,6 +100,125 @@
         this.todayCheckedIn = !this.todayCheckedIn;
     }
 }" class="space-y-8 w-full max-w-7xl">
+
+    {{-- ============================================================
+         5. MODUL: KALENDER JADWAL & AGENDA OLAHRAGA
+         ============================================================ --}}
+    <section x-show="activeSection === 'agenda'" x-cloak class="space-y-6">
+        <div class="relative overflow-hidden rounded-2xl border border-rose-200/70 bg-gradient-to-r from-white via-rose-50/70 to-red-50/50 p-6 sm:p-8 shadow-xs">
+            <div class="relative z-10 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
+                <div>
+                    <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-rose-600"><span aria-hidden="true">▦</span> Agenda Olahraga Terjadwal</span>
+                    <h3 class="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">Jadwal &amp; Agenda Olahraga</h3>
+                    <p class="mt-2 max-w-2xl text-sm sm:text-base text-stone-600">Temukan sesi latihan rutin, fun match, dan turnamen dari komunitas yang kamu ikuti.</p>
+                </div>
+                <div class="grid gap-2 sm:grid-cols-2">
+                    <label class="sr-only" for="agenda-community-filter">Filter komunitas</label>
+                    <select id="agenda-community-filter" x-model="agendaCommunityFilter" class="glass-input rounded-xl px-4 py-3 text-sm text-stone-700">
+                        <option value="all">Semua Komunitas</option>
+                        <template x-for="community in agendaCommunities" :key="community"><option :value="community" x-text="community"></option></template>
+                    </select>
+                    <label class="sr-only" for="agenda-type-filter">Filter jenis kegiatan</label>
+                    <select id="agenda-type-filter" x-model="agendaTypeFilter" class="glass-input rounded-xl px-4 py-3 text-sm text-stone-700">
+                        <option value="all">Semua Jenis Kegiatan</option>
+                        <option value="latihan_rutin">Latihan Rutin</option>
+                        <option value="fun_match">Fun Match</option>
+                        <option value="tournament">Turnamen</option>
+                        <option value="gathering">Gathering</option>
+                        <option value="workshop">Workshop</option>
+                        <option value="other">Lainnya</option>
+                    </select>
+                    <div class="flex rounded-xl border border-rose-100 bg-white/80 p-1 sm:col-span-2">
+                        <button type="button" @click="agendaView = 'calendar'" :class="agendaView === 'calendar' ? 'bg-rose-50 text-rose-700 shadow-xs' : 'text-stone-500'" class="flex-1 rounded-lg px-3 py-2 text-sm font-semibold">▦ Kalender Bulan</button>
+                        <button type="button" @click="agendaView = 'list'" :class="agendaView === 'list' ? 'bg-rose-50 text-rose-700 shadow-xs' : 'text-stone-500'" class="flex-1 rounded-lg px-3 py-2 text-sm font-semibold">☷ Daftar List</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid gap-6 xl:grid-cols-[minmax(0,1.9fr)_minmax(320px,0.95fr)]">
+            <div x-show="agendaView === 'calendar'" class="glass-card rounded-2xl p-4 sm:p-6">
+                <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <h4 class="text-xl sm:text-2xl font-extrabold text-stone-900" x-text="agendaMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })"></h4>
+                        <div class="flex items-center gap-1 rounded-xl bg-rose-50 p-1">
+                            <button type="button" @click="agendaShiftMonth(-1)" class="rounded-lg px-2.5 py-1.5 text-rose-700 hover:bg-white" aria-label="Bulan sebelumnya">‹</button>
+                            <button type="button" @click="agendaMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1); agendaSelectDate(new Date())" class="rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-rose-700">Hari Ini</button>
+                            <button type="button" @click="agendaShiftMonth(1)" class="rounded-lg px-2.5 py-1.5 text-rose-700 hover:bg-white" aria-label="Bulan berikutnya">›</button>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 text-[11px] font-semibold text-stone-600">
+                        <span class="rounded-full bg-rose-50 px-2.5 py-1 text-rose-700">● Latihan Rutin</span>
+                        <span class="rounded-full bg-cyan-50 px-2.5 py-1 text-cyan-700">● Fun Match</span>
+                        <span class="rounded-full bg-amber-50 px-2.5 py-1 text-amber-700">● Turnamen</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-7 gap-1.5 sm:gap-2">
+                    <template x-for="day in ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']" :key="day"><div class="py-2 text-center text-[10px] font-bold uppercase tracking-wide text-stone-400" x-text="day"></div></template>
+                    <template x-for="date in agendaCalendarCells()" :key="agendaDateKey(date)">
+                        <button type="button" @click="agendaSelectDate(date)" :class="[
+                            date.getMonth() === agendaMonth.getMonth() ? 'bg-rose-50/70 text-stone-700' : 'bg-stone-50/50 text-stone-300',
+                            agendaSelectedDate === agendaDateKey(date) ? 'ring-2 ring-rose-500 bg-white' : 'hover:bg-rose-100/70',
+                            agendaDateKey(date) === agendaDateKey(new Date()) ? 'font-extrabold' : ''
+                        ].join(' ')" class="min-h-20 sm:min-h-24 rounded-xl p-1.5 sm:p-2 text-left transition-colors">
+                            <span class="text-xs" x-text="date.getDate()"></span>
+                            <div class="mt-1 space-y-1">
+                                <template x-for="item in agendaForDate(date).slice(0, 2)" :key="item.id">
+                                    <span :class="item.type === 'latihan_rutin' ? 'bg-rose-200/80 text-rose-800' : (item.type === 'fun_match' ? 'bg-cyan-200/80 text-cyan-800' : 'bg-amber-200/80 text-amber-800')" class="block truncate rounded-md px-1 py-0.5 text-[9px] font-semibold" x-text="`${item.start} ${item.title}`"></span>
+                                </template>
+                                <span x-show="agendaForDate(date).length > 2" class="block text-[9px] text-stone-500" x-text="`+${agendaForDate(date).length - 2} agenda`"></span>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <div x-show="agendaView === 'list'" class="glass-card rounded-2xl p-5 sm:p-6">
+                <h4 class="text-xl font-extrabold text-stone-900">Agenda Mendatang</h4>
+                <p class="mb-4 mt-1 text-xs text-stone-500">Jadwal dalam 60 hari ke depan</p>
+                <div x-show="agendaUpcoming.length === 0" class="rounded-xl bg-rose-50/70 p-6 text-center text-sm text-stone-500">Belum ada agenda olahraga yang sesuai filter.</div>
+                <div class="max-h-[680px] space-y-3 overflow-y-auto pr-1">
+                    <template x-for="item in agendaUpcoming" :key="`${item.id}-${item.occurrenceDate}`">
+                        <button type="button" @click="agendaSelectedDate = item.occurrenceDate; agendaSelectedId = item.id; agendaMonth = new Date(`${item.occurrenceDate}T00:00:00`); agendaView = 'calendar'" class="w-full rounded-xl border border-rose-100 bg-white/80 p-4 text-left transition hover:border-rose-300 hover:shadow-xs">
+                            <span class="text-[11px] font-bold uppercase text-rose-600" x-text="new Date(`${item.occurrenceDate}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })"></span>
+                            <span class="mt-1 block font-bold text-stone-900" x-text="item.title"></span>
+                            <span class="mt-1 block text-xs text-stone-500" x-text="`${item.start} WIB · ${item.community}`"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <aside class="space-y-5">
+                <div class="glass-card rounded-2xl p-5 sm:p-6">
+                    <template x-if="agendaSelectedItem">
+                        <div>
+                            <div class="mb-4 flex items-start justify-between gap-3">
+                                <span :class="agendaSelectedItem.type === 'latihan_rutin' ? 'bg-rose-100 text-rose-700' : 'bg-cyan-100 text-cyan-700'" class="rounded-full px-3 py-1 text-[10px] font-bold" x-text="agendaSelectedItem.type === 'latihan_rutin' ? 'Latihan Rutin' : agendaSelectedItem.type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')"></span>
+                                <span class="rounded-full bg-stone-100 px-3 py-1 text-[10px] font-bold text-stone-600" x-text="agendaSelectedItem.sport"></span>
+                            </div>
+                            <h4 class="text-2xl font-extrabold leading-tight text-stone-900" x-text="agendaSelectedItem.title"></h4>
+                            <p class="mt-2 text-sm text-stone-500" x-text="agendaSelectedItem.description || `Kegiatan olahraga bersama ${agendaSelectedItem.community}.`"></p>
+                            <div class="mt-5 space-y-4 rounded-xl bg-rose-50/80 p-4">
+                                <div><span class="block text-[10px] font-bold uppercase text-stone-400">Waktu &amp; Tanggal</span><strong class="mt-1 block text-sm text-stone-800" x-text="agendaSelectedItem.kind === 'event' ? new Date(`${agendaSelectedItem.date}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : `${['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][agendaSelectedItem.day]}, ${agendaSelectedItem.start} WIB`"></strong><span class="text-xs text-stone-500" x-text="`${agendaSelectedItem.start}${agendaSelectedItem.end ? ` – ${agendaSelectedItem.end}` : ''} WIB`"></span></div>
+                                <div><span class="block text-[10px] font-bold uppercase text-stone-400">Titik Kumpul</span><strong class="mt-1 block text-sm text-stone-800" x-text="agendaSelectedItem.location || 'Lokasi belum ditentukan'"></strong><span class="text-xs text-stone-500" x-text="agendaSelectedItem.community"></span></div>
+                                <div><span class="block text-[10px] font-bold uppercase text-stone-400">Kapasitas Slot</span><strong class="mt-1 block text-sm text-stone-800" x-text="agendaSelectedItem.capacity ? `${agendaSelectedItem.filled}/${agendaSelectedItem.capacity} Peserta` : 'Tanpa batas peserta'"></strong></div>
+                            </div>
+                            <a x-show="agendaSelectedItem.maps_url" :href="agendaSelectedItem.maps_url" target="_blank" rel="noopener noreferrer" class="mt-5 block w-full rounded-xl bg-gradient-to-r from-rose-500 to-red-500 px-4 py-3 text-center text-sm font-bold text-white shadow-sm">Buka Peta Lokasi <span aria-hidden="true">→</span></a>
+                        </div>
+                    </template>
+                    <div x-show="!agendaSelectedItem" class="py-8 text-center">
+                        <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-xl text-rose-500">▦</div>
+                        <h4 class="font-bold text-stone-800">Pilih tanggal agenda</h4>
+                        <p class="mt-1 text-xs text-stone-500">Pilih tanggal pada kalender untuk melihat detail kegiatan.</p>
+                    </div>
+                </div>
+                <div class="glass-card rounded-2xl p-5">
+                    <h4 class="font-bold text-stone-900">Agenda olahraga</h4>
+                    <div class="mt-3 flex flex-wrap gap-2 text-xs"><span class="rounded-full bg-rose-50 px-3 py-1.5 text-rose-700">{{ $schedules->count() }} latihan rutin</span><span class="rounded-full bg-cyan-50 px-3 py-1.5 text-cyan-700">{{ $events->count() }} event</span></div>
+                </div>
+            </aside>
+        </div>
+    </section>
 
     {{-- ============================================================
          1. HERO WELCOME BANNER (Gradient Putih ke Merah Pudar & Glass)
