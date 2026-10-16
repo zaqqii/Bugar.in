@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
+    
 
     protected $fillable = [
         'name',
@@ -53,5 +55,15 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function participants()
+    {
+        return $this->belongsToMany(Event::class, 'event_user');
+    }
+
+    public function streaks()
+    {
+        return $this->hasMany(Streak::class);
     }
 }

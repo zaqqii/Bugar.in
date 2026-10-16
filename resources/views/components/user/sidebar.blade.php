@@ -113,6 +113,25 @@
             <span class="flex-1 leading-snug relative z-10">Jadwal &amp; Agenda</span>
         </button>
 
+        {{-- 4. Leaderboard User Overall --}}
+        <button type="button" @click="setSection('leaderboard')" :class="activeSection === 'leaderboard'
+               ? 'bg-gradient-to-r from-rose-100/90 via-rose-50/80 to-white/60 text-rose-700 font-semibold border-l-4 border-rose-500 shadow-xs'
+               : 'text-stone-600 hover:bg-white/60 hover:text-rose-600 font-medium'"
+            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-all duration-150 group w-full text-left cursor-pointer relative overflow-hidden">
+            <div x-show="activeSection === 'leaderboard'"
+                class="absolute -left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-rose-400/30 blur-md pointer-events-none"
+                aria-hidden="true"></div>
+            <span class="flex items-center justify-center w-7 h-7 rounded-lg transition-colors relative z-10"
+                :class="activeSection === 'leaderboard' ? 'bg-rose-200/70 text-rose-700' : 'bg-white/80 text-stone-500 group-hover:bg-rose-100/70 group-hover:text-rose-600 border border-stone-200/60'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M8 21h8m-4-4v4m-5-16h10l2 3-7 8-7-8 2-3zm0 0 2 6m8-6-2 6m-3-6v8" />
+                </svg>
+            </span>
+            <span class="flex-1 leading-snug relative z-10">Leaderboard Overall</span>
+        </button>
+
         {{-- Section 2: Fitur Personal & Kesehatan --}}
         <div class="px-3 pt-4 pb-1 text-[11px] font-bold text-stone-400 uppercase tracking-wider">
             Kebugaran &amp; Aktivitas

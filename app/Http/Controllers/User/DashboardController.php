@@ -7,6 +7,7 @@ use App\Models\Community;
 use App\Models\CommunityMember;
 use App\Models\Event;
 use App\Models\Schedule;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -49,7 +50,7 @@ class DashboardController extends Controller
             'sport' => $event->community?->sport_category ?? 'olahraga',
             'location' => $event->location,
             'maps_url' => $event->maps_url,
-            'date' => $event->event_date?->format('Y-m-d'),
+            'date' => $event->event_date ? \Illuminate\Support\Carbon::parse($event->event_date)->format('Y-m-d') : null,
             'day' => null,
             'start' => substr($event->start_time, 0, 5),
             'end' => $event->end_time ? substr($event->end_time, 0, 5) : null,
@@ -77,10 +78,45 @@ class DashboardController extends Controller
             'status' => $schedule->status,
         ]))->values();
 
+        // Leaderboard overall memakai poin dan aktivitas yang tercatat di database.
+        $leaderboardUsers = User::query()
+            ->where('role', 'user')
+            ->where('is_active', true)
+            ->select(['id', 'name', 'username', 'avatar', 'total_points'])
+            ->withCount([
+                'participants as attended_sessions_count' => fn($query) => $query->where('status', 'attended'),
+                'communityMemberships as active_communities_count' => fn($query) => $query->where('status', 'active'),
+            ])
+            ->withMax('streaks as current_streak', 'current_streak')
+            ->withMax('streaks as longest_streak', 'longest_streak')
+            ->orderByDesc('total_points')
+            ->orderByDesc('attended_sessions_count')
+            ->orderBy('name')
+            ->get()
+            ->values()
+            ->map(function (User $rankedUser, int $index) use ($user) {
+                $rankedUser->setAttribute('rank', $index + 1);
+                $rankedUser->setAttribute('is_current_user', $user && $rankedUser->id === $user->id);
+
+                return $rankedUser;
+            });
+
+        $leaderboardStats = [
+            'users' => $leaderboardUsers->count(),
+            'points' => $leaderboardUsers->sum('total_points'),
+            'sessions' => $leaderboardUsers->sum('attended_sessions_count'),
+            'active_streaks' => $leaderboardUsers->where('current_streak', '>', 0)->count(),
+        ];
         // Data Keikutsertaan Komunitas User
-        $userMemberships = $user
-            ? CommunityMember::where('user_id', $user->id)->with('community')->get()
-            : collect();
+        $userMemberships = collect();
+
+        if ($user instanceof User) {
+            if (method_exists($user, 'communityMemberships')) {
+                $userMemberships = $user->communityMemberships()->with('community')->get();
+            } else {
+                $userMemberships = CommunityMember::where('user_id', $user->id)->with('community')->get();
+            }
+        }
 
         // Agregasi Statistik Asli
         $userCommunitiesCount = $userMemberships->count();
@@ -100,6 +136,8 @@ class DashboardController extends Controller
             'events',
             'schedules',
             'agendaItems',
+            'leaderboardUsers',
+            'leaderboardStats',
             'userMemberships',
             'userCommunitiesCount',
             'totalCommunitiesCount',
