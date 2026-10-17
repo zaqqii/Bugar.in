@@ -33,6 +33,7 @@ class EventController extends Controller
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'event_date' => 'required|date',
             'registration_close_at' => 'required|date',
+            'timezone' => 'nullable|string|in:WIB,WITA,WIT',
             'start_time' => 'required',
             'end_time' => 'nullable',
             'location' => 'required|string|max:255',
@@ -62,6 +63,9 @@ class EventController extends Controller
         // Format Requirements (sertakan info pembayaran dan kontak jika ada)
         $requirements = $validated['requirements'] ?? '';
         $extraInfo = [];
+        if (!empty($validated['timezone'])) {
+            $extraInfo[] = "Zona Waktu Acara: " . $validated['timezone'];
+        }
         if (!empty($validated['payment_method'])) {
             $extraInfo[] = "Metode Pembayaran: " . $validated['payment_method'];
         }

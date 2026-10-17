@@ -29,21 +29,21 @@
     <div class="bg-white rounded-2xl border border-slate-200 p-6 mb-8 shadow-sm">
         <div class="relative">
             {{-- Background Track Line (Presisi dari center lingkaran 1 ke lingkaran 3) --}}
-            <div class="absolute top-[22px] -translate-y-1/2 left-[16.666%] right-[16.666%] h-1 bg-slate-200 z-0 hidden md:block rounded-full">
-                {{-- Animated Progress Line --}}
-                <div class="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-500 ease-in-out"
-                     :style="`width: ${step === 1 ? '0%' : (step === 2 ? '50%' : '100%')}`"></div>
+            <div class="absolute top-[22px] -translate-y-1/2 left-[16.666%] right-[16.666%] h-1 bg-slate-200 z-0 hidden md:block rounded-full overflow-hidden">
+                {{-- Animated Progress Line dengan Gradasi Royal Blue -> Cyan --}}
+                <div class="h-full bg-gradient-to-r from-blue-700 via-blue-500 to-cyan-500 rounded-full transition-all duration-500 ease-in-out"
+                    :style="`width: ${step === 1 ? '0%' : (step === 2 ? '50%' : '100%')}`"></div>
             </div>
 
             {{-- Steps Grid --}}
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
                 
-                {{-- STEP 1 --}}
+                {{-- STEP 1 (Awal Gradasi: Royal Blue) --}}
                 <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="goToStep(1)">
                     <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm relative z-10 ring-4 ring-white"
-                         :class="step === 1 
-                            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-primary-500/25' 
-                            : (step > 1 ? 'bg-primary-500 text-white' : 'bg-slate-100 text-slate-400')">
+                        :class="step >= 1 
+                            ? 'bg-gradient-to-br from-blue-700 to-blue-600 text-white shadow-blue-600/30' 
+                            : 'bg-slate-100 text-slate-400'">
                         <template x-if="step > 1">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -55,19 +55,19 @@
                     </div>
                     <div>
                         <h4 class="text-sm font-bold transition-colors"
-                            :class="step === 1 ? 'text-primary-700' : (step > 1 ? 'text-slate-800' : 'text-slate-400')">
+                            :class="step >= 1 ? 'text-blue-700' : 'text-slate-400'">
                             Informasi Event
                         </h4>
                         <p class="text-xs text-slate-400 hidden md:block mt-0.5">Detail utama & cover</p>
                     </div>
                 </div>
 
-                {{-- STEP 2 --}}
+                {{-- STEP 2 (Tengah Gradasi: Blend Blue ke Cyan) --}}
                 <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="goToStep(2)">
                     <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm relative z-10 ring-4 ring-white"
-                         :class="step === 2 
-                            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-primary-500/25' 
-                            : (step > 2 ? 'bg-primary-500 text-white' : 'bg-slate-100 text-slate-400')">
+                        :class="step >= 2 
+                            ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-cyan-500/30' 
+                            : 'bg-slate-100 text-slate-400'">
                         <template x-if="step > 2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -79,24 +79,24 @@
                     </div>
                     <div>
                         <h4 class="text-sm font-bold transition-colors"
-                            :class="step === 2 ? 'text-primary-700' : (step > 2 ? 'text-slate-800' : 'text-slate-400')">
+                            :class="step >= 2 ? 'text-blue-600' : 'text-slate-400'">
                             Jadwal & Lokasi
                         </h4>
                         <p class="text-xs text-slate-400 hidden md:block mt-0.5">Waktu, tempat & batas RSVP</p>
                     </div>
                 </div>
 
-                {{-- STEP 3 --}}
+                {{-- STEP 3 (Ujung Gradasi: Cyan) --}}
                 <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="goToStep(3)">
                     <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm relative z-10 ring-4 ring-white"
-                         :class="step === 3 
-                            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-primary-500/25' 
+                        :class="step === 3 
+                            ? 'bg-gradient-to-br from-cyan-500 to-cyan-400 text-white shadow-cyan-400/30' 
                             : 'bg-slate-100 text-slate-400'">
                         <span>3</span>
                     </div>
                     <div>
                         <h4 class="text-sm font-bold transition-colors"
-                            :class="step === 3 ? 'text-primary-700' : 'text-slate-400'">
+                            :class="step === 3 ? 'text-cyan-600' : 'text-slate-400'">
                             Pendaftaran & Pembayaran
                         </h4>
                         <p class="text-xs text-slate-400 hidden md:block mt-0.5">Biaya, kuota & kontak</p>
@@ -367,7 +367,7 @@
                     </a>
                     <button type="button"
                             @click="validateAndNext(1)"
-                            class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white text-sm font-bold shadow-lg shadow-primary-500/20 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5">
+class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 hover:from-blue-800 hover:via-blue-700 hover:to-cyan-600 text-white text-sm font-bold shadow-lg shadow-blue-500/20 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5">
                         Lanjut ke Jadwal & Lokasi
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -392,7 +392,44 @@
 
                 <div class="space-y-6">
 
-                    {{-- 1. Tanggal Event & Batas Akhir Pendaftaran (Grid 2 Kolom) --}}
+                {{-- 1. Pilihan Zona Waktu (WIB, WITA, WIT) --}}
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">
+                            Pilih Zona Waktu <span class="text-red-500">*</span>
+                        </label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <button type="button"
+                                    @click="form.timezone = 'WIB'"
+                                    class="py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-200 text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                                    :class="form.timezone === 'WIB'
+                                        ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/25 ring-2 ring-primary-500/20'
+                                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'">
+                                <span>WIB</span>
+                                <span class="text-[10px] font-normal" :class="form.timezone === 'WIB' ? 'text-white/80' : 'text-slate-400'">(UTC+7)</span>
+                            </button>
+                            <button type="button"
+                                    @click="form.timezone = 'WITA'"
+                                    class="py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-200 text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                                    :class="form.timezone === 'WITA'
+                                        ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/25 ring-2 ring-primary-500/20'
+                                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'">
+                                <span>WITA</span>
+                                <span class="text-[10px] font-normal" :class="form.timezone === 'WITA' ? 'text-white/80' : 'text-slate-400'">(UTC+8)</span>
+                            </button>
+                            <button type="button"
+                                    @click="form.timezone = 'WIT'"
+                                    class="py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-200 text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                                    :class="form.timezone === 'WIT'
+                                        ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/25 ring-2 ring-primary-500/20'
+                                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'">
+                                <span>WIT</span>
+                                <span class="text-[10px] font-normal" :class="form.timezone === 'WIT' ? 'text-white/80' : 'text-slate-400'">(UTC+9)</span>
+                            </button>
+                        </div>
+                        <input type="hidden" name="timezone" :value="form.timezone">
+                    </div>
+
+                    {{-- 2. Tanggal Event & Batas Akhir Pendaftaran (Grid 2 Kolom) --}}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                         {{-- Tanggal Pelaksanaan --}}
@@ -427,13 +464,13 @@
 
                     </div>
 
-                    {{-- 2. Waktu Mulai & Waktu Selesai (Grid 2 Kolom) --}}
+                    {{-- 3. Waktu Mulai & Waktu Selesai (Grid 2 Kolom) --}}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                         {{-- Waktu Mulai --}}
                         <div>
                             <label for="start_time" class="block text-sm font-semibold text-slate-700 mb-2">
-                                Waktu Mulai <span class="text-red-500">*</span>
+                                Waktu Mulai (<span x-text="form.timezone" class="text-primary-600"></span>) <span class="text-red-500">*</span>
                             </label>
                             <input type="time"
                                    id="start_time"
@@ -448,7 +485,7 @@
                         {{-- Waktu Selesai --}}
                         <div>
                             <label for="end_time" class="block text-sm font-semibold text-slate-700 mb-2">
-                                Waktu Selesai (Opsional)
+                                Waktu Selesai (<span x-text="form.timezone" class="text-primary-600"></span>, Opsional)
                             </label>
                             <input type="time"
                                    id="end_time"
@@ -510,7 +547,7 @@
                     </button>
                     <button type="button"
                             @click="validateAndNext(2)"
-                            class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white text-sm font-bold shadow-lg shadow-primary-500/20 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5">
+                            class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 hover:from-blue-800 hover:via-blue-700 hover:to-cyan-600 text-white text-sm font-bold shadow-lg shadow-blue-500/20 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5">
                         Lanjut ke Pendaftaran & Pembayaran
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -777,7 +814,7 @@
                     
                     <button type="submit"
                             :disabled="isSubmitting"
-                            class="px-7 py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white text-sm font-bold shadow-lg shadow-primary-500/25 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                            class="px-7 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 hover:from-blue-800 hover:via-blue-700 hover:to-cyan-600 text-white text-sm font-bold shadow-lg shadow-blue-500/25 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                         <template x-if="!isSubmitting">
                             <span class="inline-flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -853,6 +890,7 @@ function eventWizard() {
             cover_image: null,
             event_date: @json(old('event_date', '')),
             registration_close_at: @json(old('registration_close_at', '')),
+            timezone: @json(old('timezone', 'WIB')),
             start_time: @json(old('start_time', '')),
             end_time: @json(old('end_time', '')),
             location: @json(old('location', '')),
