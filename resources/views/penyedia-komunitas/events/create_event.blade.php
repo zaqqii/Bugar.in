@@ -28,21 +28,21 @@
     {{-- WIZARD STEPPER & ANIMATED PROGRESS BAR --}}
     <div class="bg-white rounded-2xl border border-slate-200 p-6 mb-8 shadow-sm">
         <div class="relative">
-            {{-- Background Track Line --}}
-            <div class="absolute top-5 left-10 right-10 h-1 bg-slate-100 rounded-full -z-0 hidden md:block"></div>
-            
-            {{-- Animated Progress Line --}}
-            <div class="absolute top-5 left-10 h-1 bg-gradient-to-r from-primary-400 to-primary-600 rounded-full -z-0 transition-all duration-500 ease-in-out hidden md:block"
-                 :style="'width: ' + ((step - 1) / 2 * 80) + '%;'"></div>
+            {{-- Background Track Line (Presisi dari center lingkaran 1 ke lingkaran 3) --}}
+            <div class="absolute top-[22px] -translate-y-1/2 left-[16.666%] right-[16.666%] h-1 bg-slate-200 z-0 hidden md:block rounded-full">
+                {{-- Animated Progress Line --}}
+                <div class="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-500 ease-in-out"
+                     :style="`width: ${step === 1 ? '0%' : (step === 2 ? '50%' : '100%')}`"></div>
+            </div>
 
             {{-- Steps Grid --}}
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
                 
                 {{-- STEP 1 --}}
                 <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="goToStep(1)">
-                    <div class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm"
+                    <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm relative z-10 ring-4 ring-white"
                          :class="step === 1 
-                            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white ring-4 ring-primary-100 shadow-primary-500/25' 
+                            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-primary-500/25' 
                             : (step > 1 ? 'bg-primary-500 text-white' : 'bg-slate-100 text-slate-400')">
                         <template x-if="step > 1">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -64,9 +64,9 @@
 
                 {{-- STEP 2 --}}
                 <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="goToStep(2)">
-                    <div class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm"
+                    <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm relative z-10 ring-4 ring-white"
                          :class="step === 2 
-                            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white ring-4 ring-primary-100 shadow-primary-500/25' 
+                            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-primary-500/25' 
                             : (step > 2 ? 'bg-primary-500 text-white' : 'bg-slate-100 text-slate-400')">
                         <template x-if="step > 2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -88,9 +88,9 @@
 
                 {{-- STEP 3 --}}
                 <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="goToStep(3)">
-                    <div class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm"
+                    <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm relative z-10 ring-4 ring-white"
                          :class="step === 3 
-                            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white ring-4 ring-primary-100 shadow-primary-500/25' 
+                            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-primary-500/25' 
                             : 'bg-slate-100 text-slate-400'">
                         <span>3</span>
                     </div>
@@ -165,7 +165,7 @@
                             { value: 'badminton', label: 'Badminton / Bulu Tangkis' },
                             { value: 'running', label: 'Running / Lari' },
                             { value: 'futsal', label: 'Futsal' },
-                            { value: 'basketball', label: 'Basket' },
+                            { value: 'basketball', label: 'Bola Basket' },
                             { value: 'football', label: 'Sepak Bola' },
                             { value: 'cycling', label: 'Sepeda' },
                             { value: 'swimming', label: 'Berenang' },
@@ -175,8 +175,11 @@
                             { value: 'other', label: 'Olahraga Lainnya' }
                         ],
                         get selectedLabel() {
+                            if (form.sport_category === 'other') {
+                                return form.other_sport_category ? ('Lainnya: ' + form.other_sport_category) : 'Olahraga Lainnya';
+                            }
                             let cat = this.categories.find(c => c.value === form.sport_category);
-                            return cat ? cat.label : 'Pilih Kategori Olahraga';
+                            return cat ? cat.label : '-- Pilih Kategori Olahraga --';
                         }
                     }">
                         <label class="block text-sm font-semibold text-slate-700 mb-2">
@@ -184,50 +187,43 @@
                         </label>
 
                         <div class="relative" @click.outside="open = false">
-                            {{-- Trigger Button --}}
                             <button type="button" 
                                     @click="open = !open"
                                     class="w-full px-4 py-3 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 cursor-pointer text-left shadow-sm"
                                     :class="errors.sport_category ? 'border-red-400 ring-2 ring-red-100' : ''">
-                                
-                                <span :class="!form.sport_category ? 'text-slate-400' : 'text-slate-800 font-medium'" 
-                                    x-text="selectedLabel"></span>
-                                
-                                <svg xmlns="http://www.w3.org/2000/svg" 
-                                    class="w-4 h-4 text-slate-400 transition-transform duration-300" 
-                                    :class="open ? 'rotate-180 text-primary-500' : ''" 
-                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <span :class="!form.sport_category ? 'text-slate-400' : 'text-slate-800 font-medium'" x-text="selectedLabel"></span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400 transition-transform duration-300" :class="open ? 'rotate-180 text-primary-500' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                                 </svg>
                             </button>
 
-                            <input type="hidden" name="sport_category" :value="form.sport_category ?? ''">
+                            <input type="hidden" name="sport_category" :value="form.sport_category === 'other' ? (form.other_sport_category || 'other') : form.sport_category">
 
-                            {{-- Dropdown Menu --}}
                             <div x-show="open"
                                 x-transition:enter="transition ease-out duration-200"
                                 x-transition:enter-start="opacity-0 -translate-y-2 scale-95"
                                 x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                                x-transition:leave="transition ease-in duration-150"
-                                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-                                x-transition:leave-end="opacity-0 -translate-y-2 scale-95"
-                                class="absolute top-full left-0 right-0 mt-2 z-50 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 space-y-0.5 custom-scrollbar"
+                                class="absolute top-full left-0 right-0 mt-2 z-50 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 space-y-0.5"
                                 style="display: none;">
-                                
                                 <template x-for="cat in categories" :key="cat.value">
                                     <button type="button"
                                             @click="form.sport_category = (form.sport_category === cat.value ? null : cat.value); open = false;"
                                             class="w-full text-left px-3.5 py-2.5 rounded-lg text-sm transition-all duration-150 flex items-center justify-between"
-                                            :class="form.sport_category === cat.value 
-                                                ? 'bg-primary-50/80 text-primary-700 font-bold' 
-                                                : 'text-slate-700 hover:bg-slate-100/80'">
+                                            :class="form.sport_category === cat.value ? 'bg-primary-50/80 text-primary-700 font-bold' : 'text-slate-700 hover:bg-slate-100/80'">
                                         <span x-text="cat.label"></span>
-                                        <svg x-show="form.sport_category === cat.value" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                        </svg>
+                                        <svg x-show="form.sport_category === cat.value" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                                     </button>
                                 </template>
                             </div>
+                        </div>
+
+                        {{-- Input Muncul Otomatis Jika Memilih Lainnya --}}
+                        <div x-show="form.sport_category === 'other'" x-transition class="mt-3">
+                            <input type="text" 
+                                x-model="form.other_sport_category"
+                                placeholder="Ketik nama cabang olahraga" 
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
+                                :class="errors.sport_category ? 'border-red-400 ring-2 ring-red-100' : ''">
                         </div>
 
                         <p x-show="errors.sport_category" x-text="errors.sport_category" class="text-xs text-red-500 mt-1 font-medium"></p>
@@ -582,7 +578,7 @@
                                        x-model="form.capacity"
                                        min="1"
                                        placeholder="Contoh : 32"
-                                       class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
+                                       class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                        :class="errors.capacity ? 'border-red-400 ring-2 ring-red-100' : ''">
                                 <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-xs font-semibold text-slate-400 pointer-events-none">
                                     Peserta
@@ -603,7 +599,7 @@
                             {{-- Pilihan Gratis vs Berbayar --}}
                             <div class="grid grid-cols-2 gap-2 mb-3">
                                 <button type="button"
-                                        @click="form.is_paid = '0'; form.registration_fee = 0"
+                                        @click="form.is_paid = '0'; form.registration_fee = '0'; formattedFee = ''"
                                         class="py-2.5 px-3 rounded-xl border text-xs font-bold transition-all duration-200 text-center"
                                         :class="form.is_paid === '0' 
                                             ? 'border-primary-500 bg-primary-50/70 text-primary-700 ring-2 ring-primary-500/20 shadow-sm' 
@@ -631,15 +627,15 @@
                                 <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-bold text-slate-500 pointer-events-none">
                                     Rp
                                 </span>
-                                <input type="number"
+                                <input type="text"
+                                       inputmode="numeric"
                                        id="registration_fee"
-                                       name="registration_fee"
-                                       x-model="form.registration_fee"
-                                       min="0"
-                                       step="1000"
-                                       placeholder="Contoh : 50000"
-                                       class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
+                                       :value="formattedFee"
+                                       @input="handleFeeInput($event)"
+                                       placeholder="Contoh : 50.000"
+                                       class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                        :class="errors.registration_fee ? 'border-red-400 ring-2 ring-red-100' : ''">
+                                <input type="hidden" name="registration_fee" :value="form.registration_fee">
                             </div>
                             <p x-show="errors.registration_fee" x-text="errors.registration_fee" class="text-xs text-red-500 mt-1 font-medium"></p>
                             <p class="text-xs text-slate-400 mt-1.5" x-show="form.is_paid === '0'">
@@ -818,6 +814,7 @@ function eventWizard() {
         isDragging: false,
         previewUrl: null,
         errors: {},
+        formattedFee: '',
         eventTypes: [
             { 
                 value: 'fun_match', 
@@ -850,6 +847,7 @@ function eventWizard() {
             title: @json(old('title', '')),
             type: @json(old('type', 'fun_match')),
             sport_category: @json(old('sport_category', $community->sport_category ?? '')),
+            other_sport_category: @json(old('other_sport_category', '')),
             description: @json(old('description', '')),
             rundown: @json(old('rundown', '')),
             cover_image: null,
@@ -868,6 +866,22 @@ function eventWizard() {
             requirements: @json(old('requirements', '')),
             organizer_contact: @json(old('organizer_contact', ''))
         },
+        init() {
+            const predefined = ['badminton', 'running', 'futsal', 'basketball', 'football', 'cycling', 'swimming', 'yoga', 'tennis', 'table_tennis'];
+            if (this.form.sport_category && !predefined.includes(this.form.sport_category)) {
+                this.form.other_sport_category = this.form.sport_category;
+                this.form.sport_category = 'other';
+            }
+            if (this.form.registration_fee && Number(this.form.registration_fee) > 0) {
+                this.formattedFee = Number(this.form.registration_fee).toLocaleString('id-ID');
+            }
+        },
+        handleFeeInput(e) {
+            const raw = e.target.value.replace(/[^0-9]/g, '');
+            this.form.registration_fee = raw;
+            this.formattedFee = raw ? Number(raw).toLocaleString('id-ID') : '';
+            e.target.value = this.formattedFee;
+        },
         goToStep(targetStep) {
             this.step = targetStep;
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -883,6 +897,8 @@ function eventWizard() {
                 }
                 if (!this.form.sport_category) {
                     this.errors.sport_category = 'Pilih kategori olahraga.';
+                } else if (this.form.sport_category === 'other' && (!this.form.other_sport_category || !this.form.other_sport_category.trim())) {
+                    this.errors.sport_category = 'Ketik nama cabang olahraga jika memilih Olahraga Lainnya.';
                 }
                 if (!this.form.description || !this.form.description.trim()) {
                     this.errors.description = 'Deskripsi event wajib diisi.';
@@ -989,6 +1005,8 @@ function eventWizard() {
             }
             if (!this.form.sport_category) {
                 this.errors.sport_category = 'Pilih kategori olahraga.';
+            } else if (this.form.sport_category === 'other' && (!this.form.other_sport_category || !this.form.other_sport_category.trim())) {
+                this.errors.sport_category = 'Ketik nama cabang olahraga jika memilih Olahraga Lainnya.';
             }
             if (!this.form.description || !this.form.description.trim()) {
                 this.errors.description = 'Deskripsi event wajib diisi.';
@@ -1016,7 +1034,7 @@ function eventWizard() {
                 this.errors.capacity = 'Kuota peserta wajib diisi minimal 1.';
             }
             if (this.form.is_paid === '1') {
-                if (!this.form.registration_fee || this.form.registration_fee <= 0) {
+                if (!this.form.registration_fee || Number(this.form.registration_fee) <= 0) {
                     this.errors.registration_fee = 'Nominal biaya pendaftaran wajib diisi.';
                 }
                 if (!this.form.payment_account || !this.form.payment_account.trim()) {

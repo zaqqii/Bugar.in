@@ -16,7 +16,7 @@ class EventController extends Controller
         $user = Auth::user();
         $community = Community::where('owner_id', $user->id)->first();
 
-        return view('penyedia-komunitas.events.create', compact('community'));
+        return view('penyedia-komunitas.events.create_event', compact('community'));
     }
 
     public function store(Request $request)
