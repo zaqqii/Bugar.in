@@ -21,10 +21,10 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
     </style>
 </head>
-<body class="min-h-screen text-slate-800 antialiased flex flex-col justify-between" x-data="{ searchQuery: '', selectedCity: '' }" x-cloak>
-
-    <!-- 1. NAVBAR UTAMA -->
-    <!-- 1. NAVBAR UTAMA -->
+<body class="min-h-screen text-slate-800 antialiased flex flex-col justify-between" x-data="{ searchQuery: '', selectedCity: '', selectedCategories: [] }" x-cloak>
+    
+    @unless(isset($isDashboard) && $isDashboard)
+       <!-- 1. NAVBAR UTAMA -->
     <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-xs">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20 gap-4">
@@ -48,7 +48,7 @@
                     </nav>
                 </div>
 
-                <!-- Right Action Bar (Tanpa tombol Buat Event) -->
+                <!-- Right Action Bar -->
                 <div class="flex items-center gap-4">
                     <div class="hidden md:block relative w-64">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -56,27 +56,48 @@
                         </svg>
                         <input type="text" placeholder="Cari event, komunitas, atlet..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                     </div>
-                    <button class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 relative">
-                        <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500"></span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                    </button>
-                    <!-- Indikator Akun User Biasa -->
-                    <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
-                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold flex items-center justify-center text-xs">
-                            R
+                    <div class="relative" x-data="{ openNotif: false, hasUnread: true }">
+                        <!-- Tombol Lonceng -->
+                        <button @click="openNotif = !openNotif" class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 relative cursor-pointer">
+                            <!-- Titik Merah (Akan hilang jika hasUnread bernilai false) -->
+                            <span x-show="hasUnread" class="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500"></span>
+                            
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                        </button>
+
+                        <!-- Kotak Dropdown Notifikasi -->
+                        <div x-show="openNotif" @click.away="openNotif = false" x-cloak class="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-lg p-4 z-50 text-xs space-y-3">
+                            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                                <span class="font-bold text-slate-900">Notifikasi</span>
+                                <!-- Tombol Tandai Dibaca (Mengubah hasUnread menjadi false) -->
+                                <span @click="hasUnread = false" class="text-[10px] text-blue-600 font-semibold cursor-pointer hover:underline">Tandai dibaca</span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="p-2.5 bg-blue-50/60 rounded-xl text-slate-700">
+                                    <p class="font-semibold text-slate-900">Selamat Datang di Bugar.in! 🎉</p>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">Jelajahi komunitas olahraga lokal favoritmu dan mulai bergabung.</p>
+                                    <span class="text-[9px] text-slate-400 mt-1 block">Baru saja</span>
+                                </div>
+                            </div>
                         </div>
-                        <span class="hidden sm:inline text-xs font-bold text-slate-700">reva</span>
                     </div>
+                    <!-- Indikator Akun User Biasa (Bisa diklik ke Edit Profil) -->
+                    <a href="{{ route('user.profile.edit') }}" class="flex items-center gap-2 pl-2 border-l border-slate-200 hover:opacity-80 transition-opacity cursor-pointer" title="Edit Profil">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold flex items-center justify-center text-xs">
+                            {{ strtoupper(substr(Auth::user()->name ?? 'R', 0, 1)) }}
+                        </div>
+                        <span class="hidden sm:inline text-xs font-bold text-slate-700">{{ Auth::user()->name ?? 'reva' }}</span>
+                    </a>
                 </div>
             </div>
         </div>
     </header>
-    
-    <!-- 2. MAIN CONTENT -->
+    @endunless
+
     <!-- 2. MAIN CONTENT -->
     <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative">
         
-        <!-- Background Gradient Glow (Dibuat Lebih Besar & Biru Tua Lebih Pekat) -->
+        <!-- Background Gradient Glow -->
         <div class="absolute -top-10 left-0 right-0 h-72 bg-gradient-to-r from-blue-700/25 via-indigo-600/20 to-blue-900/30 blur-[100px] -z-10 rounded-full pointer-events-none"></div>
 
         <!-- Header Banner & Title -->
@@ -95,7 +116,7 @@
                     </p>
                 </div>
                 <div class="self-start md:self-auto px-4 py-2 rounded-2xl bg-blue-900 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-900/20">
-                    🔥 184 Sesi Aktif Pekan Ini
+                    🔥 {{ $totalActiveSessions ?? 0 }} Sesi Aktif Pekan Ini
                 </div>
             </div>
 
@@ -105,16 +126,31 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
                     </svg>
-                    <input type="text" x-model="searchQuery" placeholder="Cari nama komunitas, cabang olahraga, atau area (misal: Senayan, Padel, Lari)..." class="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200/90 rounded-2xl text-xs shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                </div>
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <div class="bg-white border border-slate-200/90 px-4 py-3.5 rounded-2xl text-xs font-semibold text-slate-700 flex items-center gap-2 shadow-xs whitespace-nowrap cursor-pointer hover:bg-slate-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707v4.172a1 1 0 01-.553.894l-4 2A1 1 0 017 20.172v-8.172a1 1 0 00-.293-.707L.293 7.293A1 1 0 010 6.586V4z"/></svg>
-                        <span>URUTKAN: Paling Populer</span>
-                    </div>
+                    <input type="text" x-model="searchQuery" placeholder="Cari nama komunitas, cabang olahraga, atau area..." class="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200/90 rounded-2xl text-xs shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                 </div>
             </div>
         </div>
+
+        <!-- Flash Message Notifikasi -->
+        @if(session('success'))
+            <div class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-xs">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">✅</span>
+                    <span>{{ session('success') }}</span>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" class="text-emerald-600 hover:text-emerald-800 font-bold">✕</button>
+            </div>
+        @endif
+
+        @if(session('info'))
+            <div class="mb-6 p-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold flex items-center justify-between shadow-xs">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">ℹ️</span>
+                    <span>{{ session('info') }}</span>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" class="text-blue-600 hover:text-blue-800 font-bold">✕</button>
+            </div>
+        @endif
 
         <!-- MAIN LAYOUT: SIDEBAR FILTER & CARDS GRID -->
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
@@ -134,273 +170,153 @@
                     <div class="space-y-3">
                         <label class="font-extrabold text-slate-800 uppercase tracking-wider block text-[11px]">Kategori Olahraga</label>
                         <div class="space-y-2 text-xs">
-                            <label class="flex items-center justify-between text-slate-600 cursor-pointer"><span class="flex items-center gap-2"><input type="checkbox" class="rounded text-blue-600 w-4 h-4"> Lari & Marathon</span><span class="text-slate-400">14</span></label>
-                            <label class="flex items-center justify-between text-slate-600 cursor-pointer"><span class="flex items-center gap-2"><input type="checkbox" class="rounded text-blue-600 w-4 h-4"> Padel & Tenis</span><span class="text-slate-400">8</span></label>
-                            <label class="flex items-center justify-between text-slate-600 cursor-pointer"><span class="flex items-center gap-2"><input type="checkbox" class="rounded text-blue-600 w-4 h-4"> Badminton</span><span class="text-slate-400">11</span></label>
-                            <label class="flex items-center justify-between text-slate-600 cursor-pointer"><span class="flex items-center gap-2"><input type="checkbox" class="rounded text-blue-600 w-4 h-4"> Sepeda & Roadbike</span><span class="text-slate-400">9</span></label>
-                            <label class="flex items-center justify-between text-slate-600 cursor-pointer"><span class="flex items-center gap-2"><input type="checkbox" class="rounded text-blue-600 w-4 h-4"> Futsal & Mini Soccer</span><span class="text-slate-400">16</span></label>
-                            <label class="flex items-center justify-between text-slate-600 cursor-pointer"><span class="flex items-center gap-2"><input type="checkbox" class="rounded text-blue-600 w-4 h-4"> Gym & Calisthenics</span><span class="text-slate-400">6</span></label>
-                            <label class="flex items-center justify-between text-slate-600 cursor-pointer"><span class="flex items-center gap-2"><input type="checkbox" class="rounded text-blue-600 w-4 h-4"> Basket</span><span class="text-slate-400">5</span></label>
+                            @foreach($sportCategories ?? [] as $cat)
+                                @php
+                                    $catLower = strtolower($cat);
+                                @endphp
+                                <label class="flex items-center justify-between text-slate-600 cursor-pointer">
+                                    <span class="flex items-center gap-2">
+                                        <input type="checkbox" 
+                                            value="{{ $catLower }}" 
+                                            x-model="selectedCategories" 
+                                            class="rounded text-blue-600 w-4 h-4 cursor-pointer"> 
+                                        {{ ucfirst($cat) }}
+                                    </span>
+                                </label>
+                            @endforeach
                         </div>
                     </div>
 
                     <!-- Kota / Wilayah -->
                     <div class="space-y-3 pt-4 border-t border-slate-100">
                         <label class="font-extrabold text-slate-800 uppercase tracking-wider block text-[11px]">Kota / Wilayah</label>
-                        <select class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20">
-                            <option>Semua Wilayah</option>
-                            <option>Jakarta Selatan</option>
-                            <option>Jakarta Pusat</option>
-                            <option>Jakarta Barat</option>
-                            <option>Bandung</option>
+                        <select x-model="selectedCity" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                            <option value="">Semua Wilayah</option>
+                            @foreach($cities ?? [] as $city)
+                                <option value="{{ strtolower($city) }}">{{ ucfirst($city) }}</option>
+                            @endforeach
                         </select>
                     </div>
-
-                    <!-- Hari Kegiatan -->
-                    <div class="space-y-3 pt-4 border-t border-slate-100">
-                        <label class="font-extrabold text-slate-800 uppercase tracking-wider block text-[11px]">Hari Kegiatan</label>
-                        <div class="flex flex-wrap gap-1.5 text-xs">
-                            <button class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold">Bebas</button>
-                            <button class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">Weekend Only</button>
-                            <button class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">Weekday Malam</button>
-                        </div>
-                    </div>
-
-                    <!-- Vibe & Kemahiran -->
-                    <div class="space-y-3 pt-4 border-t border-slate-100">
-                        <label class="font-extrabold text-slate-800 uppercase tracking-wider block text-[11px]">Vibe & Kemahiran</label>
-                        <div class="space-y-2 text-xs text-slate-600">
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="vibe" class="text-blue-600" checked> Semua Level</label>
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="vibe" class="text-blue-600"> Fun & Santai</label>
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="vibe" class="text-blue-600"> Ramah Pemula (Beginner)</label>
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="vibe" class="text-blue-600"> Kompetitif / Semi-Pro</label>
-                        </div>
-                    </div>
-
-                    <!-- Tipe Kontribusi -->
-                    <div class="space-y-3 pt-4 border-t border-slate-100">
-                        <label class="font-extrabold text-slate-800 uppercase tracking-wider block text-[11px]">Tipe Kontribusi</label>
-                        <div class="space-y-2 text-xs text-slate-600">
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="rounded text-blue-600"> Gratis / Kas Rutin Saja</label>
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="rounded text-blue-600"> Berbayar (Sewa Lapangan/Coach)</label>
-                        </div>
-                    </div>
-
-                    <button class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all">
-                        ✓ Terapkan Filter
-                    </button>
                 </div>
             </aside>
 
-            <!-- 2. CARDS GRID KOMUNITAS (BANYAK DAN LENGKAP) -->
+           <!-- 2. CARDS GRID KOMUNITAS (DINAMIS & PAGINATED) -->
             <div class="lg:col-span-3 space-y-6">
                 
                 <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-                    <span class="text-xs font-bold text-slate-700">Menampilkan 24 Komunitas Olahraga di Sekitarmu</span>
-                    <div class="flex items-center gap-1">
-                        <button class="p-1.5 rounded-lg bg-blue-50 text-blue-600"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7"/></svg></button>
-                        <button class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-50"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg></button>
-                    </div>
+                    <span class="text-xs font-bold text-slate-700">
+                        Menampilkan {{ $communities->firstItem() ?? 0 }} - {{ $communities->lastItem() ?? 0 }} dari total {{ $communities->total() }} Komunitas Olahraga
+                    </span>
                 </div>
 
-                <!-- Grid Kartu Komunitas -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    
-                    <!-- Card 1 -->
-                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition-all">
-                        <div class="relative h-36 bg-slate-100">
-                            <img src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=600&q=80" alt="Run" class="w-full h-full object-cover">
-                            <span class="absolute top-3 left-3 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold">Lari & Track</span>
-                            <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold">Open Slot</span>
-                            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-[11px] font-medium bg-slate-900/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
-                                <span>📍 Senayan & GBK, Jaksel</span>
-                            </div>
-                        </div>
-                        <div class="p-4 space-y-2">
-                            <h3 class="font-bold text-slate-900 text-sm">South Jakarta Night Runners</h3>
-                            <p class="text-slate-500 text-xs line-clamp-2">Lari santai melepas penat sepulang kantor bersama ratusan penggiat urban...</p>
-                            <div class="pt-3 border-t border-slate-100 space-y-1 text-[11px] text-slate-600">
-                                <div class="flex justify-between"><span>📅 Rutin:</span><span class="font-semibold">Sel & Kam • 19:30 WIB</span></div>
-                                <div class="flex justify-between"><span>⭐ Level:</span><span class="font-semibold text-blue-600">Semua Level (Beginner Friendly)</span></div>
-                            </div>
-                        </div>
-                        <div class="p-4 pt-0 flex items-center justify-between border-t border-slate-100 mt-2 pt-3">
-                            <span class="text-[11px] font-extrabold text-slate-700">👥 +2,150 Atlet</span>
-                            <div class="flex gap-2">
-                                <a href="#" class="px-2.5 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200">Detail</a>
-                                <a href="#" class="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold shadow-xs hover:bg-blue-700">Gabung</a>
-                            </div>
-                        </div>
+                @if($communities->isEmpty())
+                    <div class="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-xs">
+                        <h4 class="text-base font-bold text-slate-900 mb-1">Belum Ada Komunitas Terdaftar</h4>
+                        <p class="text-xs text-slate-500">Silakan jalankan seeder database terlebih dahulu untuk memunculkan data komunitas.</p>
                     </div>
+                @else
+                    <!-- Grid Kartu Komunitas (Maksimal 6 per halaman) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        @foreach($communities as $comm)
+                            @php
+                                $commName = strtolower($comm->name ?? '');
+                                $commCat = strtolower($comm->sport_category ?? '');
+                                $commCity = strtolower($comm->city ?? '');
+                            @endphp
+                            <div x-show="
+                                (!searchQuery || '{{ $commName }}'.includes(searchQuery.toLowerCase()) || '{{ $commCat }}'.includes(searchQuery.toLowerCase())) &&
+                                (!selectedCity || '{{ $commCity }}' === selectedCity) &&
+                                (selectedCategories.length === 0 || selectedCategories.includes('{{ $commCat }}'))
+                            " class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition-all">
+                                
+                                <!-- Cover Image & Badge -->
+                                <div class="relative h-36 bg-slate-100">
+                                    <img src="{{ $comm->cover_image ?? 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=600&q=80' }}" alt="{{ $comm->name }}" class="w-full h-full object-cover">
+                                    <span class="absolute top-3 left-3 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold">{{ $comm->sport_category }}</span>
+                                    <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold">Open Slot</span>
+                                    <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-[11px] font-medium bg-slate-900/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
+                                        <span>📍 {{ $comm->location ?? $comm->city ?? 'Indonesia' }}</span>
+                                    </div>
+                                </div>
 
-                    <!-- Card 2 -->
-                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition-all">
-                        <div class="relative h-36 bg-slate-100">
-                            <img src="https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=600&q=80" alt="Padel" class="w-full h-full object-cover">
-                            <span class="absolute top-3 left-3 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold">Padel Tennis</span>
-                            <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">Sisa 4 Slot</span>
-                            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-[11px] font-medium bg-slate-900/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
-                                <span>📍 TB Simatupang, Jaksel</span>
+                                <!-- Informasi Detail Komunitas -->
+                                <div class="p-4 space-y-2">
+                                    <h3 class="font-bold text-slate-900 text-sm">{{ $comm->name }}</h3>
+                                    <p class="text-slate-500 text-xs line-clamp-2">{{ $comm->description ?? 'Komunitas olahraga aktif yang terbuka untuk anggota baru.' }}</p>
+                                    
+                                    <div class="pt-3 border-t border-slate-100 space-y-1 text-[11px] text-slate-600">
+                                        <div class="flex justify-between">
+                                            <span>📅 Sesi:</span>
+                                            <span class="font-semibold">
+                                                @if($comm->schedules && $comm->schedules->isNotEmpty())
+                                                    {{ ucfirst($comm->schedules->first()->day_of_week) }} • {{ substr($comm->schedules->first()->start_time, 0, 5) }} WIB
+                                                @else
+                                                    Jadwal Rutin
+                                                @endif
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Footer Card: Jumlah Member & Tombol Aksi -->
+                                <div class="p-4 pt-0 flex items-center justify-between border-t border-slate-100 mt-2 pt-3">
+                                    <span class="text-[11px] font-extrabold text-slate-700">👥 +{{ number_format($comm->members_count ?? 0) }} Member</span>
+                                    
+                                    @php
+                                        // Cek apakah user yang sedang login sudah bergabung di komunitas ini
+                                        $isMember = $comm->members()->where('user_id', auth()->id())->exists();
+                                    @endphp
+
+                                    <div class="flex gap-2 items-center">
+                                        <a href="#" class="px-2.5 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200">Detail</a>
+                                        
+                                        @if($isMember)
+                                            {{-- Jika sudah bergabung, tampilkan tombol status non-aktif --}}
+                                            <button type="button" disabled class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold cursor-not-allowed">
+                                                ✓ Sudah Bergabung
+                                            </button>
+                                        @else
+                                            {{-- Jika belum, tampilkan form tombol Gabung --}}
+                                            <form action="{{ route('user.communities.join', $comm->id) }}" method="POST">
+                                                @csrf
+                                                <button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold shadow-xs hover:bg-blue-700 cursor-pointer">
+                                                    Gabung
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </div>
+
                             </div>
-                        </div>
-                        <div class="p-4 space-y-2">
-                            <h3 class="font-bold text-slate-900 text-sm">Jakarta Padel Masters</h3>
-                            <p class="text-slate-500 text-xs line-clamp-2">Komunitas padel intensif untuk match doubles mingguan. Sesi warm-up teknik...</p>
-                            <div class="pt-3 border-t border-slate-100 space-y-1 text-[11px] text-slate-600">
-                                <div class="flex justify-between"><span>📅 Rutin:</span><span class="font-semibold">Sabtu • 08:00 - 11:00</span></div>
-                                <div class="flex justify-between"><span>⭐ Level:</span><span class="font-semibold text-blue-600">Pemula - Menengah</span></div>
-                            </div>
-                        </div>
-                        <div class="p-4 pt-0 flex items-center justify-between border-t border-slate-100 mt-2 pt-3">
-                            <span class="text-[11px] font-extrabold text-slate-700">👥 +480 Member</span>
-                            <div class="flex gap-2">
-                                <a href="#" class="px-2.5 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200">Detail</a>
-                                <a href="#" class="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold shadow-xs hover:bg-blue-700">Gabung</a>
-                            </div>
-                        </div>
+                        @endforeach
                     </div>
+                @endif
 
-                    <!-- Card 3 -->
-                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition-all">
-                        <div class="relative h-36 bg-slate-100">
-                            <img src="https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=600&q=80" alt="Badminton" class="w-full h-full object-cover">
-                            <span class="absolute top-3 left-3 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold">Bulutangkis</span>
-                            <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold">Open Slot</span>
-                            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-[11px] font-medium bg-slate-900/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
-                                <span>📍 Tebet, Jaksel</span>
-                            </div>
-                        </div>
-                        <div class="p-4 space-y-2">
-                            <h3 class="font-bold text-slate-900 text-sm">Tebet Badminton Club</h3>
-                            <p class="text-slate-500 text-xs line-clamp-2">Sparing seru 3 lapangan karpet vinyl standar PBSI. Sistem rolling rally point...</p>
-                            <div class="pt-3 border-t border-slate-100 space-y-1 text-[11px] text-slate-600">
-                                <div class="flex justify-between"><span>📅 Rutin:</span><span class="font-semibold">Rabu • 20:00 - 23:00</span></div>
-                                <div class="flex justify-between"><span>⭐ Level:</span><span class="font-semibold text-blue-600">Pemula - Lanjutan</span></div>
-                            </div>
-                        </div>
-                        <div class="p-4 pt-0 flex items-center justify-between border-t border-slate-100 mt-2 pt-3">
-                            <span class="text-[11px] font-extrabold text-slate-700">👥 +890 Member</span>
-                            <div class="flex gap-2">
-                                <a href="#" class="px-2.5 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200">Detail</a>
-                                <a href="#" class="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold shadow-xs hover:bg-blue-700">Gabung</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Card 4 -->
-                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition-all">
-                        <div class="relative h-36 bg-slate-100">
-                            <img src="https://images.unsplash.com/photo-1517649763962-0c623266d102?auto=format&fit=crop&w=600&q=80" alt="Roadbike" class="w-full h-full object-cover">
-                            <span class="absolute top-3 left-3 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold">Roadbike & Sepeda</span>
-                            <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold">Reguler</span>
-                            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-[11px] font-medium bg-slate-900/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
-                                <span>📍 SCBD Loop & Sudirman</span>
-                            </div>
-                        </div>
-                        <div class="p-4 space-y-2">
-                            <h3 class="font-bold text-slate-900 text-sm">Loopies Cycling Club</h3>
-                            <p class="text-slate-500 text-xs line-clamp-2">Morning ride teratur di aspal mulus Sudirman-Thamrin. Terdapat grup tempo...</p>
-                            <div class="pt-3 border-t border-slate-100 space-y-1 text-[11px] text-slate-600">
-                                <div class="flex justify-between"><span>📅 Rutin:</span><span class="font-semibold">Sab & Min • 06:00 WIB</span></div>
-                                <div class="flex justify-between"><span>⭐ Level:</span><span class="font-semibold text-blue-600">Menengah - Advance</span></div>
-                            </div>
-                        </div>
-                        <div class="p-4 pt-0 flex items-center justify-between border-t border-slate-100 mt-2 pt-3">
-                            <span class="text-[11px] font-extrabold text-slate-700">👥 +1,320 Member</span>
-                            <div class="flex gap-2">
-                                <a href="#" class="px-2.5 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200">Detail</a>
-                                <a href="#" class="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold shadow-xs hover:bg-blue-700">Gabung</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Card 5 -->
-                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition-all">
-                        <div class="relative h-36 bg-slate-100">
-                            <img src="https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=600&q=80" alt="Futsal" class="w-full h-full object-cover">
-                            <span class="absolute top-3 left-3 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold">Futsal</span>
-                            <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">Sisa 2 Tim</span>
-                            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-[11px] font-medium bg-slate-900/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
-                                <span>📍 Cilandak Sport Center</span>
-                            </div>
-                        </div>
-                        <div class="p-4 space-y-2">
-                            <h3 class="font-bold text-slate-900 text-sm">Cilandak Futsal & Fun Match</h3>
-                            <p class="text-slate-500 text-xs line-clamp-2">Fun match 5v5 rotasi 3 tim. Mengutamakan sportivitas tanpa tackling...</p>
-                            <div class="pt-3 border-t border-slate-100 space-y-1 text-[11px] text-slate-600">
-                                <div class="flex justify-between"><span>📅 Rutin:</span><span class="font-semibold">Jumat • 19:00 - 21:00</span></div>
-                                <div class="flex justify-between"><span>⭐ Level:</span><span class="font-semibold text-blue-600">Fun & Santai</span></div>
-                            </div>
-                        </div>
-                        <div class="p-4 pt-0 flex items-center justify-between border-t border-slate-100 mt-2 pt-3">
-                            <span class="text-[11px] font-extrabold text-slate-700">👥 +640 Member</span>
-                            <div class="flex gap-2">
-                                <a href="#" class="px-2.5 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200">Detail</a>
-                                <a href="#" class="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold shadow-xs hover:bg-blue-700">Gabung</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Card 6 -->
-                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition-all">
-                        <div class="relative h-36 bg-slate-100">
-                            <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80" alt="Calisthenics" class="w-full h-full object-cover">
-                            <span class="absolute top-3 left-3 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold">Fitness & Calisthenics</span>
-                            <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold">Semua Boleh Ikut</span>
-                            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-[11px] font-medium bg-slate-900/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
-                                <span>📍 Taman Suropati, Jakpus</span>
-                            </div>
-                        </div>
-                        <div class="p-4 space-y-2">
-                            <h3 class="font-bold text-slate-900 text-sm">Menteng Calisthenics Movement</h3>
-                            <p class="text-slate-500 text-xs line-clamp-2">Latihan beban tubuh (bodyweight training), belajar teknik pull-up...</p>
-                            <div class="pt-3 border-t border-slate-100 space-y-1 text-[11px] text-slate-600">
-                                <div class="flex justify-between"><span>📅 Rutin:</span><span class="font-semibold">Minggu • 07:00 WIB</span></div>
-                                <div class="flex justify-between"><span>⭐ Level:</span><span class="font-semibold text-blue-600">Pemula Sangat Disambut</span></div>
-                            </div>
-                        </div>
-                        <div class="p-4 pt-0 flex items-center justify-between border-t border-slate-100 mt-2 pt-3">
-                            <span class="text-[11px] font-extrabold text-slate-700">👥 +520 Member</span>
-                            <div class="flex gap-2">
-                                <a href="#" class="px-2.5 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200">Detail</a>
-                                <a href="#" class="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold shadow-xs hover:bg-blue-700">Gabung</a>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Pagination Bar -->
-                <div class="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-slate-200/80 gap-4">
-                    <span class="text-xs text-slate-500 font-medium">Menampilkan 1 - 6 dari 24 Komunitas</span>
-                    <div class="flex items-center gap-1.5">
-                        <button class="w-9 h-9 rounded-xl bg-blue-600 text-white text-xs font-bold shadow-sm">1</button>
-                        <button class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50">2</button>
-                        <button class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50">3</button>
-                        <button class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50">4</button>
-                        <button class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50">&rarr;</button>
-                    </div>
+                <!-- Laravel Pagination Links -->
+                <div class="pt-6 border-t border-slate-200/80">
+                    {{ $communities->links() }}
                 </div>
 
             </div>
-
         </div>
     </main>
 
-    <!-- 3. FOOTER -->
-    <footer class="bg-white border-t border-slate-100 py-6 mt-16 text-xs text-slate-500">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-2">
-                <span class="font-extrabold text-slate-900">Bugar.in</span>
-                <span>© 2026 Platform Komunitas Olahraga Indonesia.</span>
+    {{-- Footer --}}
+    @unless(isset($isDashboard) && $isDashboard)
+        <footer class="bg-white border-t border-slate-100 py-6 mt-16 text-xs text-slate-500">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <span class="font-extrabold text-slate-900">Bugar.in</span>
+                    <span>© 2026 Platform Komunitas Olahraga Indonesia.</span>
+                </div>
+                <div class="flex items-center gap-6">
+                    <a href="#" class="hover:text-blue-600">Privasi</a>
+                    <a href="#" class="hover:text-blue-600">Ketentuan</a>
+                    <a href="#" class="hover:text-blue-600">Pusat Bantuan</a>
+                </div>
             </div>
-            <div class="flex items-center gap-6">
-                <a href="#" class="hover:text-blue-600">Privasi</a>
-                <a href="#" class="hover:text-blue-600">Ketentuan</a>
-                <a href="#" class="hover:text-blue-600">Pusat Bantuan</a>
-            </div>
-        </div>
-    </footer>
+        </footer>
+    @endunless
 
 </body>
 </html>

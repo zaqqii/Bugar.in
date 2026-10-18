@@ -4,6 +4,7 @@
 
 @section('content')
 <div x-data="{
+    activeSection: 'jelajah-komunitas',
     filterCategory: '',
     filterCity: '',
     searchQuery: '',
@@ -68,7 +69,6 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-3 flex-shrink-0">
-                {{-- 1. TOMBOL JELAJAH KOMUNITAS (INI YANG DIUBAH MENJADI LINK) --}}
                 <a href="{{ route('user.explore') }}"
                     class="px-5 py-2.5 rounded-xl font-semibold text-sm bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 text-white shadow-xs hover:shadow-sm transition-all duration-150 flex items-center gap-2 cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -157,8 +157,7 @@
     {{-- ============================================================
          3. MODUL 1: EKSPLORASI KOMUNITAS & KEGIATAN OLAHRAGA
          ============================================================ --}}
-    <section x-show="activeSection === 'komunitas'" x-cloak class="space-y-6">
-
+    <section x-show="activeSection === 'komunitas'" x-cloak class="space-y-6">  
         {{-- Filter & Search Header --}}
         <div class="glass-card rounded-2xl p-5 sm:p-6 border border-rose-100/70 shadow-xs">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-rose-100/60">
@@ -238,6 +237,9 @@
                             $commCategory = strtolower($comm->sport_category ?? '');
                             $commCity = strtolower($comm->city ?? '');
                             $commNameLower = strtolower($comm->name ?? '');
+                            
+                            // Cek apakah user yang sedang login sudah bergabung di komunitas ini
+                            $isMember = $comm->members()->where('user_id', auth()->id())->exists();
                         @endphp
                         <div x-show="
                             (!filterCategory || '{{ $commCategory }}'.includes(filterCategory)) &&
@@ -275,14 +277,28 @@
                                 </div>
                             </div>
 
-                            {{-- Card Footer --}}
-                            <div class="mt-5 pt-3 flex items-center justify-between">
-                                <span class="text-[11px] text-stone-400">
-                                    {{ $comm->contact_email ?? 'Email terdaftar' }}
-                                </span>
-                                <button type="button" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100/80 border border-rose-200 transition-colors cursor-pointer">
+                            {{-- Card Footer dengan Tombol Gabung Dinamis --}}
+                            <div class="mt-5 pt-3 flex items-center justify-between border-t border-rose-50/60">
+                                <a href="#" class="text-xs font-semibold text-rose-600 hover:text-rose-700 transition-colors">
                                     Lihat Detail &rarr;
-                                </button>
+                                </a>
+
+                                <div>
+                                    @if($isMember)
+                                        {{-- Jika sudah bergabung --}}
+                                        <button type="button" disabled class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold cursor-not-allowed">
+                                            ✓ Sudah Bergabung
+                                        </button>
+                                    @else
+                                        {{-- Jika belum bergabung, proses ke rute join --}}
+                                        <form action="{{ route('user.communities.join', $comm->id) }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-colors shadow-xs cursor-pointer">
+                                                Gabung
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     @endforeach
