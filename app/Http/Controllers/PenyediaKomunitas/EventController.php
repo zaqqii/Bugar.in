@@ -11,6 +11,69 @@ use Illuminate\Support\Str;
 
 class EventController extends Controller
 {
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+        $community = Community::where('owner_id', $user->id)->first();
+
+        if (!$community) {
+            return view('penyedia-komunitas.events.index', [
+                'community' => null,
+                'events' => collect(),
+                'counts' => [
+                    'total' => 0,
+                    'published' => 0,
+                    'ongoing' => 0,
+                    'completed' => 0,
+                    'draft' => 0,
+                    'total_participants' => 0,
+                ],
+                'selectedStatus' => 'all',
+                'search' => '',
+            ]);
+        }
+
+        $allEvents = $community->events()->get();
+        $counts = [
+            'total' => $allEvents->count(),
+            'published' => $allEvents->where('status', 'published')->count(),
+            'ongoing' => $allEvents->where('status', 'ongoing')->count(),
+            'completed' => $allEvents->where('status', 'completed')->count(),
+            'draft' => $allEvents->where('status', 'draft')->count(),
+            'total_participants' => $allEvents->sum('participants_count'),
+        ];
+
+        $query = $community->events();
+
+        // Filter status
+        $selectedStatus = $request->query('status', 'all');
+        if ($selectedStatus && $selectedStatus !== 'all') {
+            $query->where('status', $selectedStatus);
+        }
+
+        // Search title & location
+        $search = trim($request->query('q', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(title) LIKE ?', ['%' . strtolower($search) . '%'])
+                  ->orWhereRaw('LOWER(location) LIKE ?', ['%' . strtolower($search) . '%']);
+            });
+        }
+
+        $events = $query->orderBy('event_date', 'desc')
+                        ->orderBy('start_time', 'desc')
+                        ->paginate(10)
+                        ->withQueryString();
+
+        return view('penyedia-komunitas.events.index', compact(
+            'community',
+            'events',
+            'counts',
+            'selectedStatus',
+            'search'
+        ));
+    }
+
     public function create()
     {
         $user = Auth::user();

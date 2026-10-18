@@ -7,7 +7,18 @@
 @endphp
 
 <header class="admin-header">
-    <div class="admin-header__left">
+    <div class="admin-header__left flex items-center gap-3">
+        {{-- Mobile Hamburger Toggle Button --}}
+        <button type="button"
+                @click="sidebarOpen = !sidebarOpen"
+                class="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors focus:outline-none"
+                aria-label="Buka Menu Navigasi">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
+
+        {{-- Search Input --}}
         <div class="admin-header__search">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
                 stroke="currentColor">
@@ -19,6 +30,7 @@
     </div>
 
     <div class="admin-header__actions">
+        {{-- Notification Bell --}}
         <button class="admin-header__notification" aria-label="Notifications">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                 stroke="currentColor">
@@ -28,16 +40,20 @@
             <span class="admin-header__notification-dot"></span>
         </button>
 
-        <a href="#" class="btn btn--primary btn--sm">
+        {{-- Tombol Buat Event --}}
+        <a href="{{ route('penyedia-komunitas.events.create') }}" class="btn btn--primary btn--sm inline-flex items-center gap-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Buat Event
+            <span>Buat Event</span>
         </a>
 
-        <div class="admin-header__profile" role="button" title="{{ $authUser?->name }}" aria-haspopup="true"
-            aria-expanded="false">
+        {{-- Avatar Profil (Mengarah ke Halaman Akun) --}}
+        <a href="{{ route('penyedia-komunitas.akun.index') }}"
+           class="admin-header__profile block hover:opacity-90 transition-opacity"
+           title="Pengaturan Akun ({{ $authUser?->name }})"
+           aria-label="Pengaturan Akun">
             @if($authUser?->avatar)
                 <img src="{{ asset('storage/' . $authUser->avatar) }}" alt="{{ $authUser->name }}"
                     class="admin-header__avatar">
@@ -48,19 +64,6 @@
                     {{ $userInitials }}
                 </span>
             @endif
-        </div>
-
-        {{-- Tombol Logout Host --}}
-        <form method="POST" action="{{ route('penyedia-komunitas.logout') }}" class="m-0">
-            @csrf
-            <button type="submit" id="btn-logout-penyedia"
-                class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-all duration-200 cursor-pointer shadow-sm"
-                title="Keluar dari Portal Host">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                </svg>
-                <span class="hidden sm:inline">Keluar</span>
-            </button>
-        </form>
+        </a>
     </div>
 </header>
