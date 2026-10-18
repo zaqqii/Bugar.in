@@ -4,7 +4,7 @@
 
 @section('content')
 <div x-data="{
-    activeSection: 'jelajah-komunitas',
+    activeSection: 'komunitas',
     filterCategory: '',
     filterCity: '',
     searchQuery: '',
@@ -183,41 +183,6 @@
                 </div>
             </div>
 
-            {{-- Filter Controls --}}
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
-                {{-- Search Input --}}
-                <div class="relative">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
-                    </svg>
-                    <input type="text"
-                        x-model="searchQuery"
-                        placeholder="Cari nama komunitas..."
-                        class="glass-input w-full pl-9 pr-3.5 py-2 text-xs rounded-xl text-stone-800 placeholder-stone-400">
-                </div>
-
-                {{-- Cabor Filter --}}
-                <div class="relative">
-                    <select x-model="filterCategory" class="glass-input w-full px-3.5 py-2 text-xs rounded-xl text-stone-800 cursor-pointer">
-                        <option value="">Semua Cabang Olahraga</option>
-                        @foreach($sportCategories as $cat)
-                            <option value="{{ strtolower($cat) }}">{{ ucfirst($cat) }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                {{-- Lokasi / Kota Filter --}}
-                <div class="relative">
-                    <select x-model="filterCity" class="glass-input w-full px-3.5 py-2 text-xs rounded-xl text-stone-800 cursor-pointer">
-                        <option value="">Semua Lokasi / Kota</option>
-                        @foreach($cities as $city)
-                            <option value="{{ strtolower($city) }}">{{ ucfirst($city) }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-        </div>
-
         {{-- SubTab 1: Komunitas Terdaftar --}}
         <div x-show="komunitasSubTab === 'komunitas'" class="space-y-4">
             @if($communities->isEmpty())
@@ -237,9 +202,6 @@
                             $commCategory = strtolower($comm->sport_category ?? '');
                             $commCity = strtolower($comm->city ?? '');
                             $commNameLower = strtolower($comm->name ?? '');
-                            
-                            // Cek apakah user yang sedang login sudah bergabung di komunitas ini
-                            $isMember = $comm->members()->where('user_id', auth()->id())->exists();
                         @endphp
                         <div x-show="
                             (!filterCategory || '{{ $commCategory }}'.includes(filterCategory)) &&
@@ -277,28 +239,14 @@
                                 </div>
                             </div>
 
-                            {{-- Card Footer dengan Tombol Gabung Dinamis --}}
-                            <div class="mt-5 pt-3 flex items-center justify-between border-t border-rose-50/60">
-                                <a href="#" class="text-xs font-semibold text-rose-600 hover:text-rose-700 transition-colors">
+                            {{-- Card Footer --}}
+                            <div class="mt-5 pt-3 flex items-center justify-between">
+                                <span class="text-[11px] text-stone-400">
+                                    {{ $comm->contact_email ?? 'Email terdaftar' }}
+                                </span>
+                                <button type="button" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100/80 border border-rose-200 transition-colors cursor-pointer">
                                     Lihat Detail &rarr;
-                                </a>
-
-                                <div>
-                                    @if($isMember)
-                                        {{-- Jika sudah bergabung --}}
-                                        <button type="button" disabled class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold cursor-not-allowed">
-                                            ✓ Sudah Bergabung
-                                        </button>
-                                    @else
-                                        {{-- Jika belum bergabung, proses ke rute join --}}
-                                        <form action="{{ route('user.communities.join', $comm->id) }}" method="POST">
-                                            @csrf
-                                            <button type="submit" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-colors shadow-xs cursor-pointer">
-                                                Gabung
-                                            </button>
-                                        </form>
-                                    @endif
-                                </div>
+                                </button>
                             </div>
                         </div>
                     @endforeach
@@ -419,6 +367,7 @@
             </div>
         @endif
     </section>
+
 
     {{-- ============================================================
          5. MODUL 3: PENGHITUNG BMI (Humanized & Clean)
