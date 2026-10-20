@@ -6,7 +6,9 @@ use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\Auth\PenyediaKomunitasAuthController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\PenyediaKomunitas\DashboardController as PenyediaDashboardController;
-use App\Http\Controllers\PenyediaKomunitas\EventController as PenyediaEventController;
+use App\Http\Controllers\User\CommunityController;
+use App\Models\Community;
+use App\Models\Schedule;
 
 // Landing Page
 Route::get('/', [LandingController::class, 'index'])->name('landing');
@@ -36,6 +38,19 @@ use App\Http\Controllers\User\ProfileController;
 Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('/explore', function () {
+    return view('user.explore', [
+        'communities' => Community::with('schedules')->where('is_active', true)->paginate(6),
+        'sportCategories' => Community::where('is_active', true)
+                            ->pluck('sport_category')
+                            ->map(fn($item) => trim($item))
+                            ->unique(fn($item) => strtolower($item))
+                            ->values(),
+        'cities' => Community::distinct()->pluck('city'),
+        'totalActiveSessions' => Schedule::count(),
+    ]);
+    })->name('explore');
+    Route::post('/user/communities/{id}/join', [CommunityController::class, 'join'])->name('communities.join');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/logout', [UserAuthController::class, 'logout'])->name('logout');
 });

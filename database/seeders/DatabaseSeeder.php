@@ -21,5 +21,10 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Panggil seeder komunitasmu di sini
+        $this->call([
+            CommunityAndScheduleSeeder::class,
+        ]);
     }
 }

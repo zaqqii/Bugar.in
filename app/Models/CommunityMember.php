@@ -13,6 +13,7 @@ class CommunityMember extends Model
         'joined_at',
         'left_at',
     ];
+    public $timestamps = false;
 
     protected $casts = [
         'joined_at' => 'datetime',

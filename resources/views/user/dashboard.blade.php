@@ -4,6 +4,7 @@
 
 @section('content')
 <div x-data="{
+    activeSection: 'komunitas',
     filterCategory: '',
     filterCity: '',
     searchQuery: '',
@@ -68,14 +69,13 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-3 flex-shrink-0">
-                <button type="button"
-                    @click="setSection('komunitas')"
+                <a href="{{ route('user.explore') }}"
                     class="px-5 py-2.5 rounded-xl font-semibold text-sm bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 text-white shadow-xs hover:shadow-sm transition-all duration-150 flex items-center gap-2 cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
                     </svg>
                     Jelajah Komunitas
-                </button>
+                </a>
 
                 <button type="button"
                     @click="setSection('bmi')"
@@ -157,8 +157,7 @@
     {{-- ============================================================
          3. MODUL 1: EKSPLORASI KOMUNITAS & KEGIATAN OLAHRAGA
          ============================================================ --}}
-    <section x-show="activeSection === 'komunitas'" x-cloak class="space-y-6">
-
+    <section x-show="activeSection === 'komunitas'" x-cloak class="space-y-6">  
         {{-- Filter & Search Header --}}
         <div class="glass-card rounded-2xl p-5 sm:p-6 border border-rose-100/70 shadow-xs">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-rose-100/60">
@@ -183,41 +182,6 @@
                     </button>
                 </div>
             </div>
-
-            {{-- Filter Controls --}}
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
-                {{-- Search Input --}}
-                <div class="relative">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
-                    </svg>
-                    <input type="text"
-                        x-model="searchQuery"
-                        placeholder="Cari nama komunitas..."
-                        class="glass-input w-full pl-9 pr-3.5 py-2 text-xs rounded-xl text-stone-800 placeholder-stone-400">
-                </div>
-
-                {{-- Cabor Filter --}}
-                <div class="relative">
-                    <select x-model="filterCategory" class="glass-input w-full px-3.5 py-2 text-xs rounded-xl text-stone-800 cursor-pointer">
-                        <option value="">Semua Cabang Olahraga</option>
-                        @foreach($sportCategories as $cat)
-                            <option value="{{ strtolower($cat) }}">{{ ucfirst($cat) }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                {{-- Lokasi / Kota Filter --}}
-                <div class="relative">
-                    <select x-model="filterCity" class="glass-input w-full px-3.5 py-2 text-xs rounded-xl text-stone-800 cursor-pointer">
-                        <option value="">Semua Lokasi / Kota</option>
-                        @foreach($cities as $city)
-                            <option value="{{ strtolower($city) }}">{{ ucfirst($city) }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-        </div>
 
         {{-- SubTab 1: Komunitas Terdaftar --}}
         <div x-show="komunitasSubTab === 'komunitas'" class="space-y-4">
@@ -403,6 +367,7 @@
             </div>
         @endif
     </section>
+
 
     {{-- ============================================================
          5. MODUL 3: PENGHITUNG BMI (Humanized & Clean)
