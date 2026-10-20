@@ -29,7 +29,7 @@
                 </span>
             </div>
             <p class="text-xs text-stone-500 hidden sm:block mt-0.5">
-                Ruang aktivitas, eksplorasi komunitas &amp; pantauan kebugaran
+                Ruang aktivitas, eksplorasi komunitas pantauan kebugaran
             </p>
         </div>
     </div>
@@ -37,20 +37,26 @@
     {{-- Right: User Info & Logout Button (Spacious & Clean) --}}
     <div class="flex items-center gap-4">
 
-        {{-- User Profile Pill --}}
-        <div class="flex items-center gap-3 pl-2 pr-3.5 py-1.5 rounded-xl bg-white border border-rose-100/80 shadow-xs">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-red-500 flex items-center justify-center text-white font-bold text-xs shadow-xs">
-                {{ $initials }}
+        {{-- User Profile Pill (Klik untuk ke Edit Profil) --}}
+        <a href="{{ route('user.profile.edit') }}"
+           class="flex items-center gap-3 pl-2 pr-3.5 py-1.5 rounded-xl bg-white border border-rose-100/80 shadow-xs hover:border-blue-400 hover:shadow-sm transition-all duration-200 group cursor-pointer"
+           title="Klik untuk Edit Profil">
+            <div class="w-8 h-8 rounded-lg overflow-hidden bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow-xs">
+                @if($authUser?->avatar && \Illuminate\Support\Facades\Storage::disk('public')->exists($authUser->avatar))
+                    <img src="{{ asset('storage/' . $authUser->avatar) }}" alt="{{ $authUser->name }}" class="w-full h-full object-cover">
+                @else
+                    {{ $initials }}
+                @endif
             </div>
             <div class="text-left hidden sm:block">
-                <div class="text-xs font-bold text-stone-800 max-w-[130px] truncate leading-tight">
+                <div class="text-xs font-bold text-stone-800 max-w-[130px] truncate leading-tight group-hover:text-blue-600 transition-colors">
                     {{ $authUser?->name ?? 'Pengguna Bugar.in' }}
                 </div>
                 <div class="text-[11px] text-stone-400 font-medium">
                     {{ $authUser?->email ?? 'Member' }}
                 </div>
             </div>
-        </div>
+        </a>
 
         {{-- Logout Form --}}
         <form method="POST" action="{{ route('user.logout') }}" class="m-0">
