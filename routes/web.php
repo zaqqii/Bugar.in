@@ -72,5 +72,7 @@ Route::prefix('auth/penyedia-komunitas')->name('auth.penyedia-komunitas.')->grou
 // ============================================================
 Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware(['auth', 'community_owner'])->group(function () {
     Route::get('/dashboard', [PenyediaDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/events/create', [PenyediaEventController::class, 'create'])->name('events.create');
+    Route::post('/events', [PenyediaEventController::class, 'store'])->name('events.store');
     Route::post('/logout', [PenyediaKomunitasAuthController::class, 'logout'])->name('logout');
 });
