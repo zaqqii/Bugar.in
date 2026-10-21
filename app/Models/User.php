@@ -20,6 +20,7 @@ class User extends Authenticatable
         'role',
         'avatar',
         'bio',
+        'total_points',
     ];
 
     protected $hidden = [
@@ -43,6 +44,26 @@ class User extends Authenticatable
     public function communityMemberships()
     {
         return $this->hasMany(CommunityMember::class);
+    }
+
+    public function followedCommunities()
+    {
+        return $this->belongsToMany(Community::class, 'community_followers');
+    }
+
+    public function participants()
+    {
+        return $this->hasMany(Participant::class);
+    }
+
+    public function streaks()
+    {
+        return $this->hasMany(Streak::class);
+    }
+
+    public function pointsHistories()
+    {
+        return $this->hasMany(PointsHistory::class);
     }
 
     public function isCommunityOwner(): bool
