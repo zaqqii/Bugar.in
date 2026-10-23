@@ -31,6 +31,7 @@ Route::prefix('auth/user')->name('auth.user.')->group(function () {
 });
 
 use App\Http\Controllers\User\ProfileController;
+use App\Http\Controllers\PenyediaKomunitas\EventController as PenyediaEventController;
 
 // ============================================================
 // USER DASHBOARD & PROFILE ROUTES
@@ -38,20 +39,26 @@ use App\Http\Controllers\User\ProfileController;
 Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::get('/explore', function () {
-    return view('user.explore', [
-        'communities' => Community::with('schedules')->where('is_active', true)->paginate(6),
-        'sportCategories' => Community::where('is_active', true)
-                            ->pluck('sport_category')
-                            ->map(fn($item) => trim($item))
-                            ->unique(fn($item) => strtolower($item))
-                            ->values(),
-        'cities' => Community::distinct()->pluck('city'),
-        'totalActiveSessions' => Schedule::count(),
-    ]);
-    })->name('explore');
-    Route::post('/user/communities/{id}/join', [CommunityController::class, 'join'])->name('communities.join');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/explore', function () {
+        return view('user.explore', [
+            'communities' => Community::with('schedules')->where('is_active', true)->paginate(6),
+            'sportCategories' => Community::where('is_active', true)
+                                ->pluck('sport_category')
+                                ->map(fn($item) => trim($item))
+                                ->unique(fn($item) => strtolower($item))
+                                ->values(),
+            'cities' => Community::distinct()->pluck('city'),
+            'totalActiveSessions' => Schedule::count(),
+        ]);
+    })->name('explore');
+    Route::post('/communities/{community}/follow', [DashboardController::class, 'followCommunity'])->name('communities.follow');
+    Route::delete('/communities/{community}/unfollow', [DashboardController::class, 'unfollowCommunity'])->name('communities.unfollow');
+    Route::post('/communities/{id}/join', [CommunityController::class, 'join'])->name('communities.join');
+    Route::post('/schedules/{schedule}/join', [DashboardController::class, 'joinSchedule'])->name('schedules.join');
+    Route::post('/events/{event}/join', [DashboardController::class, 'joinEvent'])->name('events.join');
+    Route::post('/rewards/{reward}/redeem', [DashboardController::class, 'redeemReward'])->name('rewards.redeem');
+    Route::post('/streak/check-in', [DashboardController::class, 'streakCheckIn'])->name('streak.check-in');
     Route::post('/logout', [UserAuthController::class, 'logout'])->name('logout');
 });
 
