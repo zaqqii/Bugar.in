@@ -186,14 +186,14 @@
                         <h2 class="admin-card__title">Event Aktif &amp; Mendatang</h2>
                         <p class="admin-card__subtitle">Jadwal sesi olahraga yang sedang membuka registrasi atau siap dilaksanakan</p>
                     </div>
-                    <button class="btn btn--white btn--sm" style="color: var(--color-primary-600); font-weight: 700;">
+                    <a href="{{ route('penyedia-komunitas.events.index') }}" class="btn btn--white btn--sm" style="color: var(--color-primary-600); font-weight: 700;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24"
                              stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                   d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                         </svg>
-                        Lihat Semua Jadwal &rarr;
-                    </button>
+                        Lihat Semua Event &rarr;
+                    </a>
                 </div>
 
                 @if($upcomingItems->isEmpty())
