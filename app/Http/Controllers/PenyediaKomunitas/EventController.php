@@ -114,7 +114,8 @@ class EventController extends Controller
         // Upload Cover Image
         $coverPath = null;
         if ($request->hasFile('cover_image')) {
-            $coverPath = $request->file('cover_image')->store('events/covers', 'public');
+            $disk = config('filesystems.default');
+            $coverPath = $request->file('cover_image')->store('events/covers', $disk);
         }
 
         // Format Description (sertakan Rundown jika ada)

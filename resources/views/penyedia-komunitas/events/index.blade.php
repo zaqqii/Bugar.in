@@ -269,9 +269,10 @@
                                     <td class="py-4 px-6">
                                         <div class="flex items-center gap-3.5">
                                             @if($event->cover_image)
-                                                <img src="{{ asset('storage/' . $event->cover_image) }}"
+                                                <img src="{{ \Illuminate\Support\Str::startsWith($event->cover_image, ['http://', 'https://']) ? $event->cover_image : \Illuminate\Support\Facades\Storage::url($event->cover_image) }}"
                                                      alt="{{ $event->title }}"
-                                                     class="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0 shadow-sm">
+                                                     class="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0 shadow-sm"
+                                                     onerror="this.style.display='none'">
                                             @else
                                                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200/50 flex items-center justify-center text-primary-500 shrink-0">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">

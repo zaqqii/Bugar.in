@@ -1,77 +1,828 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   BUGAR.IN — USER DASHBOARD CSS
+   Design System: Royal Blue (#2563EB) + Cyan (#06B6D4)
+   Background: Ice Blue (#F0F7FF)
+   
+   Panduan lengkap: lihat design.md
+   ============================================================ */
+
+/* ── CSS Custom Properties ── */
+:root {
+    --color-primary:          #2563EB;
+    --color-primary-light:    #EFF6FF;
+    --color-primary-mid:      #BFDBFE;
+    --color-secondary:        #06B6D4;
+    --color-secondary-light:  #CFFAFE;
+    --color-background:       #F0F7FF;
+    --color-surface:          #FFFFFF;
+    --color-surface-tint:     #F8FAFF;
+    --color-success:          #10B981;
+    --color-success-light:    #D1FAE5;
+    --color-danger:           #EF4444;
+    --color-accent-orange:    #F97316;
+    --color-accent-orange-lt: #FFEDD5;
+    --color-lime:             #84CC16;
+    --color-text-primary:     #0F172A;
+    --color-text-secondary:   #64748B;
+    --color-border:           #E2E8F0;
+}
+
 @layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+
     body {
-        @apply bg-[#fdfbfb] text-stone-800 antialiased;
         font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: var(--color-background);
+        color: var(--color-text-primary);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
 }
 
 @layer components {
-    /* Glassmorphism halus dengan aksen merah pudar */
-    .glass-card {
-        background: rgba(255, 255, 255, 0.88);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        border: 1px solid rgba(254, 205, 211, 0.7);
-        box-shadow: 0 4px 24px -2px rgba(244, 63, 94, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
-    }
 
-    .glass-nav {
-        background: rgba(255, 255, 255, 0.90);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border-color: rgba(254, 205, 211, 0.75);
-    }
-
-    /* Sidebar dengan sentuhan gradien warna dan frosted glass blur */
+    /* ────────────────────────────────────────────
+       SIDEBAR — Royal Blue Identity
+       Tidak ada rose/red di sini
+    ──────────────────────────────────────────── */
     .sidebar-glass {
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 241, 242, 0.65) 45%, rgba(254, 226, 226, 0.45) 100%);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border-right: 1px solid rgba(254, 205, 211, 0.85);
-        box-shadow: 4px 0 24px -2px rgba(244, 63, 94, 0.06);
+        background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.98) 0%,
+            rgba(239, 246, 255, 0.60) 55%,
+            rgba(224, 242, 254, 0.40) 100%
+        );
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-right: 1px solid var(--color-border);
+        box-shadow: 4px 0 24px -4px rgba(37, 99, 235, 0.06);
     }
 
-    /* Efek pendaran warna halus (blurred color glow) */
-    .color-glow-rose {
-        background: radial-gradient(circle, rgba(251, 113, 133, 0.28) 0%, rgba(255, 228, 230, 0.15) 50%, rgba(255, 255, 255, 0) 75%);
-        filter: blur(28px);
+    /* Nav Item — Base */
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        transition: all 0.15s ease;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        position: relative;
     }
 
+    .nav-item:hover {
+        background: var(--color-surface-tint);
+        color: var(--color-primary);
+    }
+
+    /* Nav Item — Active (Pill, no left border stripe) */
+    .nav-item--active {
+        background: var(--color-primary-light);
+        color: var(--color-primary);
+        font-weight: 600;
+    }
+
+    .nav-item--active:hover {
+        background: #DBEAFE;
+    }
+
+    /* Nav Icon Container */
+    .nav-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 0.5rem;
+        background: #F1F5F9;
+        color: var(--color-text-secondary);
+        flex-shrink: 0;
+        transition: all 0.15s ease;
+    }
+
+    .nav-item:hover .nav-icon {
+        background: var(--color-primary-light);
+        color: var(--color-primary);
+    }
+
+    .nav-item--active .nav-icon {
+        background: #DBEAFE;
+        color: var(--color-primary);
+    }
+
+    /* ────────────────────────────────────────────
+       GLASS CARD — Surface Cards
+    ──────────────────────────────────────────── */
+    .glass-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 1rem;
+        box-shadow:
+            0 1px 3px rgba(0, 0, 0, 0.04),
+            0 4px 16px -4px rgba(37, 99, 235, 0.05);
+        transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .glass-card:hover {
+        box-shadow:
+            0 4px 6px rgba(0, 0, 0, 0.05),
+            0 8px 24px -4px rgba(37, 99, 235, 0.10);
+        border-color: var(--color-primary-mid);
+        transform: translateY(-1px);
+    }
+
+    /* Card variasi — tinted surface */
+    .glass-card--tinted {
+        background: var(--color-surface-tint);
+        border-color: #DBEAFE;
+    }
+
+    /* ────────────────────────────────────────────
+       ACTIVITY TILES (Stat Cards)
+       Editorial: variasi ukuran, bukan 4 kotak seragam
+    ──────────────────────────────────────────── */
+    .activity-tile {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 1rem;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .activity-tile::after {
+        content: '';
+        position: absolute;
+        bottom: -16px;
+        right: -16px;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: var(--color-primary-light);
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .activity-tile:hover {
+        transform: translateY(-2px);
+        border-color: var(--color-primary-mid);
+        box-shadow: 0 8px 24px -4px rgba(37, 99, 235, 0.12);
+    }
+
+    /* Tile — Hero (lebar, untuk metric utama) */
+    .activity-tile--hero {
+        background: linear-gradient(135deg, var(--color-primary) 0%, #1d4ed8 100%);
+        border-color: transparent;
+        color: white;
+    }
+
+    .activity-tile--hero::after {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .activity-tile--hero:hover {
+        border-color: transparent;
+        box-shadow: 0 8px 32px -4px rgba(37, 99, 235, 0.35);
+    }
+
+    /* Tile — Cyan accent */
+    .activity-tile--cyan {
+        background: linear-gradient(135deg, var(--color-secondary) 0%, #0284c7 100%);
+        border-color: transparent;
+        color: white;
+    }
+
+    .activity-tile--cyan:hover {
+        border-color: transparent;
+        box-shadow: 0 8px 32px -4px rgba(6, 182, 212, 0.30);
+    }
+
+    /* Tile Icon Container */
+    .tile-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.625rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .tile-icon--blue { background: var(--color-primary-light); color: var(--color-primary); }
+    .tile-icon--cyan { background: var(--color-secondary-light); color: var(--color-secondary); }
+    .tile-icon--green { background: var(--color-success-light); color: var(--color-success); }
+    .tile-icon--orange { background: var(--color-accent-orange-lt); color: var(--color-accent-orange); }
+    .tile-icon--lime { background: #f7fee7; color: #65a30d; }
+    .tile-icon--white { background: rgba(255,255,255,0.20); color: white; }
+
+    /* ────────────────────────────────────────────
+       COMMUNITY CARDS — Image-first, bukan teks-heavy
+    ──────────────────────────────────────────── */
+    .community-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 1rem;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.25s ease;
+        position: relative;
+    }
+
+    .community-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--color-primary-mid);
+        box-shadow:
+            0 12px 32px -6px rgba(37, 99, 235, 0.15),
+            0 4px 8px rgba(0,0,0,0.04);
+    }
+
+    .community-card__cover {
+        height: 148px;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #1e40af, #0891b2);
+    }
+
+    .community-card__cover img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.35s ease;
+    }
+
+    .community-card:hover .community-card__cover img {
+        transform: scale(1.04);
+    }
+
+    .community-card__overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(15, 23, 42, 0.55) 0%, transparent 55%);
+    }
+
+    .community-card__badge {
+        position: absolute;
+        top: 0.75rem;
+        left: 0.75rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 9999px;
+        background: rgba(15, 23, 42, 0.80);
+        backdrop-filter: blur(8px);
+        color: white;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+
+    .community-card__slot-badge {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 9999px;
+        font-size: 0.6875rem;
+        font-weight: 700;
+    }
+
+    .community-card__slot-badge--open {
+        background: var(--color-success);
+        color: white;
+    }
+
+    .community-card__slot-badge--full {
+        background: #64748B;
+        color: white;
+    }
+
+    .community-card__body {
+        padding: 1rem 1.125rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .community-card__meta {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+        font-size: 0.6875rem;
+        color: var(--color-text-secondary);
+        padding-top: 0.625rem;
+        border-top: 1px solid var(--color-border);
+        margin-top: 0.5rem;
+    }
+
+    .community-card__meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .community-card__footer {
+        padding: 0.75rem 1.125rem;
+        border-top: 1px solid var(--color-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    /* ────────────────────────────────────────────
+       SCHEDULE CARDS — Jadwal rutin
+    ──────────────────────────────────────────── */
+    .schedule-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 1rem;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.2s ease;
+    }
+
+    .schedule-card:hover {
+        border-color: var(--color-primary-mid);
+        box-shadow: 0 8px 24px -4px rgba(37, 99, 235, 0.10);
+        transform: translateY(-2px);
+    }
+
+    /* Warna header per hari */
+    .schedule-card__day-header {
+        padding: 0.875rem 1rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+
+    .day--senin    { background: #EFF6FF; color: #1d4ed8; }
+    .day--selasa   { background: #F0FDF4; color: #15803d; }
+    .day--rabu     { background: #FFF7ED; color: #c2410c; }
+    .day--kamis    { background: #FDF4FF; color: #7e22ce; }
+    .day--jumat    { background: #ECFEFF; color: #0e7490; }
+    .day--sabtu    { background: #FFFBEB; color: #b45309; }
+    .day--minggu   { background: #FFF1F2; color: #be123c; }
+
+    /* ────────────────────────────────────────────
+       EVENT CARDS
+    ──────────────────────────────────────────── */
+    .event-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 1rem;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.25s ease;
+    }
+
+    .event-card:hover {
+        border-color: #FED7AA;
+        box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.12);
+        transform: translateY(-2px);
+    }
+
+    .event-card__cover {
+        height: 130px;
+        background: linear-gradient(135deg, var(--color-accent-orange) 0%, #fb923c 100%);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .event-card__type-badge {
+        position: absolute;
+        bottom: 0.625rem;
+        left: 0.75rem;
+        padding: 0.2rem 0.625rem;
+        border-radius: 9999px;
+        background: rgba(255,255,255,0.90);
+        backdrop-filter: blur(4px);
+        color: var(--color-accent-orange);
+        font-size: 0.6875rem;
+        font-weight: 700;
+    }
+
+    /* ────────────────────────────────────────────
+       LEADERBOARD — Podium human
+    ──────────────────────────────────────────── */
+    .podium-card {
+        background: var(--color-surface);
+        border: 2px solid var(--color-border);
+        border-radius: 1.25rem;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.25s ease;
+    }
+
+    .podium-card:hover {
+        transform: translateY(-3px);
+    }
+
+    .podium-card--gold {
+        border-color: #F59E0B;
+        box-shadow: 0 8px 24px -4px rgba(245, 158, 11, 0.20);
+    }
+
+    .podium-card--silver {
+        border-color: #94A3B8;
+    }
+
+    .podium-card--bronze {
+        border-color: #D97706;
+    }
+
+    .podium-avatar {
+        width: 4rem;
+        height: 4rem;
+        border-radius: 50%;
+        margin: 0 auto 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.25rem;
+        color: white;
+        background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    }
+
+    .podium-avatar--gold {
+        background: linear-gradient(135deg, #F59E0B, #D97706);
+        border: 3px solid #FDE68A;
+    }
+
+    /* ────────────────────────────────────────────
+       STREAK TRACKER
+    ──────────────────────────────────────────── */
+    .streak-day {
+        border-radius: 0.75rem;
+        padding: 0.625rem 0.5rem;
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+
+    .streak-day--completed {
+        background: var(--color-success-light);
+        color: #065f46;
+    }
+
+    .streak-day--today {
+        background: var(--color-primary);
+        color: white;
+    }
+
+    .streak-day--future {
+        background: var(--color-surface-tint);
+        color: var(--color-text-secondary);
+    }
+
+    .streak-dot {
+        width: 0.625rem;
+        height: 0.625rem;
+        border-radius: 50%;
+        margin: 0.375rem auto 0;
+        background: var(--color-success);
+    }
+
+    /* ────────────────────────────────────────────
+       BUTTONS
+    ──────────────────────────────────────────── */
+    .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.125rem;
+        border-radius: 0.75rem;
+        background: var(--color-primary);
+        color: white;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+        text-decoration: none;
+    }
+
+    .btn-primary:hover {
+        background: #1d4ed8;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.30);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+
+    .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.125rem;
+        border-radius: 0.75rem;
+        background: var(--color-surface);
+        color: var(--color-primary);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid var(--color-primary-mid);
+        text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+        background: var(--color-primary-light);
+        border-color: var(--color-primary);
+    }
+
+    .btn-outline {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.125rem;
+        border-radius: 0.75rem;
+        background: transparent;
+        color: var(--color-text-secondary);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid var(--color-border);
+        text-decoration: none;
+    }
+
+    .btn-outline:hover {
+        background: var(--color-surface-tint);
+        border-color: var(--color-primary-mid);
+        color: var(--color-primary);
+    }
+
+    .btn-success {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.125rem;
+        border-radius: 0.75rem;
+        background: var(--color-success);
+        color: white;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    }
+
+    /* ────────────────────────────────────────────
+       FORM INPUTS
+    ──────────────────────────────────────────── */
     .glass-input {
-        background: rgba(255, 255, 255, 0.92);
-        border: 1px solid rgba(244, 114, 182, 0.3);
-        transition: all 0.2s ease-in-out;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 0.75rem;
+        color: var(--color-text-primary);
+        transition: all 0.2s ease;
     }
 
     .glass-input:focus {
-        background: #ffffff;
-        border-color: #f43f5e;
-        box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.14);
         outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        background: var(--color-surface);
     }
+
+    .glass-input::placeholder {
+        color: var(--color-text-secondary);
+        opacity: 0.7;
+    }
+
+    /* ────────────────────────────────────────────
+       HEADER — Top navigation bar
+    ──────────────────────────────────────────── */
+    .glass-nav {
+        background: rgba(255, 255, 255, 0.97);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--color-border);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    /* ────────────────────────────────────────────
+       SECTION BANNERS — Hero tiap section
+    ──────────────────────────────────────────── */
+    .section-banner {
+        border-radius: 1.25rem;
+        padding: 1.75rem 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .section-banner--blue {
+        background: linear-gradient(135deg,
+            var(--color-primary-light) 0%,
+            rgba(224, 242, 254, 0.6) 60%,
+            var(--color-surface) 100%
+        );
+        border: 1px solid var(--color-primary-mid);
+    }
+
+    .section-banner--cyan {
+        background: linear-gradient(135deg,
+            var(--color-secondary-light) 0%,
+            rgba(207, 250, 254, 0.5) 60%,
+            var(--color-surface) 100%
+        );
+        border: 1px solid #A5F3FC;
+    }
+
+    .section-banner--warm {
+        background: linear-gradient(135deg,
+            var(--color-accent-orange-lt) 0%,
+            rgba(254, 215, 170, 0.4) 60%,
+            var(--color-surface) 100%
+        );
+        border: 1px solid #FED7AA;
+    }
+
+    /* ────────────────────────────────────────────
+       CALENDAR — Agenda & Streak
+    ──────────────────────────────────────────── */
+    .cal-day {
+        min-height: 5rem;
+        border-radius: 0.625rem;
+        padding: 0.375rem;
+        text-align: left;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        background: var(--color-surface-tint);
+    }
+
+    .cal-day:hover {
+        background: var(--color-primary-light);
+    }
+
+    .cal-day--selected {
+        ring: 2px solid var(--color-primary);
+        background: white;
+    }
+
+    .cal-day--other-month {
+        background: #F8FAFC;
+        color: #CBD5E1;
+    }
+
+    .cal-day--today {
+        font-weight: 800;
+        color: var(--color-primary);
+    }
+
+    .cal-event-pill {
+        display: block;
+        padding: 0.125rem 0.25rem;
+        border-radius: 0.25rem;
+        font-size: 0.5625rem;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .cal-event-pill--latihan { background: #DBEAFE; color: #1d4ed8; }
+    .cal-event-pill--event { background: var(--color-secondary-light); color: #0e7490; }
+    .cal-event-pill--tournament { background: var(--color-accent-orange-lt); color: #c2410c; }
+
+    /* ────────────────────────────────────────────
+       BADGES & TAGS
+    ──────────────────────────────────────────── */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.2rem 0.625rem;
+        border-radius: 9999px;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+
+    .badge--blue { background: var(--color-primary-light); color: var(--color-primary); border: 1px solid var(--color-primary-mid); }
+    .badge--cyan { background: var(--color-secondary-light); color: #0e7490; border: 1px solid #A5F3FC; }
+    .badge--green { background: var(--color-success-light); color: #065f46; border: 1px solid #6EE7B7; }
+    .badge--orange { background: var(--color-accent-orange-lt); color: #c2410c; border: 1px solid #FED7AA; }
+    .badge--lime { background: #f7fee7; color: #4d7c0f; border: 1px solid #BEF264; }
+    .badge--gray { background: #F1F5F9; color: #475569; border: 1px solid var(--color-border); }
+    .badge--pulse::before {
+        content: '';
+        display: block;
+        width: 0.375rem;
+        height: 0.375rem;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    /* ────────────────────────────────────────────
+       PROGRESS BARS
+    ──────────────────────────────────────────── */
+    .progress-track {
+        height: 0.5rem;
+        background: var(--color-primary-light);
+        border-radius: 9999px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 9999px;
+        background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+        transition: width 0.7s ease;
+    }
+
+    .progress-fill--lime {
+        background: linear-gradient(90deg, var(--color-lime), #65a30d);
+    }
+
+    /* ────────────────────────────────────────────
+       SPORT CATEGORY COVER FALLBACKS
+    ──────────────────────────────────────────── */
+    .sport-cover-futsal    { background: linear-gradient(135deg, #1e3a8a, #2563eb); }
+    .sport-cover-basket    { background: linear-gradient(135deg, #9a3412, #ea580c); }
+    .sport-cover-badminton { background: linear-gradient(135deg, #065f46, #10b981); }
+    .sport-cover-lari      { background: linear-gradient(135deg, #4c1d95, #7c3aed); }
+    .sport-cover-renang    { background: linear-gradient(135deg, #0c4a6e, #0ea5e9); }
+    .sport-cover-yoga      { background: linear-gradient(135deg, #701a75, #d946ef); }
+    .sport-cover-default   { background: linear-gradient(135deg, #1e40af, #0891b2); }
 }
 
 @layer utilities {
-    /* Custom thin scrollbar */
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
+    /* Custom thin scrollbar — Blue tint */
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #fecdd3;
+        background: var(--color-primary-mid);
         border-radius: 99px;
     }
-
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #fda4af;
+        background: #93C5FD;
+    }
+
+    /* Text gradient utility */
+    .text-gradient-blue {
+        background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Micro-animation for stat tiles */
+    .count-animate {
+        animation: countUp 0.6s ease forwards;
+    }
+
+    /* Active pulse dot */
+    .active-dot {
+        display: inline-block;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: var(--color-success);
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
 }
+
+/* Keyframes */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+@keyframes countUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+[x-cloak] { display: none !important; }

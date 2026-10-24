@@ -55,8 +55,9 @@
            title="Pengaturan Akun ({{ $authUser?->name }})"
            aria-label="Pengaturan Akun">
             @if($authUser?->avatar)
-                <img src="{{ asset('storage/' . $authUser->avatar) }}" alt="{{ $authUser->name }}"
-                    class="admin-header__avatar">
+                <img src="{{ \Illuminate\Support\Str::startsWith($authUser->avatar, ['http://', 'https://']) ? $authUser->avatar : \Illuminate\Support\Facades\Storage::url($authUser->avatar) }}" alt="{{ $authUser->name }}"
+                    class="admin-header__avatar"
+                    onerror="this.style.display='none'">
             @else
                 <span class="flex items-center justify-center w-full h-full
                                  bg-gradient-to-br from-primary-500 to-primary-700

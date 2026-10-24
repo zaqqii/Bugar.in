@@ -64,7 +64,8 @@
       x-cloak>
 
     @php
-        $avatarExists = $user->avatar && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar);
+        $avatarExists = !empty($user->avatar);
+        $avatarUrl = $avatarExists ? (\Illuminate\Support\Str::startsWith($user->avatar, ['http://', 'https://']) ? $user->avatar : \Illuminate\Support\Facades\Storage::url($user->avatar)) : null;
         $userInitials = collect(explode(' ', $user->name ?? 'User'))
             ->map(fn($w) => strtoupper(substr($w, 0, 1)))
             ->take(2)->implode('');
@@ -121,7 +122,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
-                        <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
+                        <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white"></span>
                     </button>
 
                     <!-- User Profile Dropdown Pill -->
@@ -180,8 +181,8 @@
 
         <!-- Validation Errors Notification -->
         @if ($errors->any())
-            <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold shadow-xs">
-                <div class="font-bold text-sm mb-1.5 flex items-center gap-1.5 text-rose-700">
+            <div class="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold shadow-xs">
+                <div class="font-bold text-sm mb-1.5 flex items-center gap-1.5 text-red-700">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
@@ -372,7 +373,7 @@
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                 <!-- Nama Lengkap -->
                                 <div>
-                                    <label for="name" class="block text-xs font-bold text-slate-700 mb-1.5">Nama Lengkap <span class="text-rose-500">*</span></label>
+                                    <label for="name" class="block text-xs font-bold text-slate-700 mb-1.5">Nama Lengkap <span class="text-red-500">*</span></label>
                                     <div class="relative">
                                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -410,7 +411,7 @@
                                 <!-- Email Akun -->
                                 <div>
                                     <div class="flex items-center justify-between mb-1.5">
-                                        <label for="email" class="block text-xs font-bold text-slate-700">Email Akun <span class="text-rose-500">*</span></label>
+                                        <label for="email" class="block text-xs font-bold text-slate-700">Email Akun <span class="text-red-500">*</span></label>
                                         @if($user->email_verified_at)
                                             <span class="inline-flex items-center gap-1 text-xs font-bold text-cyan-600">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -653,7 +654,7 @@
                                 </div>
                                 <button type="button"
                                         @click="accounts.strava = !accounts.strava"
-                                        :class="accounts.strava ? 'text-rose-500 hover:text-rose-600' : 'text-blue-600 hover:text-blue-700'"
+                                        :class="accounts.strava ? 'text-red-500 hover:text-red-600' : 'text-blue-600 hover:text-blue-700'"
                                         class="text-xs font-bold px-2 py-1 transition-colors cursor-pointer"
                                         x-text="accounts.strava ? 'Putus' : 'Sambungkan'">
                                     Putus
@@ -676,7 +677,7 @@
                                 </div>
                                 <button type="button"
                                         @click="accounts.garmin = !accounts.garmin"
-                                        :class="accounts.garmin ? 'text-rose-500 hover:text-rose-600' : 'bg-white border border-slate-200 text-slate-700 hover:border-blue-400 hover:text-blue-600 shadow-2xs'"
+                                        :class="accounts.garmin ? 'text-red-500 hover:text-red-600' : 'bg-white border border-slate-200 text-slate-700 hover:border-blue-400 hover:text-blue-600 shadow-2xs'"
                                         class="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
                                         x-text="accounts.garmin ? 'Putus' : 'Sambungkan'">
                                     Sambungkan
@@ -699,7 +700,7 @@
                                 </div>
                                 <button type="button"
                                         @click="accounts.googleFit = !accounts.googleFit"
-                                        :class="accounts.googleFit ? 'text-rose-500 hover:text-rose-600' : 'bg-white border border-slate-200 text-slate-700 hover:border-blue-400 hover:text-blue-600 shadow-2xs'"
+                                        :class="accounts.googleFit ? 'text-red-500 hover:text-red-600' : 'bg-white border border-slate-200 text-slate-700 hover:border-blue-400 hover:text-blue-600 shadow-2xs'"
                                         class="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
                                         x-text="accounts.googleFit ? 'Putus' : 'Sambungkan'">
                                     Sambungkan
@@ -841,7 +842,7 @@
         function editProfileApp() {
             return {
                 // Hanya gunakan gambar avatar jika user benar-benar telah mengunggahnya
-                avatarPreview: @json($avatarExists ? asset('storage/' . $user->avatar) : null),
+                avatarPreview: @json($avatarUrl),
 
                 // Form State sesuai data user nyata dari database
                 form: {

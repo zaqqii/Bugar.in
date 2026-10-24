@@ -88,3 +88,42 @@ Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware(['a
     Route::view('/akun', 'penyedia-komunitas.akun.index')->name('akun.index');
     Route::post('/logout', [PenyediaKomunitasAuthController::class, 'logout'])->name('logout');
 });
+
+// ============================================================
+// MEDIA STREAMING ROUTE (Cloudflare R2 with Fast Local Disk Cache)
+// ============================================================
+Route::get('/media/{path}', function (string $path) {
+    $cachedFile = public_path('media/' . $path);
+
+    // 1. Jika sudah ada di cache lokal public/media, kirim langsung (super cepat ~1ms)
+    if (file_exists($cachedFile)) {
+        return response()->file($cachedFile, [
+            'Cache-Control' => 'public, max-age=604800, immutable',
+        ]);
+    }
+
+    // 2. Jika ada di local storage/app/public, cache dan kirim
+    $localPublic = storage_path('app/public/' . $path);
+    if (file_exists($localPublic)) {
+        @mkdir(dirname($cachedFile), 0755, true);
+        @copy($localPublic, $cachedFile);
+        return response()->file($localPublic, [
+            'Cache-Control' => 'public, max-age=604800, immutable',
+        ]);
+    }
+
+    // 3. Tarik dari Cloudflare R2, simpan ke public/media/ agar request berikutnya instan
+    if (\Illuminate\Support\Facades\Storage::disk('s3')->exists($path)) {
+        $file = \Illuminate\Support\Facades\Storage::disk('s3')->get($path);
+        @mkdir(dirname($cachedFile), 0755, true);
+        @file_put_contents($cachedFile, $file);
+
+        $mime = \Illuminate\Support\Facades\Storage::disk('s3')->mimeType($path) ?? 'image/jpeg';
+        return response($file, 200, [
+            'Content-Type' => $mime,
+            'Cache-Control' => 'public, max-age=604800, immutable',
+        ]);
+    }
+
+    abort(404);
+})->where('path', '.*')->name('media.show');

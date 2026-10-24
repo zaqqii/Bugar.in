@@ -22,9 +22,9 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@example.com',
         ]);
 
-        // Panggil seeder komunitasmu di sini
-        $this->call([
-            CommunityAndScheduleSeeder::class,
-        ]);
+        // Seeder komunitas dummy dinonaktifkan sesuai permintaan agar data tetap realistis
+        // $this->call([
+        //     CommunityAndScheduleSeeder::class,
+        // ]);
     }
 }

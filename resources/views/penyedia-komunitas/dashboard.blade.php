@@ -332,9 +332,10 @@
                                 <div class="approval-item">
                                     <div class="approval-user">
                                         @if($applicant->avatar)
-                                            <img src="{{ asset('storage/' . $applicant->avatar) }}"
+                                            <img src="{{ \Illuminate\Support\Str::startsWith($applicant->avatar, ['http://', 'https://']) ? $applicant->avatar : \Illuminate\Support\Facades\Storage::url($applicant->avatar) }}"
                                                  alt="{{ $applicant->name }}"
-                                                 class="approval-avatar">
+                                                 class="approval-avatar"
+                                                 onerror="this.style.display='none'">
                                         @else
                                             <div class="approval-avatar flex items-center justify-center
                                                         bg-gradient-to-br from-primary-400 to-primary-600

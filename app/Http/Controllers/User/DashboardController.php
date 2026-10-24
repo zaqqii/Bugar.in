@@ -248,6 +248,13 @@ class DashboardController extends Controller
             ->latest()
             ->get();
 
+        // Komunitas Terbaik (diurutkan berdasarkan status verifikasi dan anggota terbanyak)
+        $topCommunities = $communities->sortBy([
+            fn($a, $b) => ($b->verification_status === 'verified' ? 1 : 0) <=> ($a->verification_status === 'verified' ? 1 : 0),
+            fn($a, $b) => ($b->members_count ?? 0) <=> ($a->members_count ?? 0),
+            fn($a, $b) => ($b->followers_count ?? 0) <=> ($a->followers_count ?? 0),
+        ])->take(3)->values();
+
         // Data Asli Event Mendatang dari Database
         $events = Event::where('is_active', true)
             ->with('community')
@@ -483,7 +490,8 @@ class DashboardController extends Controller
             'totalEventsCount',
             'totalSchedulesCount',
             'sportCategories',
-            'cities'
+            'cities',
+            'topCommunities'
         ));
     }
 }

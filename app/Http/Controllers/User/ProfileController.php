@@ -38,10 +38,11 @@ class ProfileController extends Controller
         ]);
 
         if ($request->hasFile('avatar')) {
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
+            $disk = config('filesystems.default');
+            if ($user->avatar && Storage::disk($disk)->exists($user->avatar)) {
+                Storage::disk($disk)->delete($user->avatar);
             }
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+            $avatarPath = $request->file('avatar')->store('users/avatars', $disk);
             $validated['avatar'] = $avatarPath;
         }
 
