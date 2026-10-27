@@ -76,6 +76,41 @@ Database Neon PostgreSQL bersifat terpusat (dipakai bersama), tetapi saat teman 
 
 ---
 
+## 5. Google OAuth (Socialite) — Wajib Dijalankan Setelah Pull Terbaru
+
+Fitur **Login & Daftar dengan Google** untuk User dan Penyedia Komunitas telah di-merge ke `main`.
+Setiap anggota tim wajib melakukan langkah berikut setelah `git pull origin main`:
+
+### Langkah 1: Install Package Socialite
+Package `laravel/socialite` telah ditambahkan ke `composer.json`. Jalankan:
+```bash
+composer install
+```
+*(Tanpa ini, akan muncul error `Class "Laravel\Socialite\..." not found`)*
+
+### Langkah 2: Jalankan Migration Baru
+Migration baru `add_google_id_to_users_table` menambahkan kolom `google_id` ke tabel `users`. Jalankan:
+```bash
+php artisan migrate
+```
+
+### Langkah 3: Tambahkan Konfigurasi Google OAuth ke `.env`
+Tambahkan baris berikut ke file `.env` di komputer masing-masing:
+```env
+GOOGLE_CLIENT_ID=<minta_dari_whatsapp_atau_grup>
+GOOGLE_CLIENT_SECRET=<minta_dari_whatsapp_atau_grup>
+GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
+```
+> **Catatan:** Kredensial Google OAuth (Client ID & Secret) didapat dari Google Cloud Console.  
+> Minta ke anggota tim yang membuat fitur ini, atau buat sendiri di [console.cloud.google.com](https://console.cloud.google.com).
+
+### Langkah 4: Bersihkan Cache Konfigurasi
+```bash
+php artisan optimize:clear
+```
+
+---
+
 ## 4. Kebijakan Seeder & Data Dummy
 - Komunitas dummy seeder (ID 7–16) telah dihapus agar katalog komunitas realistis.
 - Seeder `CommunityAndScheduleSeeder` telah dinonaktifkan di `DatabaseSeeder.php`. **Jangan menjalankan `php artisan migrate:fresh --seed`** tanpa konfirmasi tim agar data event dan komunitas asli di Neon PostgreSQL tidak terhapus.
