@@ -11,11 +11,11 @@
 </head>
 <body x-data="{
         sidebarOpen: window.innerWidth >= 1024,
-        activeSection: 'komunitas',
+        activeSection: new URLSearchParams(window.location.search).get('section') || 'komunitas',
         setSection(s) {
-            this.activeSection = s;
-            if (window.innerWidth < 1024) {
-                this.sidebarOpen = false;
+            if (!window.location.pathname.includes('/user/dashboard')) {
+                window.location.href = '{{ route('user.dashboard') }}?section=' + s;
+                return;
             }
         }
       }"

@@ -471,11 +471,11 @@
                             @endphp
                             <div class="community-card flex flex-col h-full bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
                                 {{-- Cover Image --}}
-                                <div class="community-card__cover {{ $sportCoverClass }} relative h-40 overflow-hidden rounded-t-2xl">
+                                <a href="{{ route('user.communities.show', $comm->id) }}" class="community-card__cover {{ $sportCoverClass }} relative h-40 overflow-hidden rounded-t-2xl block group cursor-pointer">
                                     @if($comm->cover_image)
                                         <img src="{{ \Illuminate\Support\Str::startsWith($comm->cover_image, ['http://', 'https://']) ? $comm->cover_image : \Illuminate\Support\Facades\Storage::url($comm->cover_image) }}"
                                              alt="{{ $comm->name }}"
-                                             class="w-full h-full object-cover"
+                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                              onerror="this.style.display='none'">
                                     @endif
                                     <div class="community-card__overlay"></div>
@@ -486,13 +486,15 @@
                                             Terverifikasi
                                         </span>
                                     @endif
-                                </div>
+                                </a>
 
                                 <div class="community-card__body p-5 flex flex-col flex-grow justify-between">
                                     <div>
                                         <div class="flex items-start justify-between gap-2">
                                             <h4 class="text-sm font-bold text-slate-900 leading-snug">
-                                                {{ $comm->name }}
+                                                <a href="{{ route('user.communities.show', $comm->id) }}" class="hover:text-blue-600 transition-colors">
+                                                    {{ $comm->name }}
+                                                </a>
                                             </h4>
                                             @if($comm->city)
                                                 <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 flex-shrink-0">

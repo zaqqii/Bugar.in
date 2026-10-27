@@ -52,6 +52,7 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
             'totalActiveSessions' => Schedule::count(),
         ]);
     })->name('explore');
+    Route::get('/communities/{id}', [CommunityController::class, 'show'])->name('communities.show');
     Route::post('/communities/{community}/follow', [DashboardController::class, 'followCommunity'])->name('communities.follow');
     Route::delete('/communities/{community}/unfollow', [DashboardController::class, 'unfollowCommunity'])->name('communities.unfollow');
     Route::post('/communities/{id}/join', [CommunityController::class, 'join'])->name('communities.join');
