@@ -33,8 +33,9 @@ php artisan route:cache
 php artisan view:cache
 
 echo "==> Setting storage permissions..."
-chmod -R 775 storage bootstrap/cache
-chown -R www-data:www-data storage bootstrap/cache
+mkdir -p storage bootstrap/cache public/media
+chmod -R 775 storage bootstrap/cache public/media
+chown -R www-data:www-data storage bootstrap/cache public/media
 
 echo "==> Linking storage..."
 php artisan storage:link --force 2>/dev/null || true

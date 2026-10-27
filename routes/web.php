@@ -126,16 +126,20 @@ Route::get('/media/{path}', function (string $path) {
     }
 
     // 3. Tarik dari Cloudflare R2, simpan ke public/media/ agar request berikutnya instan
-    if (\Illuminate\Support\Facades\Storage::disk('s3')->exists($path)) {
-        $file = \Illuminate\Support\Facades\Storage::disk('s3')->get($path);
-        @mkdir(dirname($cachedFile), 0755, true);
-        @file_put_contents($cachedFile, $file);
+    try {
+        if (\Illuminate\Support\Facades\Storage::disk('s3')->exists($path)) {
+            $file = \Illuminate\Support\Facades\Storage::disk('s3')->get($path);
+            @mkdir(dirname($cachedFile), 0755, true);
+            @file_put_contents($cachedFile, $file);
 
-        $mime = \Illuminate\Support\Facades\Storage::disk('s3')->mimeType($path) ?? 'image/jpeg';
-        return response($file, 200, [
-            'Content-Type' => $mime,
-            'Cache-Control' => 'public, max-age=604800, immutable',
-        ]);
+            $mime = \Illuminate\Support\Facades\Storage::disk('s3')->mimeType($path) ?? 'image/jpeg';
+            return response($file, 200, [
+                'Content-Type' => $mime,
+                'Cache-Control' => 'public, max-age=604800, immutable',
+            ]);
+        }
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::warning("Media streaming error for [{$path}]: " . $e->getMessage());
     }
 
     abort(404);
