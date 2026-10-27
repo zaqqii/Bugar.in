@@ -10,6 +10,8 @@ use App\Http\Controllers\User\CommunityController;
 use App\Models\Community;
 use App\Models\Schedule;
 
+use App\Http\Controllers\Auth\GoogleAuthController;
+
 // Landing Page
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 
@@ -17,6 +19,12 @@ Route::get('/', [LandingController::class, 'index'])->name('landing');
 Route::get('/auth/selection', function () {
     return view('auth.selection');
 })->name('auth.selection');
+
+// ============================================================
+// GOOGLE OAUTH ROUTES (Shared / Role-aware)
+// ============================================================
+Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 
 // ============================================================
 // USER AUTH ROUTES
@@ -28,6 +36,8 @@ Route::prefix('auth/user')->name('auth.user.')->group(function () {
     })->name('login');
     Route::post('/register', [UserAuthController::class, 'register'])->name('register.post');
     Route::post('/login', [UserAuthController::class, 'login'])->name('login.post');
+    Route::get('/google-complete', [GoogleAuthController::class, 'showUserCompleteForm'])->name('google-complete');
+    Route::post('/google-complete', [GoogleAuthController::class, 'storeUserComplete'])->name('google-complete.post');
 });
 
 use App\Http\Controllers\User\ProfileController;
@@ -73,6 +83,8 @@ Route::prefix('auth/penyedia-komunitas')->name('auth.penyedia-komunitas.')->grou
     })->name('login');
     Route::post('/register', [PenyediaKomunitasAuthController::class, 'register'])->name('register.post');
     Route::post('/login', [PenyediaKomunitasAuthController::class, 'login'])->name('login.post');
+    Route::get('/google-complete', [GoogleAuthController::class, 'showPenyediaCompleteForm'])->name('google-complete');
+    Route::post('/google-complete', [GoogleAuthController::class, 'storePenyediaComplete'])->name('google-complete.post');
 });
 
 // ============================================================
