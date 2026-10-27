@@ -123,8 +123,9 @@ users 1─N bmi_records
 | name | varchar(255) | wajib |
 | username | varchar(255) | opsional, unik |
 | email | varchar(255) | wajib, unik |
+| google_id | varchar(255) | opsional, unik (identitas OAuth Google) |
 | email_verified_at | timestamp | opsional |
-| password | varchar(255) | wajib, hash (jangan di-hash dua kali jika model memakai cast `hashed`) |
+| password | varchar(255) | wajib/opsional jika OAuth, hash (jangan di-hash dua kali jika model memakai cast `hashed`) |
 | role | varchar(255) | wajib, default `user` |
 | avatar | varchar(255) | opsional, path file |
 | bio | text | opsional |

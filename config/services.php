@@ -35,4 +35,21 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
+        'guzzle' => [
+            'verify' => env('CURL_CA_BUNDLE', (function () {
+                if ($ca = ini_get('curl.cainfo')) {
+                    if (file_exists($ca)) return $ca;
+                }
+                if (file_exists('C:/xampp/apache/bin/curl-ca-bundle.crt')) {
+                    return 'C:/xampp/apache/bin/curl-ca-bundle.crt';
+                }
+                return true;
+            })()),
+        ],
+    ],
+
 ];
