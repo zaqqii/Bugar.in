@@ -3,10 +3,16 @@ set -e
 
 cd /var/www/html
 
+# Ensure public/hot is never present in production
+rm -f /var/www/html/public/hot
+
 # Copy secret .env from Render's secret file location if exists
 if [ -f /etc/secrets/.env ]; then
     echo "==> Copying .env from Render secret file..."
     cp /etc/secrets/.env /var/www/html/.env
+elif [ ! -f /var/www/html/.env ]; then
+    echo "==> Creating .env from container environment variables..."
+    env | grep -E '^(APP_|DB_|SESSION_|CACHE_|QUEUE_|FILESYSTEM_|AWS_|GOOGLE_)' > /var/www/html/.env || true
 fi
 
 # Only generate APP_KEY if it's truly missing/empty (don't force-regenerate — breaks sessions!)
