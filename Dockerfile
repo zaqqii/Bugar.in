@@ -37,22 +37,18 @@ COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy composer files first (for layer caching)
-COPY composer.json composer.lock ./
+# Copy all source files first
+COPY . .
 
 # Install PHP dependencies (no dev, optimized)
 RUN composer install --no-dev --no-interaction --optimize-autoloader --no-scripts
 
-# Copy package files for Node
-COPY package.json package-lock.json ./
-
-# Install Node dependencies & build Vite assets
-RUN npm ci --ignore-scripts
-COPY . .
+# Install Node dependencies & build Vite assets for production
+RUN npm ci
 RUN npm run build
 
-# Copy remaining app files
-# (already copied above with COPY . .)
+# Verify Vite build output exists
+RUN test -f public/build/manifest.json && echo "Vite build OK" || (echo "ERROR: Vite build failed, manifest.json not found" && exit 1)
 
 # Run composer post-install scripts
 RUN composer run-script post-autoload-dump
