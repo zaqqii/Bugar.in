@@ -3,8 +3,20 @@ set -e
 
 cd /var/www/html
 
-echo "==> Generating APP_KEY if not set..."
-php artisan key:generate --force --no-interaction 2>/dev/null || true
+# Copy secret .env from Render's secret file location if exists
+if [ -f /etc/secrets/.env ]; then
+    echo "==> Copying .env from Render secret file..."
+    cp /etc/secrets/.env /var/www/html/.env
+fi
+
+# Only generate APP_KEY if it's truly missing/empty (don't force-regenerate — breaks sessions!)
+echo "==> Checking APP_KEY..."
+if ! grep -q "^APP_KEY=base64:" /var/www/html/.env 2>/dev/null; then
+    echo "    APP_KEY not found, generating..."
+    php artisan key:generate --no-interaction
+else
+    echo "    APP_KEY already set, skipping."
+fi
 
 echo "==> Running migrations..."
 php artisan migrate --force --no-interaction
