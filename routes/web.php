@@ -42,6 +42,7 @@ Route::prefix('auth/user')->name('auth.user.')->group(function () {
 
 use App\Http\Controllers\User\ProfileController;
 use App\Http\Controllers\PenyediaKomunitas\EventController as PenyediaEventController;
+use App\Http\Controllers\PenyediaKomunitas\AkunController as PenyediaAkunController;
 
 // ============================================================
 // USER DASHBOARD & PROFILE ROUTES
@@ -98,7 +99,10 @@ Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware(['a
     Route::get('/events/create', [PenyediaEventController::class, 'create'])->name('events.create');
     Route::post('/events', [PenyediaEventController::class, 'store'])->name('events.store');
     Route::view('/statistik', 'penyedia-komunitas.statistik.index')->name('statistik.index');
-    Route::view('/akun', 'penyedia-komunitas.akun.index')->name('akun.index');
+    Route::get('/akun', [PenyediaAkunController::class, 'index'])->name('akun.index');
+    Route::put('/akun/profil', [PenyediaAkunController::class, 'updateProfile'])->name('akun.update-profile');
+    Route::put('/akun/komunitas', [PenyediaAkunController::class, 'updateCommunity'])->name('akun.update-community');
+    Route::post('/akun/verifikasi', [PenyediaAkunController::class, 'verify'])->name('akun.verify');
     Route::post('/logout', [PenyediaKomunitasAuthController::class, 'logout'])->name('logout');
 });
 

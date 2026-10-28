@@ -633,6 +633,10 @@ class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cya
                                 Biaya Pendaftaran <span class="text-red-500">*</span>
                             </label>
 
+                            @php
+                                $isCommunityVerified = $community?->isVerified() ?? false;
+                            @endphp
+
                             {{-- Pilihan Gratis vs Berbayar --}}
                             <div class="grid grid-cols-2 gap-2 mb-3">
                                 <button type="button"
@@ -644,14 +648,40 @@ class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cya
                                     Gratis (Free)
                                 </button>
                                 <button type="button"
-                                        @click="form.is_paid = '1'"
-                                        class="py-2.5 px-3 rounded-xl border text-xs font-bold transition-all duration-200 text-center"
-                                        :class="form.is_paid === '1' 
-                                            ? 'border-primary-500 bg-primary-50/70 text-primary-700 ring-2 ring-primary-500/20 shadow-sm' 
-                                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'">
+                                        @if($isCommunityVerified)
+                                            @click="form.is_paid = '1'"
+                                            class="py-2.5 px-3 rounded-xl border text-xs font-bold transition-all duration-200 text-center"
+                                            :class="form.is_paid === '1' 
+                                                ? 'border-primary-500 bg-primary-50/70 text-primary-700 ring-2 ring-primary-500/20 shadow-sm' 
+                                                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
+                                        @else
+                                            disabled
+                                            title="Verifikasi komunitas Anda untuk membuka fitur tiket berbayar"
+                                            class="py-2.5 px-3 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 text-xs font-bold text-center cursor-not-allowed flex items-center justify-center gap-1.5 opacity-75"
+                                        @endif>
+                                    @if(!$isCommunityVerified)
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                                        </svg>
+                                    @endif
                                     Berbayar (Tiket)
                                 </button>
                             </div>
+
+                            @if(!$isCommunityVerified)
+                                <div class="mb-3 p-3 rounded-xl bg-amber-50/90 border border-amber-200 text-xs flex items-start gap-2.5 text-amber-900 shadow-sm">
+                                    <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z" />
+                                    </svg>
+                                    <div class="leading-relaxed">
+                                        <span class="font-bold text-amber-900">Event Berbayar Khusus Komunitas Terverifikasi.</span>
+                                        <p class="text-amber-800 mt-0.5">
+                                            Komunitas Anda saat ini belum terverifikasi (hanya dapat membuat event biasa/gratis dan jadwal latihan). Anda bisa melakukan verifikasi instan atau gratis (15 pengikut) di menu 
+                                            <a href="{{ route('penyedia-komunitas.akun.index') }}" class="font-bold underline text-primary-700 hover:text-primary-800">Pengaturan Akun</a>.
+                                        </p>
+                                    </div>
+                                </div>
+                            @endif
 
                             <input type="hidden" name="is_paid" :value="form.is_paid">
 

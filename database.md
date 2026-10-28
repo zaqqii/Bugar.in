@@ -158,6 +158,10 @@ users 1─N bmi_records
 | average_rating | numeric(3,2) | wajib, default 0 (counter) |
 | ratings_count | integer | wajib, default 0 (counter) |
 | verification_status | varchar(255) | wajib, default `pending` |
+| verification_type | varchar(255) | opsional (`paid`, `free_followers`) |
+| verification_fee | numeric(10,2) | opsional, biaya verifikasi jika berbayar |
+| verification_payment_method | varchar(255) | opsional, metode pembayaran verifikasi |
+| verification_requested_at | timestamp | opsional |
 | rejection_reason | text | opsional |
 | verified_at | timestamp | opsional |
 | is_active | boolean | wajib, default true |

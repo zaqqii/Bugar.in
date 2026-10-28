@@ -328,7 +328,7 @@
                     </div>
                     <div>
                         <div class="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight">
-                            {{ number_format($community->members_count ?? 2450) }}
+                            {{ number_format($community->members_count ?? 0) }}
                         </div>
                         <div class="text-xs text-slate-400 font-medium">Anggota Aktif</div>
                     </div>
@@ -343,7 +343,7 @@
                     </div>
                     <div>
                         <div class="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight">
-                            {{ number_format($community->events_count ?? ($community->events?->count() ?? 158)) }}
+                            {{ number_format($community->events_count ?? $community->events?->count() ?? 0) }}
                         </div>
                         <div class="text-xs text-slate-400 font-medium">Event Selesai</div>
                     </div>
@@ -358,26 +358,25 @@
                     </div>
                     <div>
                         <div class="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight flex items-baseline gap-1">
-                            <span>{{ number_format($community->average_rating ?? 4.9, 1) }}</span>
+                            <span>{{ number_format($community->average_rating ?? 0, 1) }}</span>
                             <span class="text-xs text-slate-400 font-normal">/ 5.0</span>
                         </div>
                         <div class="text-xs text-slate-400 font-medium">Rating Komunitas</div>
                     </div>
                 </div>
 
-                {{-- Stat 4: Leaderboard Rank --}}
+                {{-- Stat 4: Pengikut --}}
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                         </svg>
                     </div>
                     <div>
-                        <div class="text-lg sm:text-xl font-extrabold text-blue-600 leading-tight flex items-center gap-1.5">
-                            <span>#2</span>
-                            <span class="text-[11px] font-bold text-blue-700 bg-blue-100/60 px-1.5 py-0.2 rounded-md">Nasional</span>
+                        <div class="text-lg sm:text-xl font-extrabold text-blue-600 leading-tight">
+                            {{ number_format($community->followers_count ?? 0) }}
                         </div>
-                        <div class="text-xs text-slate-400 font-medium">Leaderboard {{ ucfirst($community->sport_category ?? 'Run') }}</div>
+                        <div class="text-xs text-slate-400 font-medium">Pengikut</div>
                     </div>
                 </div>
 
@@ -420,16 +419,6 @@
                     : 'bg-white text-slate-600 hover:text-blue-600 hover:bg-blue-50/50 border border-slate-200/80 font-semibold'"
                 class="px-5 py-2.5 rounded-xl text-xs sm:text-sm transition-all duration-150 cursor-pointer whitespace-nowrap active:scale-95">
             Anggota &amp; Koordinator
-        </button>
-
-        {{-- Tab 4: Galeri --}}
-        <button type="button"
-                @click="activeTab = 'galeri'"
-                :class="activeTab === 'galeri'
-                    ? 'bg-blue-600 text-white font-bold shadow-xs'
-                    : 'bg-white text-slate-600 hover:text-blue-600 hover:bg-blue-50/50 border border-slate-200/80 font-semibold'"
-                class="px-5 py-2.5 rounded-xl text-xs sm:text-sm transition-all duration-150 cursor-pointer whitespace-nowrap active:scale-95">
-            Galeri Foto
         </button>
 
     </div>
@@ -498,131 +487,82 @@
                         </button>
                     </div>
 
-                    {{-- List Card Event Sederhana (Dengan Relasi Database atau Dummy Fallback) --}}
+                    {{-- List Card Event dari Database --}}
                     <div class="space-y-4">
-                        
-                        {{-- Event 1: 15K Long Run --}}
-                        <div class="p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70 hover:border-blue-300 hover:bg-white hover:shadow-xs transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div class="flex items-start gap-4">
-                                {{-- Thumbnail Event --}}
-                                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gradient-to-br from-blue-600 to-cyan-500 flex-shrink-0 relative">
-                                    <img src="https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?auto=format&fit=crop&w=400&q=80"
-                                         alt="15K Long Run"
-                                         class="w-full h-full object-cover">
-                                    <span class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-slate-950/80 text-white text-[9px] font-extrabold uppercase tracking-wide">
-                                        15K RACE
-                                    </span>
-                                </div>
-
-                                {{-- Event Details --}}
-                                <div class="space-y-1.5">
-                                    <div class="flex items-center gap-2 text-xs font-semibold text-blue-600">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        <span>Minggu Depan • 05:30 WIB</span>
+                        @forelse($community->events as $event)
+                            @php
+                                $eventDate = \Carbon\Carbon::parse($event->event_date);
+                                $eventCover = null;
+                                if (!empty($event->cover_image)) {
+                                    $eventCover = \Illuminate\Support\Str::startsWith($event->cover_image, ['http://', 'https://'])
+                                        ? $event->cover_image
+                                        : \Illuminate\Support\Facades\Storage::url($event->cover_image);
+                                }
+                            @endphp
+                            <div class="p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70 hover:border-blue-300 hover:bg-white hover:shadow-xs transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="flex items-start gap-4 min-w-0">
+                                    {{-- Thumbnail Event --}}
+                                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gradient-to-br from-blue-600 to-cyan-500 flex-shrink-0 relative">
+                                        @if($eventCover)
+                                            <img src="{{ $eventCover }}" alt="{{ $event->title }}" class="w-full h-full object-cover">
+                                        @else
+                                            <div class="w-full h-full flex items-center justify-center text-white font-extrabold text-[10px] p-2 text-center uppercase">
+                                                {{ $event->type }}
+                                            </div>
+                                        @endif
+                                        <span class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-slate-950/80 text-white text-[9px] font-extrabold uppercase tracking-wide">
+                                            {{ $event->type }}
+                                        </span>
                                     </div>
 
-                                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
-                                        {{ $community->name ?? 'JSR' }} Road to Jakarta Marathon 15K Long Run
-                                    </h4>
-
-                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                                        <span class="inline-flex items-center gap-1">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    {{-- Event Details --}}
+                                    <div class="space-y-1.5 min-w-0">
+                                        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                             </svg>
-                                            <span>GBK Plaza Timur</span>
-                                        </span>
-                                        <span class="text-slate-300">•</span>
-                                        <span class="inline-flex items-center gap-1 text-cyan-700 font-semibold">
-                                            <span>Free Guided Pacer</span>
-                                        </span>
+                                            <span>{{ $eventDate->translatedFormat('l, d F Y') }} • {{ substr($event->start_time, 0, 5) }} WIB</span>
+                                        </div>
+
+                                        <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug truncate">
+                                            {{ $event->title }}
+                                        </h4>
+
+                                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                                            <span class="inline-flex items-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                </svg>
+                                                <span>{{ $event->location }}</span>
+                                            </span>
+                                            <span class="text-slate-300">•</span>
+                                            <span class="font-bold {{ $event->registration_fee > 0 ? 'text-amber-700' : 'text-emerald-700' }}">
+                                                {{ $event->registration_fee > 0 ? 'Rp ' . number_format($event->registration_fee, 0, ',', '.') : 'Gratis' }}
+                                            </span>
+                                        </div>
                                     </div>
+                                </div>
+
+                                {{-- Quota & Action Button --}}
+                                <div class="flex flex-col items-start md:items-end justify-center gap-2 flex-shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                                    <div class="text-[11px] font-semibold text-slate-500">
+                                        Kuota: <span class="font-bold text-slate-700">{{ $event->capacity ? $event->participants_count . ' / ' . $event->capacity . ' Peserta' : 'Bebas' }}</span>
+                                    </div>
+                                    <form method="POST" action="{{ route('user.events.join', $event->id) }}">
+                                        @csrf
+                                        <button type="submit"
+                                                class="w-full md:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-2xs transition-all active:scale-95 cursor-pointer text-center">
+                                            Daftar Kegiatan
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
-
-                            {{-- Quota & Action Button --}}
-                            <div class="flex flex-col items-start md:items-end justify-center gap-2 flex-shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
-                                <div class="w-full md:w-40">
-                                    <div class="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
-                                        <span>Sisa Kuota:</span>
-                                        <span class="text-blue-600 font-bold">45 / 60 Peserta</span>
-                                    </div>
-                                    <div class="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
-                                        <div class="h-full rounded-full bg-blue-600" style="width: 75%;"></div>
-                                    </div>
-                                </div>
-
-                                <button type="button"
-                                        class="w-full md:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-2xs transition-all active:scale-95 cursor-pointer text-center">
-                                    Daftar Kegiatan
-                                </button>
+                        @empty
+                            <div class="p-8 text-center bg-slate-50/70 rounded-2xl border border-slate-200/60">
+                                <p class="text-xs text-slate-500 font-medium">Belum ada event mendatang yang dipublikasikan oleh komunitas ini.</p>
                             </div>
-                        </div>
-
-                        {{-- Event 2: Breakfast Gathering --}}
-                        <div class="p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70 hover:border-blue-300 hover:bg-white hover:shadow-xs transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div class="flex items-start gap-4">
-                                {{-- Thumbnail Event --}}
-                                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-500 flex-shrink-0 relative">
-                                    <img src="https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=400&q=80"
-                                         alt="Breakfast Gathering"
-                                         class="w-full h-full object-cover">
-                                    <span class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-slate-950/80 text-white text-[9px] font-extrabold uppercase tracking-wide">
-                                        CASUAL 5K
-                                    </span>
-                                </div>
-
-                                {{-- Event Details --}}
-                                <div class="space-y-1.5">
-                                    <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        <span>Dua Minggu Lagi • 06:15 WIB</span>
-                                    </div>
-
-                                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
-                                        Beginner 5K &amp; Breakfast Gathering
-                                    </h4>
-
-                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                                        <span class="inline-flex items-center gap-1">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            </svg>
-                                            <span>Hutan Kota GBK</span>
-                                        </span>
-                                        <span class="text-slate-300">•</span>
-                                        <span class="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                                            <span>Sarapan Bersama</span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Quota & Action Button --}}
-                            <div class="flex flex-col items-start md:items-end justify-center gap-2 flex-shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
-                                <div class="w-full md:w-40">
-                                    <div class="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
-                                        <span>Sisa Kuota:</span>
-                                        <span class="text-rose-600 font-bold">28 / 30 Peserta</span>
-                                    </div>
-                                    <div class="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
-                                        <div class="h-full rounded-full bg-rose-500" style="width: 93%;"></div>
-                                    </div>
-                                </div>
-
-                                <button type="button"
-                                        class="w-full md:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-2xs transition-all active:scale-95 cursor-pointer text-center">
-                                    Daftar Kegiatan
-                                </button>
-                            </div>
-                        </div>
-
+                        @endforelse
                     </div>
 
                 </div>
@@ -649,31 +589,34 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {{-- Event Card 1 --}}
-                    <div class="rounded-2xl border border-slate-200 p-4 bg-slate-50/60 hover:bg-white hover:shadow-xs transition-all flex flex-col justify-between">
-                        <div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700">RACE RUNNING</span>
-                            <h4 class="text-sm font-bold text-slate-900 mt-2">JSR Road to Jakarta Marathon 15K</h4>
-                            <p class="text-xs text-slate-500 mt-1">Latihan simulasi pace jarak menengah dengan pacer bersertifikasi.</p>
+                    @forelse($community->events as $event)
+                        @php
+                            $eventDate = \Carbon\Carbon::parse($event->event_date);
+                        @endphp
+                        <div class="rounded-2xl border border-slate-200 p-4 bg-slate-50/60 hover:bg-white hover:shadow-xs transition-all flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 uppercase">{{ $event->type }}</span>
+                                    <span class="text-xs font-bold {{ $event->registration_fee > 0 ? 'text-amber-700' : 'text-emerald-700' }}">
+                                        {{ $event->registration_fee > 0 ? 'Rp ' . number_format($event->registration_fee, 0, ',', '.') : 'Gratis' }}
+                                    </span>
+                                </div>
+                                <h4 class="text-sm font-bold text-slate-900 mt-2">{{ $event->title }}</h4>
+                                <p class="text-xs text-slate-500 mt-1 line-clamp-2">{{ $event->description ?? 'Kegiatan olahraga terbuka.' }}</p>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                                <span class="font-bold text-blue-600">{{ $eventDate->translatedFormat('d M Y') }}, {{ substr($event->start_time, 0, 5) }} WIB</span>
+                                <form method="POST" action="{{ route('user.events.join', $event->id) }}">
+                                    @csrf
+                                    <button type="submit" class="btn-primary text-xs py-1.5 px-3 rounded-lg">Ikuti Event</button>
+                                </form>
+                            </div>
                         </div>
-                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                            <span class="font-bold text-blue-600">Minggu, 05:30 WIB</span>
-                            <button type="button" class="btn-primary text-xs py-1.5 px-3 rounded-lg">Ikuti Event</button>
+                    @empty
+                        <div class="sm:col-span-2 p-8 text-center bg-slate-50/70 rounded-2xl border border-slate-200/60">
+                            <p class="text-xs text-slate-500 font-medium">Belum ada agenda atau event yang dijadwalkan saat ini.</p>
                         </div>
-                    </div>
-
-                    {{-- Event Card 2 --}}
-                    <div class="rounded-2xl border border-slate-200 p-4 bg-slate-50/60 hover:bg-white hover:shadow-xs transition-all flex flex-col justify-between">
-                        <div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">GATHERING</span>
-                            <h4 class="text-sm font-bold text-slate-900 mt-2">Beginner 5K &amp; Recovery Breakfast</h4>
-                            <p class="text-xs text-slate-500 mt-1">Lari santai khusus pemula mengelilingi jalur rindang Hutan Kota.</p>
-                        </div>
-                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                            <span class="font-bold text-emerald-600">Sabtu, 06:15 WIB</span>
-                            <button type="button" class="btn-primary text-xs py-1.5 px-3 rounded-lg">Ikuti Event</button>
-                        </div>
-                    </div>
+                    @endforelse
                 </div>
             </div>
 
@@ -693,7 +636,7 @@
                             Anggota &amp; Struktur Komunitas
                         </h3>
                     </div>
-                    <span class="text-xs font-semibold text-slate-500">{{ number_format($community->members_count ?? 2450) }} Member</span>
+                    <span class="text-xs font-semibold text-slate-500">{{ number_format($community->members_count ?? 0) }} Member</span>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
@@ -703,64 +646,30 @@
                             {{ $ownerInitials }}
                         </div>
                         <div class="truncate">
-                            <div class="text-xs font-bold text-slate-900 truncate">{{ $owner?->name ?? 'Dimas Suryo, S.Or.' }}</div>
-                            <div class="text-[10px] font-bold text-blue-600">Founder &amp; Owner</div>
+                            <div class="text-xs font-bold text-slate-900 truncate">{{ $owner?->name ?? 'Koordinator Komunitas' }}</div>
+                            <div class="text-[10px] font-bold text-blue-600">Founder &amp; Host</div>
                         </div>
                     </div>
 
-                    {{-- Member 1 --}}
-                    <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
-                            AP
-                        </div>
-                        <div class="truncate">
-                            <div class="text-xs font-bold text-slate-900 truncate">Aditya Pratama</div>
-                            <div class="text-[10px] text-slate-400 font-medium">Core Member • Pace 5:12</div>
-                        </div>
-                    </div>
-
-                    {{-- Member 2 --}}
-                    <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
-                            SR
-                        </div>
-                        <div class="truncate">
-                            <div class="text-xs font-bold text-slate-900 truncate">Siti Rahmawati</div>
-                            <div class="text-[10px] text-slate-400 font-medium">Core Member • Pace 5:45</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- ------------------------------------------------------
-                 TAB 4: GALERI FOTO
-                 ------------------------------------------------------ --}}
-            <div x-show="activeTab === 'galeri'"
-                 x-transition:enter="transition ease-out duration-200"
-                 x-transition:enter-start="opacity-0 translate-y-1"
-                 x-transition:enter-end="opacity-100 translate-y-0"
-                 class="rounded-3xl bg-white border border-slate-200/80 p-6 sm:p-8 shadow-xs space-y-6">
-                
-                <div class="flex items-center gap-2.5">
-                    <span class="w-1.5 h-6 rounded-full bg-blue-600"></span>
-                    <div>
-                        <h3 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
-                            Galeri Foto Sesi Olahraga
-                        </h3>
-                        <p class="text-xs text-slate-400 mt-0.5">Dokumentasi momen keceriaan dan keringat bersama.</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
-                    <div class="h-36 sm:h-44 rounded-2xl overflow-hidden bg-slate-100">
-                        <img src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=500&q=80" alt="Moment 1" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
-                    </div>
-                    <div class="h-36 sm:h-44 rounded-2xl overflow-hidden bg-slate-100">
-                        <img src="https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=500&q=80" alt="Moment 2" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
-                    </div>
-                    <div class="h-36 sm:h-44 rounded-2xl overflow-hidden bg-slate-100">
-                        <img src="https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=500&q=80" alt="Moment 3" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
-                    </div>
+                    {{-- Real Members --}}
+                    @foreach($community->members as $member)
+                        @if($member->user && $member->user_id !== $owner?->id)
+                            @php
+                                $mInitials = collect(explode(' ', $member->user->name ?? 'Member'))
+                                    ->map(fn($w) => strtoupper(substr($w, 0, 1)))
+                                    ->take(2)->implode('');
+                            @endphp
+                            <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
+                                    {{ $mInitials }}
+                                </div>
+                                <div class="truncate">
+                                    <div class="text-xs font-bold text-slate-900 truncate">{{ $member->user->name }}</div>
+                                    <div class="text-[10px] text-slate-400 font-medium">Anggota Aktif</div>
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
                 </div>
             </div>
 
@@ -794,13 +703,13 @@
                     {{-- Nama & Kredensial --}}
                     <div class="min-w-0">
                         <div class="text-xs sm:text-sm font-extrabold text-slate-900 leading-snug truncate">
-                            {{ $owner?->name ?? 'Dimas Suryo, S.Or.' }}
+                            {{ $owner?->name ?? 'Koordinator Komunitas' }}
                         </div>
                         <div class="text-[11px] font-semibold text-blue-600">
-                            {{ $owner?->isCommunityOwner() ? 'Head Coach & Founder' : 'Koordinator Komunitas' }}
+                            {{ $owner?->isCommunityOwner() ? 'Founder & Host' : 'Koordinator Komunitas' }}
                         </div>
                         <div class="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
-                            <span class="text-cyan-600 font-bold">✓</span> Certified Coach IAAF (dummy)
+                            <span class="text-cyan-600 font-bold">✓</span> Pengelola Komunitas Aktif
                         </div>
                     </div>
                 </div>
@@ -851,20 +760,22 @@
                         <div>
                             <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Wilayah / Kota</span>
                             <span class="font-semibold text-slate-700">
-                                {{ $community->city ?? 'Jakarta Pusat' }}{{ $community->province ? ', ' . $community->province : ', DKI Jakarta' }}
+                                {{ $community->city ?? '-' }}{{ $community->province ? ', ' . $community->province : '' }}
                             </span>
                         </div>
                     </div>
 
                     {{-- Panduan Arah --}}
+                    @if($community->location)
                     <div class="pt-2 text-[11px] text-slate-500 leading-relaxed border-t border-slate-200/60">
-                        Titik kumpul: Dekat patung atau gerbang utama venue. Akses mudah via transportasi umum (MRT, KRL, TransJakarta).
+                        Titik kumpul di {{ $community->location }}{{ $community->city ? ', ' . $community->city : '' }}.
                     </div>
+                    @endif
                 </div>
 
                 {{-- Action Link Petunjuk Arah --}}
                 @php
-                    $mapsQuery = urlencode(($community->location ?? 'Gate 7 GBK') . ' ' . ($community->city ?? 'Jakarta'));
+                    $mapsQuery = urlencode(($community->location ?? $community->city ?? $community->name ?? '') . ' ' . ($community->city ?? ''));
                 @endphp
                 <a href="https://www.google.com/maps/search/?api=1&query={{ $mapsQuery }}"
                    target="_blank"
@@ -878,76 +789,51 @@
 
             </div>
 
-            {{-- WIDGET 3: TOP MILEAGE BULAN INI (Top Members Dummy Data) --}}
+            {{-- WIDGET 3: ANGGOTA AKTIF --}}
             <div class="rounded-3xl bg-white border border-slate-200/80 p-6 shadow-xs space-y-4">
                 
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
                         <span class="w-1.5 h-5 rounded-full bg-blue-600"></span>
                         <h3 class="text-sm font-extrabold text-slate-900 tracking-tight">
-                            Top Mileage Bulan Ini
+                            Anggota Komunitas
                         </h3>
                     </div>
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500">
-                        {{ now()->translatedFormat('M Y') }}
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-100">
+                        {{ $community->members_count ?? 0 }} Anggota
                     </span>
                 </div>
 
-                <div class="space-y-3">
-                    {{-- Rank 1 --}}
-                    <div class="p-3 rounded-2xl bg-amber-50/40 border border-amber-200/80 flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="w-6 h-6 rounded-full bg-amber-500 text-white font-extrabold text-xs flex items-center justify-center shadow-2xs">1</span>
-                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 text-white font-bold text-xs flex items-center justify-center">
-                                AP
-                            </div>
-                            <div>
-                                <div class="text-xs font-bold text-slate-900">Aditya Pratama</div>
-                                <div class="text-[10px] text-slate-400 font-medium">Pace Rata-rata 5:12</div>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xs font-extrabold text-blue-600">184.2</div>
-                            <div class="text-[9px] font-bold text-slate-400">KM</div>
-                        </div>
+                @if($community->members->isEmpty())
+                    <div class="p-5 text-center rounded-2xl bg-slate-50/70 border border-slate-100">
+                        <p class="text-xs text-slate-400 font-medium">Belum ada anggota yang bergabung.</p>
                     </div>
-
-                    {{-- Rank 2 --}}
-                    <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="w-6 h-6 rounded-full bg-slate-400 text-white font-extrabold text-xs flex items-center justify-center">2</span>
-                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 text-white font-bold text-xs flex items-center justify-center">
-                                SR
-                            </div>
-                            <div>
-                                <div class="text-xs font-bold text-slate-900">Siti Rahmawati</div>
-                                <div class="text-[10px] text-slate-400 font-medium">Pace Rata-rata 5:45</div>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xs font-extrabold text-blue-600">162.8</div>
-                            <div class="text-[9px] font-bold text-slate-400">KM</div>
-                        </div>
+                @else
+                    <div class="space-y-2">
+                        @foreach($community->members->take(5) as $i => $member)
+                            @if($member->user)
+                                @php
+                                    $mInit = collect(explode(' ', $member->user->name ?? 'M'))
+                                        ->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->implode('');
+                                    $gradients = ['from-blue-600 to-cyan-500','from-teal-500 to-emerald-600','from-purple-500 to-indigo-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600'];
+                                    $g = $gradients[$i % count($gradients)];
+                                @endphp
+                                <div class="p-2.5 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br {{ $g }} text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
+                                        {{ $mInit }}
+                                    </div>
+                                    <div class="truncate">
+                                        <div class="text-xs font-bold text-slate-900 truncate">{{ $member->user->name }}</div>
+                                        <div class="text-[10px] text-slate-400 font-medium">Anggota Aktif</div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+                        @if(($community->members_count ?? 0) > 5)
+                            <p class="text-[11px] text-center text-slate-400 font-medium pt-1">+{{ ($community->members_count - 5) }} anggota lainnya</p>
+                        @endif
                     </div>
-
-                    {{-- Rank 3 --}}
-                    <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="w-6 h-6 rounded-full bg-amber-700/80 text-white font-extrabold text-xs flex items-center justify-center">3</span>
-                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center">
-                                KW
-                            </div>
-                            <div>
-                                <div class="text-xs font-bold text-slate-900">Kevin Wijaya</div>
-                                <div class="text-[10px] text-slate-400 font-medium">Pace Rata-rata 6:00</div>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xs font-extrabold text-blue-600">148.5</div>
-                            <div class="text-[9px] font-bold text-slate-400">KM</div>
-                        </div>
-                    </div>
-                </div>
+                @endif
 
             </div>
 
@@ -962,49 +848,39 @@
                 </div>
 
                 <div class="space-y-2.5">
-                    
-                    {{-- Item 1 --}}
-                    <a href="{{ route('user.explore') }}"
-                       class="p-3 rounded-2xl bg-slate-50/70 hover:bg-blue-50/50 border border-slate-100 hover:border-blue-200 flex items-center justify-between transition-all group">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 font-extrabold text-xs flex items-center justify-center flex-shrink-0">
-                                SSRC
-                            </div>
-                            <div class="truncate">
-                                <div class="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
-                                    Senayan Stride Club
+                    @forelse($similarCommunities ?? [] as $sim)
+                        @php
+                            $simInit = collect(explode(' ', $sim->name ?? 'K'))
+                                ->map(fn($w) => strtoupper(substr($w,0,1)))->take(3)->implode('');
+                        @endphp
+                        <a href="{{ route('user.communities.show', $sim->id) }}"
+                           class="p-3 rounded-2xl bg-slate-50/70 hover:bg-blue-50/50 border border-slate-100 hover:border-blue-200 flex items-center justify-between transition-all group">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 font-extrabold text-[10px] flex items-center justify-center flex-shrink-0">
+                                    {{ $simInit }}
                                 </div>
-                                <div class="text-[10px] text-slate-400 font-medium">
-                                    Lari Subuh • 1.2K Anggota
-                                </div>
-                            </div>
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
-
-                    {{-- Item 2 --}}
-                    <a href="{{ route('user.explore') }}"
-                       class="p-3 rounded-2xl bg-slate-50/70 hover:bg-blue-50/50 border border-slate-100 hover:border-blue-200 flex items-center justify-between transition-all group">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-9 h-9 rounded-xl bg-cyan-100 text-cyan-700 font-extrabold text-xs flex items-center justify-center flex-shrink-0">
-                                JRC
-                            </div>
-                            <div class="truncate">
-                                <div class="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
-                                    Jakarta Road Cycling &amp; Run
-                                </div>
-                                <div class="text-[10px] text-slate-400 font-medium">
-                                    Multisport • 3.4K Anggota
+                                <div class="truncate">
+                                    <div class="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
+                                        {{ $sim->name }}
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 font-medium">
+                                        {{ ucfirst($sim->sport_category ?? 'Olahraga') }} • {{ number_format($sim->members_count ?? 0) }} Anggota
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
-
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    @empty
+                        <a href="{{ route('user.explore') }}"
+                           class="p-3 rounded-2xl bg-blue-50/60 hover:bg-blue-100/60 border border-blue-100 flex items-center justify-center gap-2 text-xs font-bold text-blue-600 transition-all group">
+                            <span>Jelajahi Komunitas Lainnya</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    @endforelse
                 </div>
 
             </div>

@@ -13,12 +13,27 @@
         sidebarOpen: window.innerWidth >= 1024,
         activeSection: new URLSearchParams(window.location.search).get('section') || 'komunitas',
         setSection(s) {
-            if (!window.location.pathname.includes('/user/dashboard')) {
+            this.activeSection = s;
+            const currentPath = window.location.pathname.replace(/\/+$/, '');
+            const isDashboard = currentPath.endsWith('/user/dashboard') || currentPath.endsWith('/dashboard') || currentPath.includes('/user/dashboard');
+            
+            if (!isDashboard) {
                 window.location.href = '{{ route('user.dashboard') }}?section=' + s;
                 return;
             }
+
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.set('section', s);
+                window.history.pushState({}, '', url);
+            } catch (e) {}
+
+            if (window.innerWidth < 1024) {
+                this.sidebarOpen = false;
+            }
         }
       }"
+      @popstate.window="activeSection = new URLSearchParams(window.location.search).get('section') || 'komunitas'"
       @resize.window="if (window.innerWidth < 1024 && sidebarOpen) { sidebarOpen = false; }"
       class="bg-[#F0F7FF] text-slate-800 font-sans antialiased min-h-screen relative overflow-x-hidden">
 
