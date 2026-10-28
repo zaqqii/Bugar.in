@@ -701,8 +701,6 @@
                             <div>
                                 <div class="flex items-center justify-between gap-2 mb-2">
                                     <span class="badge badge--orange text-[10px]">{{ $event->community?->sport_category ?? 'Event' }}</span>
-                                        {{ $event->community?->name ?? 'Komunitas' }}
-                                    </span>
                                     <span class="text-xs font-bold {{ $event->registration_fee > 0 ? 'text-amber-700' : 'text-emerald-700' }}">
                                         {{ $event->registration_fee > 0 ? 'Rp ' . number_format($event->registration_fee, 0, ',', '.') : 'Gratis' }}
                                     </span>

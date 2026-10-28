@@ -47,6 +47,30 @@
         @endif
 
         {{-- PAGE HEADER --}}
+        {{-- UNVERIFIED NOTICE BANNER --}}
+        @if(!$community->isVerified())
+            <div class="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 text-slate-800 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-start gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-900">Verifikasikan Komunitas untuk Membuat Event Berbayar</h4>
+                        <p class="text-xs text-slate-600 mt-0.5">
+                            Saat ini Anda baru dapat membuat jadwal rutin dan event biasa (gratis). Dapatkan verifikasi gratis (15 pengikut: saat ini <strong>{{ $community->followers_count ?? 0 }}/15</strong>) atau gunakan verifikasi instan.
+                        </p>
+                    </div>
+                </div>
+                <a href="{{ route('penyedia-komunitas.akun.index', ['tab' => 'verifikasi']) }}"
+                   class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-md shadow-amber-500/20 shrink-0 transition">
+                    Verifikasi Komunitas →
+                </a>
+            </div>
+        @endif
+
+        {{-- PAGE HEADER --}}
         <div class="admin-page-header">
             <div class="admin-page-header__left">
                 <div class="admin-page-header__badge">
@@ -55,7 +79,11 @@
                     &bull;
                     {{ strtoupper($community->sport_category) }}
                     &bull;
-                    {{ strtoupper($community->verification_status) }}
+                    @if($community->isVerified())
+                        <span class="text-emerald-600 font-bold">TERVERIFIKASI ✓</span>
+                    @else
+                        <span class="text-amber-600 font-bold">BELUM TERVERIFIKASI</span>
+                    @endif
                 </div>
                 <h1 class="admin-page-header__title">
                     Selamat Datang, Admin {{ $community->name }}

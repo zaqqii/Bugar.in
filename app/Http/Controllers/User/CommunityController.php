@@ -30,7 +30,23 @@ class CommunityController extends Controller
             ? $community->followers()->where('user_id', auth()->id())->exists()
             : false;
 
-        return view('user.community-detail', compact('community', 'isMember', 'isFollower'));
+        $similarCommunities = Community::where('id', '!=', $community->id)
+            ->where('is_active', true)
+            ->where(function ($q) use ($community) {
+                $q->where('sport_category', $community->sport_category)
+                  ->orWhere('city', $community->city);
+            })
+            ->take(2)
+            ->get();
+
+        if ($similarCommunities->isEmpty()) {
+            $similarCommunities = Community::where('id', '!=', $community->id)
+                ->where('is_active', true)
+                ->take(2)
+                ->get();
+        }
+
+        return view('user.community-detail', compact('community', 'isMember', 'isFollower', 'similarCommunities'));
     }
 
     public function join($id)
