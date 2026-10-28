@@ -339,8 +339,8 @@ class GoogleAuthController extends Controller
                 'city'                => $request->kota,
                 'contact_email'       => $googleData['email'],
                 'contact_phone'       => $request->whatsapp,
-                'verification_status' => 'verified',
-                'verified_at'         => now(),
+                'verification_status' => 'pending',
+                'verified_at'         => null,
                 'is_active'           => true,
                 'is_public'           => true,
             ]);
