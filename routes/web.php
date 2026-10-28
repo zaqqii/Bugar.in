@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\PenyediaKomunitasAuthController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\PenyediaKomunitas\DashboardController as PenyediaDashboardController;
 use App\Http\Controllers\User\CommunityController;
+use App\Http\Controllers\PenyediaKomunitas\EventController;
 use App\Models\Community;
 use App\Models\Schedule;
 
@@ -68,6 +69,7 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::post('/communities/{id}/join', [CommunityController::class, 'join'])->name('communities.join');
     Route::post('/schedules/{schedule}/join', [DashboardController::class, 'joinSchedule'])->name('schedules.join');
     Route::post('/events/{event}/join', [DashboardController::class, 'joinEvent'])->name('events.join');
+    Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
     Route::post('/rewards/{reward}/redeem', [DashboardController::class, 'redeemReward'])->name('rewards.redeem');
     Route::post('/streak/check-in', [DashboardController::class, 'streakCheckIn'])->name('streak.check-in');
     Route::post('/logout', [UserAuthController::class, 'logout'])->name('logout');
@@ -97,6 +99,10 @@ Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware(['a
     Route::get('/events', [PenyediaEventController::class, 'index'])->name('events.index');
     Route::get('/events/create', [PenyediaEventController::class, 'create'])->name('events.create');
     Route::post('/events', [PenyediaEventController::class, 'store'])->name('events.store');
+    Route::get('events/{event}/manage', [EventController::class, 'manage'])->name('events.show');
+    Route::get('events/{event}/edit', [EventController::class, 'edit'])->name('events.edit');
+    Route::put('events/{event}', [EventController::class, 'update'])->name('events.update');
+    Route::delete('events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
     Route::view('/statistik', 'penyedia-komunitas.statistik.index')->name('statistik.index');
     Route::view('/akun', 'penyedia-komunitas.akun.index')->name('akun.index');
     Route::post('/logout', [PenyediaKomunitasAuthController::class, 'logout'])->name('logout');

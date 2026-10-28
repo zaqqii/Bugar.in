@@ -50,7 +50,7 @@
                     <span class="w-2 h-2 rounded-full bg-primary-500"></span>
                     PORTAL HOST &bull; {{ strtoupper($community->sport_category) }} &bull; {{ strtoupper($community->name) }}
                 </div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                <h1 class="text-xl font-extrabold text-slate-900">
                     Kelola Event Komunitas
                 </h1>
                 <p class="text-slate-500 text-sm mt-1">
@@ -233,6 +233,7 @@
                                 <th class="py-3.5 px-6">Lokasi</th>
                                 <th class="py-3.5 px-6">Biaya &amp; Kuota</th>
                                 <th class="py-3.5 px-6">Status</th>
+                                <th class="py-3.5 px-6 text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-sm">
@@ -378,6 +379,13 @@
                                             <span class="w-2 h-2 rounded-full {{ $status['dot'] }}"></span>
                                             {{ $status['label'] }}
                                         </span>
+                                    </td>
+                                    {{-- Kolom 6: Aksi --}}
+                                    <td class="py-4 px-6 text-right whitespace-nowrap">
+                                        <a href="{{ route('penyedia-komunitas.events.show', $event) }}"
+                                        class="inline-flex rounded-lg px-4 py-2 text-sm font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100">
+                                            Kelola
+                                        </a>
                                     </td>
                                 </tr>
                             @endforeach

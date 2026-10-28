@@ -33,6 +33,13 @@ class Event extends Model
         'participants_count',
         'points_reward',
         'is_active',
+        'sport_category',
+    'rundown',
+    'timezone',
+    'payment_category',
+    'payment_method',
+    'payment_account',
+    'organizer_contact',
     ];
 
     protected $casts = [
@@ -42,6 +49,17 @@ class Event extends Model
         'is_active' => 'boolean',
         'registration_fee' => 'float',
     ];
+
+    protected $appends = ['cover_url', 'qris_url'];
+
+private function mediaUrl(?string $p): ?string
+{
+    if (!$p) return null;
+    return str_starts_with($p, 'http') ? $p : url('media/' . $p);
+}
+
+public function getCoverUrlAttribute() { return $this->mediaUrl($this->cover_image); }
+public function getQrisUrlAttribute()  { return $this->mediaUrl($this->qris_image); }
 
     public function community()
     {

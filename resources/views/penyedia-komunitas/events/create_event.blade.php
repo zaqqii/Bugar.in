@@ -13,15 +13,13 @@
             </svg>
             Kembali ke Dashboard
         </a>
-        <button type="button"
-                @click="saveAsDraft()"
-                :disabled="isSubmitting"
-                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 shadow-sm transition disabled:opacity-50">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-            </svg>
-            <span>Simpan Draft</span>
-        </button>
+        <button
+    type="button"
+    @click="saveAsDraft()"
+    :disabled="isSubmitting"
+>
+    Simpan Draft
+</button>
     </div>
 
     {{-- Page Header --}}
@@ -920,6 +918,16 @@ function eventWizard() {
         get providerOptions() {
             return this.form.payment_category === 'bank' ? this.bankOptions : this.ewalletOptions;
         },
+        setPaymentCategory(cat) {
+            this.form.payment_category = cat;
+            // Reset dependent fields
+            this.form.payment_method = '';
+            this.form.payment_account = '';
+            this.qrisPreviewUrl = null;
+            // Clear file inputs if any (handled by Alpine bindings)
+        },
+
+
         eventTypes: [
             { 
                 value: 'fun_match', 
@@ -1148,6 +1156,28 @@ function eventWizard() {
         insertRequirementsTemplate() {
             this.form.requirements = "1. Terbuka untuk umum / member komunitas\n2. Wajib mengenakan pakaian dan sepatu olahraga yang sesuai\n3. Membawa botol minum pribadi (tumbler)\n4. Kondisi tubuh dalam keadaan sehat dan fit\n5. Hadir di lokasi minimal 15 menit sebelum kegiatan dimulai";
         },
+
+        // Simpan event sebagai draft
+        saveAsDraft() {
+            this.errors = {};
+
+            if (!this.form.title || !this.form.title.trim()) {
+                this.errors.title = 'Nama event wajib diisi.';
+                this.goToStep(1);
+                this.scrollToFirstError();
+                return;
+            }
+
+            this.submitStatus = 'draft';
+            this.isSubmitting = true;
+
+            const form = document.getElementById('createEventForm');
+
+            this.$nextTick(() => {
+                HTMLFormElement.prototype.submit.call(form);
+            });
+        },
+
         handleSubmit(event) {
             this.errors = {};
 
