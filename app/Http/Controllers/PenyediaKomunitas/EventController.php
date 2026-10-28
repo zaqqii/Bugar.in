@@ -83,97 +83,103 @@ class EventController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $user = Auth::user();
-        $community = Community::where('owner_id', $user->id)->firstOrFail();
+{
+    $community = Community::where('owner_id', Auth::id())->firstOrFail();
 
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'type' => 'required|string|in:fun_match,tournament,gathering,conference,workshop,other',
-            'sport_category' => 'required|string|max:100',
-            'description' => 'required|string',
-            'rundown' => 'nullable|string',
-            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'event_date' => 'required|date',
-            'registration_close_at' => 'required|date',
-            'timezone' => 'nullable|string|in:WIB,WITA,WIT',
-            'start_time' => 'required',
-            'end_time' => 'nullable',
-            'location' => 'required|string|max:255',
-            'maps_url' => 'nullable|url|max:500',
-            'capacity_type' => 'nullable|string|in:limited,unlimited',
-            'capacity' => 'nullable|integer|min:1',
-            'is_paid' => 'nullable|string|in:0,1',
-            'registration_fee' => 'nullable|numeric|min:0',
-            'payment_method' => 'nullable|string|max:100',
-            'payment_account' => 'nullable|string|max:255',
-            'requirements' => 'nullable|string',
-            'organizer_contact' => 'nullable|string|max:255',
-        ]);
+    $isDraft = $request->input('status') === 'draft';
+    $req = $isDraft ? 'nullable' : 'required';
 
-        // Upload Cover Image
-        $coverPath = null;
-        if ($request->hasFile('cover_image')) {
-            $disk = config('filesystems.default');
-            $coverPath = $request->file('cover_image')->store('events/covers', $disk);
+    $v = $request->validate([
+        'title' => 'required|string|max:255',
+        'type' => "$req|string|in:fun_match,tournament,gathering,conference,workshop,other",
+        'sport_category' => "$req|string|max:100",
+        'description' => "$req|string",
+        'rundown' => 'nullable|string',
+        'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+        'qris_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+        'event_date' => "$req|date",
+        'registration_close_at' => "$req|date",
+        'timezone' => 'nullable|string|in:WIB,WITA,WIT',
+        'start_time' => $req,
+        'end_time' => 'nullable',
+        'location' => "$req|string|max:255",
+        'maps_url' => 'nullable|url|max:500',
+        'capacity_type' => 'nullable|string|in:limited,unlimited',
+        'capacity' => 'nullable|integer|min:1',
+        'is_paid' => 'nullable|string|in:0,1',
+        'registration_fee' => 'nullable|numeric|min:0',
+        'payment_category' => 'nullable|string|in:bank,qris,ewallet,cash',
+        'payment_method' => 'nullable|string|max:100',
+        'payment_account' => 'nullable|string|max:255',
+        'requirements' => 'nullable|string',
+        'organizer_contact' => "$req|string|max:255",
+    ]);
+
+    // Validasi khusus berbayar (hanya saat publish)
+    if (!$isDraft && $request->is_paid === '1') {
+        if ($request->payment_category === 'qris') {
+            if (!$request->hasFile('qris_image')) {
+                return back()->withErrors(['qris_image' => 'Foto barcode QRIS wajib diunggah.'])->withInput();
+            }
+        } elseif (in_array($request->payment_category, ['bank', 'ewallet']) && empty($v['payment_account'])) {
+            return back()->withErrors(['payment_account' => 'Nomor rekening / tujuan pembayaran wajib diisi.'])->withInput();
         }
-
-        // Format Description (sertakan Rundown jika ada)
-        $description = $validated['description'];
-        if (!empty($validated['rundown'])) {
-            $description .= "\n\n--- RUNDOWN ACARA ---\n" . $validated['rundown'];
-        }
-
-        // Format Requirements (sertakan info pembayaran dan kontak jika ada)
-        $requirements = $validated['requirements'] ?? '';
-        $extraInfo = [];
-        if (!empty($validated['timezone'])) {
-            $extraInfo[] = "Zona Waktu Acara: " . $validated['timezone'];
-        }
-        if (!empty($validated['payment_method'])) {
-            $extraInfo[] = "Metode Pembayaran: " . $validated['payment_method'];
-        }
-        if (!empty($validated['payment_account'])) {
-            $extraInfo[] = "No. Rekening / Tujuan: " . $validated['payment_account'];
-        }
-        if (!empty($validated['organizer_contact'])) {
-            $extraInfo[] = "Kontak Penyelenggara: " . $validated['organizer_contact'];
-        }
-
-        if (!empty($extraInfo)) {
-            $requirements = trim($requirements . "\n\n--- INFORMASI PENDAFTARAN & KONTAK ---\n" . implode("\n", $extraInfo));
-        }
-
-        // Kapasitas dan Biaya
-        $capacity = ($request->capacity_type === 'unlimited') ? null : ($validated['capacity'] ?? null);
-        $registrationFee = ($request->is_paid === '1') ? ($validated['registration_fee'] ?? 0) : 0;
-
-        // Generate Unique Slug
-        $slug = Str::slug($validated['title']) . '-' . Str::lower(Str::random(6));
-
-        // Create Event
-        Event::create([
-            'community_id' => $community->id,
-            'title' => $validated['title'],
-            'slug' => $slug,
-            'description' => $description,
-            'cover_image' => $coverPath,
-            'type' => ($validated['type'] === 'conference') ? 'workshop' : $validated['type'],
-            'location' => $validated['location'],
-            'maps_url' => $validated['maps_url'] ?? null,
-            'event_date' => $validated['event_date'],
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'] ?? null,
-            'capacity' => $capacity,
-            'registration_fee' => $registrationFee,
-            'requirements' => $requirements ?: null,
-            'registration_open_at' => now(),
-            'registration_close_at' => $validated['registration_close_at'],
-            'status' => 'published',
-            'participants_count' => 0,
-            'is_active' => true,
-        ]);
-
-        return redirect()->route('penyedia-komunitas.dashboard')->with('success', 'Event "' . $validated['title'] . '" berhasil dipublikasikan!');
     }
+
+    // Upload gambar
+    $disk = config('filesystems.default');
+    $coverPath = $request->hasFile('cover_image') ? $request->file('cover_image')->store('events/covers', $disk) : null;
+    $qrisPath = $request->hasFile('qris_image') ? $request->file('qris_image')->store('events/qris', $disk) : null;
+
+    // Deskripsi + rundown
+    $description = $v['description'] ?? '';
+    if (!empty($v['rundown'])) {
+        $description .= "\n\n--- RUNDOWN ACARA ---\n" . $v['rundown'];
+    }
+
+    // Syarat + info pembayaran & kontak
+    $extra = array_filter([
+        !empty($v['timezone']) ? 'Zona Waktu Acara: ' . $v['timezone'] : null,
+        !empty($v['payment_method']) ? 'Metode Pembayaran: ' . $v['payment_method'] : null,
+        ($v['payment_method'] ?? '') === 'QRIS'
+            ? 'Metode: Scan Barcode QRIS'
+            : (!empty($v['payment_account']) ? 'No. Rekening / Tujuan: ' . $v['payment_account'] : null),
+        !empty($v['organizer_contact']) ? 'Kontak Penyelenggara: ' . $v['organizer_contact'] : null,
+    ]);
+    $requirements = $v['requirements'] ?? '';
+    if ($extra) {
+        $requirements = trim($requirements . "\n\n--- INFORMASI PENDAFTARAN & KONTAK ---\n" . implode("\n", $extra));
+    }
+
+    $type = $v['type'] ?? 'fun_match';
+
+    Event::create([
+        'community_id' => $community->id,
+        'title' => $v['title'],
+        'slug' => Str::slug($v['title']) . '-' . Str::lower(Str::random(6)),
+        'description' => $description ?: null,
+        'cover_image' => $coverPath,
+        'qris_image' => $qrisPath,
+        'type' => $type === 'conference' ? 'workshop' : $type,
+        'location' => $v['location'] ?? null,
+        'maps_url' => $v['maps_url'] ?? null,
+        'event_date' => $v['event_date'] ?? null,
+        'start_time' => $v['start_time'] ?? null,
+        'end_time' => $v['end_time'] ?? null,
+        'capacity' => $request->capacity_type === 'unlimited' ? null : ($v['capacity'] ?? null),
+        'registration_fee' => $request->is_paid === '1' ? ($v['registration_fee'] ?? 0) : 0,
+        'requirements' => $requirements ?: null,
+        'registration_open_at' => $isDraft ? null : now(),
+        'registration_close_at' => $v['registration_close_at'] ?? null,
+        'status' => $isDraft ? 'draft' : 'published',
+        'participants_count' => 0,
+        'is_active' => !$isDraft,
+    ]);
+
+    return $isDraft
+        ? redirect()->route('penyedia-komunitas.events.index', ['status' => 'draft'])
+            ->with('success', 'Draft "' . $v['title'] . '" berhasil disimpan.')
+        : redirect()->route('penyedia-komunitas.dashboard')
+            ->with('success', 'Event "' . $v['title'] . '" berhasil dipublikasikan!');
+}
 }

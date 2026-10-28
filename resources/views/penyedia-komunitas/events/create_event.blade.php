@@ -13,6 +13,15 @@
             </svg>
             Kembali ke Dashboard
         </a>
+        <button type="button"
+                @click="saveAsDraft()"
+                :disabled="isSubmitting"
+                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 shadow-sm transition disabled:opacity-50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+            </svg>
+            <span>Simpan Draft</span>
+        </button>
     </div>
 
     {{-- Page Header --}}
@@ -82,7 +91,7 @@
                             :class="step >= 2 ? 'text-blue-600' : 'text-slate-400'">
                             Jadwal & Lokasi
                         </h4>
-                        <p class="text-xs text-slate-400 hidden md:block mt-0.5">Waktu, tempat & batas RSVP</p>
+                        <p class="text-xs text-slate-400 hidden md:block mt-0.5">Waktu & tempat event</p>
                     </div>
                 </div>
 
@@ -127,6 +136,7 @@
     {{-- MAIN FORM --}}
     <form id="createEventForm" action="{{ route('penyedia-komunitas.events.store') }}" method="POST" enctype="multipart/form-data" @submit="handleSubmit($event)">
         @csrf
+        <input type="hidden" name="status" :value="submitStatus">
 
         {{-- ============================================================ --}}
         {{-- BAGIAN 1 : INFORMASI EVENT                                    --}}
@@ -682,64 +692,109 @@ class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cya
 
                     </div>
 
-                    {{-- 2. Detail Pembayaran (Muncul Jika Event Berbayar) --}}
-                    <div x-show="form.is_paid === '1'"
-                         x-transition:enter="transition ease-out duration-300"
-                         x-transition:enter-start="opacity-0 -translate-y-2"
-                         x-transition:enter-end="opacity-100 translate-y-0"
-                         class="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/90 space-y-4">
+                    {{-- 2. Detail Pembayaran --}}
+                <div x-show="form.is_paid === '1'"
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 -translate-y-2"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    class="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/90 space-y-5">
 
-                        <div class="flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-primary-500"></span>
-                            <h3 class="text-sm font-bold text-slate-800">Instruksi & Rekening Pembayaran</h3>
+                    <input type="hidden" name="payment_method" :value="form.payment_method">
+                    <input type="hidden" name="payment_category" :value="form.payment_category">
+
+                    {{-- Kategori --}}
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-2">
+                            Kategori Metode Pembayaran <span class="text-red-500">*</span>
+                        </label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <template x-for="c in paymentCategories" :key="c.value">
+                                <button type="button"
+                                        @click="setPaymentCategory(c.value)"
+                                        class="py-2.5 px-3 rounded-xl border text-xs font-bold transition-all duration-200 text-center"
+                                        :class="form.payment_category === c.value
+                                            ? 'border-primary-500 bg-primary-50/70 text-primary-700 ring-2 ring-primary-500/20 shadow-sm'
+                                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
+                                        x-text="c.label"></button>
+                            </template>
                         </div>
+                    </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-                            {{-- Metode Pembayaran --}}
-                            <div>
-                                <label for="payment_method" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                    Metode Pembayaran <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <select id="payment_method"
-                                            name="payment_method"
-                                            x-model="form.payment_method"
-                                            class="w-full px-4 py-2.5 appearance-none rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition cursor-pointer">
-                                        <option value="Transfer Bank BCA">Transfer Bank BCA</option>
-                                        <option value="Transfer Bank Mandiri">Transfer Bank Mandiri</option>
-                                        <option value="Transfer Bank BRI">Transfer Bank BRI</option>
-                                        <option value="Transfer Bank BNI">Transfer Bank BNI</option>
-                                        <option value="QRIS">QRIS (Scan Barcode)</option>
-                                        <option value="GoPay / OVO / DANA">E-Wallet (GoPay / OVO / DANA)</option>
-                                        <option value="Tunai / OTS">Tunai / On The Spot (Di Lokasi)</option>
-                                    </select>
-                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
+                    {{-- Bank / E-Wallet: dropdown + no rekening --}}
+                    <div x-show="['bank','ewallet'].includes(form.payment_category)"
+                        x-transition
+                        class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5"
+                                x-text="form.payment_category === 'bank' ? 'Pilih Bank *' : 'Pilih E-Wallet *'"></label>
+                            <div class="relative">
+                                <select x-model="form.payment_provider" @change="form.payment_method = $event.target.value"
+                                        class="w-full px-4 py-2.5 appearance-none rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition cursor-pointer">
+                                    <template x-for="p in providerOptions" :key="p">
+                                        <option :value="p" x-text="p" :selected="p === form.payment_provider"></option>
+                                    </template>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
                                 </div>
                             </div>
-
-                            {{-- No. Rekening / No. Tujuan & Atas Nama --}}
-                            <div>
-                                <label for="payment_account" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                    No. Rekening / No. Tujuan & Atas Nama <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text"
-                                       id="payment_account"
-                                       name="payment_account"
-                                       x-model="form.payment_account"
-                                       placeholder="Contoh : BCA 842019281 a.n. Komunitas Bugar"
-                                       class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition"
-                                       :class="errors.payment_account ? 'border-red-400 ring-2 ring-red-100' : ''">
-                                <p x-show="errors.payment_account" x-text="errors.payment_account" class="text-xs text-red-500 mt-1 font-medium"></p>
-                            </div>
-
                         </div>
-
+                        <div>
+                            <label for="payment_account" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                No. Rekening / No. Tujuan & Atas Nama <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="payment_account" name="payment_account"
+                                x-model="form.payment_account"
+                                placeholder="Contoh : 842019281 a.n. Komunitas Bugar"
+                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition"
+                                :class="errors.payment_account ? 'border-red-400 ring-2 ring-red-100' : ''">
+                            <p x-show="errors.payment_account" x-text="errors.payment_account" class="text-xs text-red-500 mt-1 font-medium"></p>
+                        </div>
                     </div>
+
+                    {{-- QRIS --}}
+                    <div x-show="form.payment_category === 'qris'" x-transition>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Upload Barcode QRIS <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative rounded-2xl border-2 border-dashed border-slate-200 hover:border-primary-400 bg-white hover:bg-primary-50/20 transition-all duration-200 p-5 text-center cursor-pointer group max-w-sm"
+                            :class="qrisPreviewUrl ? 'border-primary-400' : (isQrisDragging ? 'border-primary-400 bg-primary-50/30' : '')"
+                            @click="$refs.qrisFileInput.click()"
+                            @dragover.prevent="isQrisDragging = true"
+                            @dragleave.prevent="isQrisDragging = false"
+                            @drop.prevent="handleQrisDrop($event)">
+
+                            <input type="file" id="qris_image" name="qris_image" x-ref="qrisFileInput"
+                                @change="handleQrisFileSelect($event)"
+                                accept="image/png, image/jpeg, image/webp" class="hidden">
+
+                            <template x-if="qrisPreviewUrl">
+                                <div class="relative w-full aspect-[4/3] max-h-48 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">
+                                    <img :src="qrisPreviewUrl" alt="QRIS" class="w-full h-full object-contain p-2">
+                                    <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                        <button type="button" @click.stop="$refs.qrisFileInput.click()" class="px-3 py-1.5 rounded-lg bg-white/95 text-slate-800 text-xs font-bold">Ganti</button>
+                                        <button type="button" @click.stop="removeQrisImage()" class="px-3 py-1.5 rounded-lg bg-red-500/90 text-white text-xs font-bold">Hapus</button>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="!qrisPreviewUrl">
+                                <div class="py-3">
+                                    <div class="text-xs font-semibold text-slate-700">
+                                        <span class="text-primary-600 underline">Klik untuk upload</span> atau drag & drop barcode di sini
+                                    </div>
+                                    <p class="text-[11px] text-slate-400 mt-1">PNG, JPG, atau WEBP (Maks. 2MB).</p>
+                                </div>
+                            </template>
+                        </div>
+                        <p x-show="errors.qris_image" x-text="errors.qris_image" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                    </div>
+
+                    {{-- Tunai --}}
+                    <p x-show="form.payment_category === 'cash'" class="text-xs text-slate-500">
+                        Peserta membayar langsung di lokasi saat registrasi ulang.
+                    </p>
+                </div>
 
                     {{-- 3. Syarat & Ketentuan Peserta --}}
                     <div>
@@ -794,7 +849,7 @@ class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cya
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div>
-                            <span class="font-bold text-primary-800">Periksa Kembali Data:</span>
+                            <span class="font-bold text-primary-800">Periksa Kembali Data :</span>
                             Event yang dipublikasikan akan langsung tampil di dashboard dan dapat dilihat oleh calon peserta di portal publik Bugar.in.
                         </div>
                     </div>
@@ -847,11 +902,24 @@ class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cya
 <script>
 function eventWizard() {
     return {
-        step: {{ $errors->hasAny(['capacity', 'registration_fee', 'payment_account', 'organizer_contact']) ? 3 : ($errors->hasAny(['event_date', 'registration_close_at', 'start_time', 'location', 'maps_url']) ? 2 : 1) }},
+        step: {{ $errors->hasAny(['capacity', 'registration_fee', 'payment_account', 'qris_image', 'organizer_contact']) ? 3 : ($errors->hasAny(['event_date', 'registration_close_at', 'start_time', 'location', 'maps_url']) ? 2 : 1) }},
         isDragging: false,
+        isQrisDragging: false,
         previewUrl: null,
+        qrisPreviewUrl: null,
         errors: {},
         formattedFee: '',
+        paymentCategories: [
+            { value: 'bank', label: 'Transfer Bank' },
+            { value: 'ewallet', label: 'E-Wallet' },
+            { value: 'qris', label: 'QRIS' },
+            { value: 'cash', label: 'Tunai/OTS' }
+        ],
+        bankOptions: ['BCA', 'Mandiri', 'BRI', 'BNI'],
+        ewalletOptions: ['GoPay', 'OVO', 'DANA', 'ShopeePay'],
+        get providerOptions() {
+            return this.form.payment_category === 'bank' ? this.bankOptions : this.ewalletOptions;
+        },
         eventTypes: [
             { 
                 value: 'fun_match', 
@@ -888,6 +956,7 @@ function eventWizard() {
             description: @json(old('description', '')),
             rundown: @json(old('rundown', '')),
             cover_image: null,
+            qris_image: null,
             event_date: @json(old('event_date', '')),
             registration_close_at: @json(old('registration_close_at', '')),
             timezone: @json(old('timezone', 'WIB')),
@@ -913,6 +982,17 @@ function eventWizard() {
             if (this.form.registration_fee && Number(this.form.registration_fee) > 0) {
                 this.formattedFee = Number(this.form.registration_fee).toLocaleString('id-ID');
             }
+        },
+        setPaymentCategory(value) {
+            this.form.payment_category = value;
+            // Reset related fields
+            this.form.payment_method = '';
+            this.form.payment_provider = '';
+            this.form.payment_account = '';
+            this.form.qris_image = null;
+            this.qrisPreviewUrl = null;
+            this.errors.payment_account = null;
+            this.errors.qris_image = null;
         },
         handleFeeInput(e) {
             const raw = e.target.value.replace(/[^0-9]/g, '');
@@ -1025,6 +1105,43 @@ function eventWizard() {
             this.form.cover_image = null;
             this.$refs.coverFileInput.value = '';
         },
+        handleQrisFileSelect(event) {
+            const file = event.target.files[0];
+            this.processQrisFile(file);
+        },
+        handleQrisDrop(event) {
+            this.isQrisDragging = false;
+            const file = event.dataTransfer.files[0];
+            if (file) {
+                this.$refs.qrisFileInput.files = event.dataTransfer.files;
+                this.processQrisFile(file);
+            }
+        },
+        processQrisFile(file) {
+            if (!file) return;
+            if (!file.type.match('image.*')) {
+                this.errors.qris_image = 'File harus berupa gambar (JPG, PNG, atau WEBP).';
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                this.errors.qris_image = 'Ukuran barcode QRIS maksimal 2MB.';
+                return;
+            }
+            this.errors.qris_image = null;
+            this.form.qris_image = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.qrisPreviewUrl = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        },
+        removeQrisImage() {
+            this.qrisPreviewUrl = null;
+            this.form.qris_image = null;
+            if (this.$refs.qrisFileInput) {
+                this.$refs.qrisFileInput.value = '';
+            }
+        },
         insertRundownTemplate() {
             this.form.rundown = "06.00 - 06.30 : Registrasi Ulang & Pemanasan\n06.30 - 08.00 : Sesi Olahraga / Pertandingan\n08.00 - 08.30 : Cooling Down & Sesi Foto Bersama\n08.30 - 09.00 : Ramah Tamah & Penutupan";
         },
@@ -1075,8 +1192,14 @@ function eventWizard() {
                 if (!this.form.registration_fee || Number(this.form.registration_fee) <= 0) {
                     this.errors.registration_fee = 'Nominal biaya pendaftaran wajib diisi.';
                 }
-                if (!this.form.payment_account || !this.form.payment_account.trim()) {
-                    this.errors.payment_account = 'Nomor rekening / tujuan pembayaran wajib diisi.';
+                if (this.form.payment_method === 'QRIS') {
+                    if (!this.qrisPreviewUrl && !this.form.qris_image) {
+                        this.errors.qris_image = 'Foto barcode QRIS wajib diunggah.';
+                    }
+                } else {
+                    if (!this.form.payment_account || !this.form.payment_account.trim()) {
+                        this.errors.payment_account = 'Nomor rekening / tujuan pembayaran wajib diisi.';
+                    }
                 }
             }
             if (!this.form.organizer_contact || !this.form.organizer_contact.trim()) {
@@ -1089,6 +1212,8 @@ function eventWizard() {
                     this.goToStep(1);
                 } else if (this.errors.event_date || this.errors.registration_close_at || this.errors.start_time || this.errors.location) {
                     this.goToStep(2);
+                } else {
+                    this.goToStep(3);
                 }
                 this.$nextTick(() => {
                     const firstError = document.querySelector('[class*="border-red-400"]');

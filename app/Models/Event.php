@@ -16,6 +16,7 @@ class Event extends Model
         'slug',
         'description',
         'cover_image',
+        'qris_image',
         'type',
         'location',
         'maps_url',
