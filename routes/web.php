@@ -12,6 +12,8 @@ use App\Http\Controllers\User\CommunityController;
 use App\Models\Community;
 use App\Models\Schedule;
 
+use App\Http\Controllers\Auth\GoogleAuthController;
+
 // Landing Page
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 
@@ -42,6 +44,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
 });
 
 // ============================================================
+// GOOGLE OAUTH ROUTES (Shared / Role-aware)
+// ============================================================
+Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+
+// ============================================================
 // USER AUTH ROUTES
 // ============================================================
 Route::prefix('auth/user')->name('auth.user.')->group(function () {
@@ -51,10 +59,13 @@ Route::prefix('auth/user')->name('auth.user.')->group(function () {
     })->name('login');
     Route::post('/register', [UserAuthController::class, 'register'])->name('register.post');
     Route::post('/login', [UserAuthController::class, 'login'])->name('login.post');
+    Route::get('/google-complete', [GoogleAuthController::class, 'showUserCompleteForm'])->name('google-complete');
+    Route::post('/google-complete', [GoogleAuthController::class, 'storeUserComplete'])->name('google-complete.post');
 });
 
 use App\Http\Controllers\User\ProfileController;
 use App\Http\Controllers\PenyediaKomunitas\EventController as PenyediaEventController;
+use App\Http\Controllers\PenyediaKomunitas\AkunController as PenyediaAkunController;
 
 // ============================================================
 // USER DASHBOARD & PROFILE ROUTES
@@ -75,6 +86,7 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
             'totalActiveSessions' => Schedule::count(),
         ]);
     })->name('explore');
+    Route::get('/communities/{id}', [CommunityController::class, 'show'])->name('communities.show');
     Route::post('/communities/{community}/follow', [DashboardController::class, 'followCommunity'])->name('communities.follow');
     Route::delete('/communities/{community}/unfollow', [DashboardController::class, 'unfollowCommunity'])->name('communities.unfollow');
     Route::post('/communities/{id}/join', [CommunityController::class, 'join'])->name('communities.join');
@@ -96,6 +108,8 @@ Route::prefix('auth/penyedia-komunitas')->name('auth.penyedia-komunitas.')->grou
     })->name('login');
     Route::post('/register', [PenyediaKomunitasAuthController::class, 'register'])->name('register.post');
     Route::post('/login', [PenyediaKomunitasAuthController::class, 'login'])->name('login.post');
+    Route::get('/google-complete', [GoogleAuthController::class, 'showPenyediaCompleteForm'])->name('google-complete');
+    Route::post('/google-complete', [GoogleAuthController::class, 'storePenyediaComplete'])->name('google-complete.post');
 });
 
 // ============================================================
@@ -109,7 +123,10 @@ Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware(['a
     Route::get('/events/create', [PenyediaEventController::class, 'create'])->name('events.create');
     Route::post('/events', [PenyediaEventController::class, 'store'])->name('events.store');
     Route::view('/statistik', 'penyedia-komunitas.statistik.index')->name('statistik.index');
-    Route::view('/akun', 'penyedia-komunitas.akun.index')->name('akun.index');
+    Route::get('/akun', [PenyediaAkunController::class, 'index'])->name('akun.index');
+    Route::put('/akun/profil', [PenyediaAkunController::class, 'updateProfile'])->name('akun.update-profile');
+    Route::put('/akun/komunitas', [PenyediaAkunController::class, 'updateCommunity'])->name('akun.update-community');
+    Route::post('/akun/verifikasi', [PenyediaAkunController::class, 'verify'])->name('akun.verify');
     Route::post('/logout', [PenyediaKomunitasAuthController::class, 'logout'])->name('logout');
 });
 
@@ -137,16 +154,20 @@ Route::get('/media/{path}', function (string $path) {
     }
 
     // 3. Tarik dari Cloudflare R2, simpan ke public/media/ agar request berikutnya instan
-    if (\Illuminate\Support\Facades\Storage::disk('s3')->exists($path)) {
-        $file = \Illuminate\Support\Facades\Storage::disk('s3')->get($path);
-        @mkdir(dirname($cachedFile), 0755, true);
-        @file_put_contents($cachedFile, $file);
+    try {
+        if (\Illuminate\Support\Facades\Storage::disk('s3')->exists($path)) {
+            $file = \Illuminate\Support\Facades\Storage::disk('s3')->get($path);
+            @mkdir(dirname($cachedFile), 0755, true);
+            @file_put_contents($cachedFile, $file);
 
-        $mime = \Illuminate\Support\Facades\Storage::disk('s3')->mimeType($path) ?? 'image/jpeg';
-        return response($file, 200, [
-            'Content-Type' => $mime,
-            'Cache-Control' => 'public, max-age=604800, immutable',
-        ]);
+            $mime = \Illuminate\Support\Facades\Storage::disk('s3')->mimeType($path) ?? 'image/jpeg';
+            return response($file, 200, [
+                'Content-Type' => $mime,
+                'Cache-Control' => 'public, max-age=604800, immutable',
+            ]);
+        }
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::warning("Media streaming error for [{$path}]: " . $e->getMessage());
     }
 
     abort(404);

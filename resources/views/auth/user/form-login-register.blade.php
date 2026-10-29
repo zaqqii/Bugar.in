@@ -81,6 +81,14 @@
                         </p>
 
                         {{-- Error alert register --}}
+                        @if(session('error'))
+                            <div class="auth-error-alert" role="alert">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                {{ session('error') }}
+                            </div>
+                        @endif
                         @if($errors->any() && $errors->hasAny(['nama', 'email', 'whatsapp', 'password', 'terms']))
                             <div class="auth-error-alert" role="alert">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -90,7 +98,7 @@
                             </div>
                         @endif
 
-                        <form method="POST" action="{{ route('auth.user.register.post') }}" class="auth-form" id="form-register" novalidate>
+                        <form method="POST" action="{{ route('auth.user.register.post') }}" class="auth-form" id="form-register" @submit="handleSubmit($event, 'register')" novalidate>
                             @csrf
                             <input type="hidden" name="form_type" value="register">
 
@@ -276,8 +284,13 @@
                             </div>
 
                             {{-- CTA --}}
-                            <button type="submit" class="auth-submit-btn" id="btn-daftar-sekarang">
-                                <span>Daftar Sekarang</span>
+                            <button
+                                type="submit"
+                                class="auth-submit-btn"
+                                id="btn-daftar-sekarang"
+                                :disabled="isTransitioning || isSubmitting"
+                                :class="{ 'is-disabled': isTransitioning || isSubmitting }">
+                                <span x-text="isSubmitting && mode === 'register' ? 'Memproses Pendaftaran...' : 'Daftar Sekarang'">Daftar Sekarang</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                                 </svg>
@@ -288,9 +301,9 @@
                                 <span>atau daftar dengan</span>
                             </div>
 
-                            {{-- Social Buttons --}}
+                            {{-- Social Buttons (Hanya Google) --}}
                             <div class="auth-social-grid">
-                                <button type="button" class="auth-social-btn" id="btn-reg-google">
+                                <a href="{{ route('auth.google.redirect', ['role' => 'user']) }}" class="auth-social-btn" id="btn-reg-google" style="text-decoration:none;">
                                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -298,19 +311,7 @@
                                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                                     </svg>
                                     Google
-                                </button>
-                                <button type="button" class="auth-social-btn" id="btn-reg-strava">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#FC4C02" aria-hidden="true">
-                                        <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
-                                    </svg>
-                                    Strava
-                                </button>
-                                <button type="button" class="auth-social-btn" id="btn-reg-email">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                                    </svg>
-                                    Email
-                                </button>
+                                </a>
                             </div>
 
                             {{-- Switch to Login --}}
@@ -363,7 +364,7 @@
                             </div>
                         @endif
 
-                        <form method="POST" action="{{ route('auth.user.login.post') }}" class="auth-form" id="form-login" novalidate>
+                        <form method="POST" action="{{ route('auth.user.login.post') }}" class="auth-form" id="form-login" @submit="handleSubmit($event, 'login')" novalidate>
                             @csrf
                             <input type="hidden" name="form_type" value="login">
 
@@ -378,6 +379,7 @@
                                         type="text"
                                         id="login-email"
                                         name="login"
+                                        x-model="loginInput"
                                         class="auth-field-input {{ $errors->has('login') && old('form_type') === 'login' ? 'is-error' : '' }}"
                                         placeholder="nama@email.com atau username"
                                         autocomplete="username"
@@ -400,6 +402,7 @@
                                         :type="showLoginPassword ? 'text' : 'password'"
                                         id="login-password"
                                         name="password"
+                                        x-model="loginPassword"
                                         class="auth-field-input auth-field-input--pad-right"
                                         placeholder="Masukkan kata sandi"
                                         autocomplete="current-password"
@@ -437,8 +440,13 @@
                             </div>
 
                             {{-- CTA --}}
-                            <button type="submit" class="auth-submit-btn" id="btn-masuk-sekarang">
-                                <span>Masuk Sekarang</span>
+                            <button
+                                type="submit"
+                                class="auth-submit-btn"
+                                id="btn-masuk-sekarang"
+                                :disabled="isTransitioning || isSubmitting || !loginInput.trim() || !loginPassword"
+                                :class="{ 'is-disabled': isTransitioning || isSubmitting || !loginInput.trim() || !loginPassword }">
+                                <span x-text="isSubmitting && mode === 'login' ? 'Memverifikasi Akun...' : 'Masuk Sekarang'">Masuk Sekarang</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                                 </svg>
@@ -594,6 +602,10 @@
             showPassword: false,
             showPasswordConfirm: false,
             showLoginPassword: false,
+            isTransitioning: false,
+            isSubmitting: false,
+            loginInput: '{{ old("form_type") === "login" ? old("login") : "" }}',
+            loginPassword: '',
             selectedSports: ['lari'],
             sports: [
                 {
@@ -632,13 +644,56 @@
             },
 
             switchTo(newMode) {
-                if (this.mode === newMode) return;
+                if (this.isTransitioning || this.mode === newMode) return;
                 this.mode = newMode;
+                this.isTransitioning = true;
+
+                // Reset form login sepenuhnya - hanya form daftar yang mengingat inputan
+                this.clearLoginForm();
+
+                setTimeout(() => {
+                    this.isTransitioning = false;
+                }, 800);
 
                 // Update URL without reload
                 const url = new URL(window.location);
                 url.searchParams.set('mode', newMode);
                 window.history.pushState({}, '', url);
+            },
+
+            clearLoginForm() {
+                this.loginInput = '';
+                this.loginPassword = '';
+                this.showLoginPassword = false;
+                const formLogin = document.getElementById('form-login');
+                if (formLogin) {
+                    formLogin.reset();
+                    const emailEl = document.getElementById('login-email');
+                    if (emailEl) {
+                        emailEl.value = '';
+                        emailEl.defaultValue = '';
+                    }
+                    const passEl = document.getElementById('login-password');
+                    if (passEl) {
+                        passEl.value = '';
+                        passEl.defaultValue = '';
+                    }
+                    const remEl = document.getElementById('login-remember');
+                    if (remEl) remEl.checked = false;
+                }
+            },
+
+            handleSubmit(event, type) {
+                if (this.isSubmitting || this.isTransitioning) {
+                    event.preventDefault();
+                    return false;
+                }
+                if (type === 'login' && (!this.loginInput.trim() || !this.loginPassword)) {
+                    event.preventDefault();
+                    return false;
+                }
+                this.isSubmitting = true;
+                return true;
             },
 
             toggleSport(id) {

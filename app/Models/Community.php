@@ -31,6 +31,10 @@ class Community extends Model
         'average_rating',
         'ratings_count',
         'verification_status',
+        'verification_type',
+        'verification_fee',
+        'verification_payment_method',
+        'verification_requested_at',
         'rejection_reason',
         'verified_at',
         'is_active',
@@ -41,8 +45,30 @@ class Community extends Model
         'is_active' => 'boolean',
         'is_public' => 'boolean',
         'verified_at' => 'datetime',
+        'verification_requested_at' => 'datetime',
+        'verification_fee' => 'decimal:2',
         'average_rating' => 'float',
     ];
+
+    public function isVerified(): bool
+    {
+        return $this->verification_status === 'verified';
+    }
+
+    public function canCreatePaidEvents(): bool
+    {
+        return $this->isVerified();
+    }
+
+    public function canClaimFreeVerification(): bool
+    {
+        return ($this->followers_count ?? 0) >= 15;
+    }
+
+    public function followersNeededForVerification(): int
+    {
+        return max(0, 15 - (int) ($this->followers_count ?? 0));
+    }
 
     public function owner()
     {

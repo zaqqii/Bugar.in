@@ -30,9 +30,19 @@ class DashboardController extends Controller
         }
 
         $community->followers()->syncWithoutDetaching([$user->id]);
-        $community->update([
-            'followers_count' => $community->followers()->count(),
-        ]);
+        $followersCount = $community->followers()->count();
+        $updateData = ['followers_count' => $followersCount];
+
+        // Otomatis verifikasi jika mencapai minimal 15 pengikut
+        if ($followersCount >= 15 && $community->verification_status !== 'verified') {
+            $updateData['verification_status'] = 'verified';
+            $updateData['verified_at'] = now();
+            if (\Illuminate\Support\Facades\Schema::hasColumn('communities', 'verification_type')) {
+                $updateData['verification_type'] = 'free_followers';
+            }
+        }
+
+        $community->update($updateData);
 
         return back()->with('success', 'Berhasil mengikuti komunitas.');
     }

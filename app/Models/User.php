@@ -15,11 +15,16 @@ class User extends Authenticatable
         'name',
         'username',
         'email',
+        'google_id',
         'password',
         'phone',
         'role',
         'avatar',
         'bio',
+        'sports',
+        'fitness_level',
+        'weekly_target',
+        'sparring_open',
         'date_of_birth',
         'gender',
         'height_cm',
@@ -38,6 +43,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'sports' => 'array',
+            'sparring_open' => 'boolean',
         ];
     }
 

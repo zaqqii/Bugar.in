@@ -20,11 +20,54 @@
         mode: '{{ old("form_type") === "login" ? "login" : (old("form_type") === "register" ? "register" : request("mode", $initialMode ?? "register")) }}',
         showPassReg: false,
         showPassLogin: false,
+        isTransitioning: false,
+        isSubmitting: false,
+        loginEmail: '{{ old("form_type") === "login" ? old("email", session("registered_email")) : "" }}',
+        loginPassword: '',
         switchTo(m) {
+            if (this.isTransitioning || this.mode === m) return;
             this.mode = m;
+            this.isTransitioning = true;
+            this.clearLoginForm();
+            setTimeout(() => {
+                this.isTransitioning = false;
+            }, 800);
             const url = new URL(window.location);
             url.searchParams.set('mode', m);
             window.history.pushState({}, '', url);
+        },
+        clearLoginForm() {
+            this.loginEmail = '';
+            this.loginPassword = '';
+            this.showPassLogin = false;
+            const formLogin = document.getElementById('form-login');
+            if (formLogin) {
+                formLogin.reset();
+                const emailEl = document.getElementById('login-email');
+                if (emailEl) {
+                    emailEl.value = '';
+                    emailEl.defaultValue = '';
+                }
+                const passEl = document.getElementById('login-password');
+                if (passEl) {
+                    passEl.value = '';
+                    passEl.defaultValue = '';
+                }
+                const remEl = formLogin.querySelector('input[name=remember]');
+                if (remEl) remEl.checked = false;
+            }
+        },
+        handleSubmit(event, type) {
+            if (this.isSubmitting || this.isTransitioning) {
+                event.preventDefault();
+                return false;
+            }
+            if (type === 'login' && (!this.loginEmail.trim() || !this.loginPassword)) {
+                event.preventDefault();
+                return false;
+            }
+            this.isSubmitting = true;
+            return true;
         },
         init() {
             @if(session('success') && !old('form_type'))
@@ -108,6 +151,14 @@
                         </p>
 
                         {{-- Error alert register banner --}}
+                        @if(session('error'))
+                            <div class="auth-host-alert-error" role="alert">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                <p>{{ session('error') }}</p>
+                            </div>
+                        @endif
                         @if($errors->any() && old('form_type', 'register') === 'register')
                             <div class="auth-host-alert-error" role="alert">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -118,7 +169,7 @@
                         @endif
 
                         {{-- FORM REGISTER --}}
-                        <form method="POST" action="{{ route('auth.penyedia-komunitas.register.post') }}" id="form-register">
+                        <form method="POST" action="{{ route('auth.penyedia-komunitas.register.post') }}" id="form-register" @submit="handleSubmit($event, 'register')">
                             @csrf
                             <input type="hidden" name="form_type" value="register">
 
@@ -316,8 +367,13 @@
                             @enderror
 
                             {{-- Submit --}}
-                            <button type="submit" class="auth-host-btn-submit" id="btn-daftar-komunitas">
-                                Daftarkan Komunitas Sekarang
+                            <button
+                                type="submit"
+                                class="auth-host-btn-submit"
+                                id="btn-daftar-komunitas"
+                                :disabled="isTransitioning || isSubmitting"
+                                :class="{ 'is-disabled': isTransitioning || isSubmitting }">
+                                <span x-text="isSubmitting && mode === 'register' ? 'Mendaftarkan Komunitas...' : 'Daftarkan Komunitas Sekarang'">Daftarkan Komunitas Sekarang</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                                 </svg>
@@ -329,9 +385,9 @@
                             <span>atau daftar dengan</span>
                         </div>
 
-                        {{-- Social buttons --}}
+                        {{-- Social buttons (Hanya Google) --}}
                         <div class="auth-host-socials">
-                            <a href="#" class="auth-host-social-btn">
+                            <a href="{{ route('auth.google.redirect', ['role' => 'community_owner']) }}" class="auth-host-social-btn" id="btn-host-reg-google">
                                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -339,18 +395,6 @@
                                     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                                 </svg>
                                 Google
-                            </a>
-                            <a href="#" class="auth-host-social-btn">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#FC4C02">
-                                    <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.172"/>
-                                </svg>
-                                Strava
-                            </a>
-                            <a href="#" class="auth-host-social-btn">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#000000">
-                                    <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
-                                </svg>
-                                Apple
                             </a>
                         </div>
 
@@ -405,7 +449,7 @@
                         @endif
 
                         {{-- FORM LOGIN --}}
-                        <form method="POST" action="{{ route('auth.penyedia-komunitas.login.post') }}" id="form-login" class="mt-4">
+                        <form method="POST" action="{{ route('auth.penyedia-komunitas.login.post') }}" id="form-login" class="mt-4" @submit="handleSubmit($event, 'login')">
                             @csrf
                             <input type="hidden" name="form_type" value="login">
 
@@ -422,6 +466,7 @@
                                         id="login-email"
                                         name="email"
                                         type="email"
+                                        x-model="loginEmail"
                                         class="auth-host-input {{ $errors->has('email') && old('form_type') === 'login' ? 'is-error' : '' }}"
                                         placeholder="host@namakomunitas.com"
                                         value="{{ old('email', session('registered_email')) }}"
@@ -450,6 +495,7 @@
                                     <input
                                         id="login-password"
                                         name="password"
+                                        x-model="loginPassword"
                                         :type="showPassLogin ? 'text' : 'password'"
                                         class="auth-host-input {{ $errors->has('password') && old('form_type') === 'login' ? 'is-error' : '' }}"
                                         placeholder="••••••••••••"
@@ -479,8 +525,13 @@
                             </label>
 
                             {{-- Submit --}}
-                            <button type="submit" class="auth-host-btn-submit" id="btn-masuk-host">
-                                Masuk ke Portal Komunitas
+                            <button
+                                type="submit"
+                                class="auth-host-btn-submit"
+                                id="btn-masuk-host"
+                                :disabled="isTransitioning || isSubmitting || !loginEmail.trim() || !loginPassword"
+                                :class="{ 'is-disabled': isTransitioning || isSubmitting || !loginEmail.trim() || !loginPassword }">
+                                <span x-text="isSubmitting && mode === 'login' ? 'Memverifikasi Portal...' : 'Masuk ke Portal Komunitas'">Masuk ke Portal Komunitas</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                                 </svg>

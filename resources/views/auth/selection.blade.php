@@ -268,6 +268,23 @@
         <h1 class="auth-title">Masuk ke Bugar.in</h1>
         <p class="auth-subtitle">Pilih cara Anda masuk sesuai dengan peran dan kebutuhan aktivitas olahraga Anda.</p>
 
+        @if(session('error'))
+            <div style="background-color: #fee2e2; border: 1px solid #f87171; color: #b91c1c; padding: 0.875rem 1.25rem; border-radius: 12px; margin-bottom: 2rem; max-width: 600px; width: 100%; display: flex; align-items: center; gap: 0.75rem; font-size: 0.9rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
+        @if(session('success'))
+            <div style="background-color: #d1fae5; border: 1px solid #34d399; color: #065f46; padding: 0.875rem 1.25rem; border-radius: 12px; margin-bottom: 2rem; max-width: 600px; width: 100%; display: flex; align-items: center; gap: 0.75rem; font-size: 0.9rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
+
         <div class="auth-cards-container">
             {{-- Pengguna Card --}}
             <div class="auth-card">

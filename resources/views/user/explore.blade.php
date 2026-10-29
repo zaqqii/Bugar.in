@@ -331,7 +331,7 @@
                                     
                                     <div>
                                         <!-- Cover Image & Sport Category Badge -->
-                                        <div class="relative h-40 overflow-hidden {{ $sportCoverClass }}">
+                                        <a href="{{ route('user.communities.show', $comm->id) }}" class="relative h-40 overflow-hidden {{ $sportCoverClass }} block group cursor-pointer">
                                             @if($hasCustomCover)
                                                 <img src="{{ \Illuminate\Support\Str::startsWith($comm->cover_image, ['http://', 'https://']) ? $comm->cover_image : \Illuminate\Support\Facades\Storage::url($comm->cover_image) }}"
                                                      alt="{{ $comm->name }}"
@@ -362,12 +362,14 @@
                                                 </div>
                                                 <span class="text-[10px] text-white/80 font-bold shrink-0">Bugar.in</span>
                                             </div>
-                                        </div>
+                                        </a>
 
                                         <!-- Card Content -->
                                         <div class="p-4 space-y-2.5">
                                             <h3 class="font-bold text-slate-900 text-base leading-snug line-clamp-1 group-hover:text-blue-600 transition-colors">
-                                                {{ $comm->name }}
+                                                <a href="{{ route('user.communities.show', $comm->id) }}" class="hover:text-blue-600 transition-colors">
+                                                    {{ $comm->name }}
+                                                </a>
                                             </h3>
                                             <p class="text-slate-500 text-xs line-clamp-2 leading-relaxed">
                                                 {{ $comm->description ?? 'Komunitas olahraga aktif yang rutin berkumpul untuk latihan bersama dan membangun kebugaran.' }}

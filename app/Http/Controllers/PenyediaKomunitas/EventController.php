@@ -111,6 +111,14 @@ class EventController extends Controller
             'organizer_contact' => 'nullable|string|max:255',
         ]);
 
+        // Verifikasi Komunitas: Hanya komunitas terverifikasi yang boleh membuat event berbayar
+        $isPaidEvent = ($request->is_paid === '1') || ((float) ($validated['registration_fee'] ?? 0) > 0);
+        if ($isPaidEvent && !$community->isVerified()) {
+            return back()->withInput()->withErrors([
+                'is_paid' => 'Komunitas Anda belum terverifikasi. Hanya komunitas terverifikasi yang dapat membuat event berbayar (tiket). Komunitas yang belum terverifikasi hanya dapat membuat jadwal dan event gratis.',
+            ]);
+        }
+
         // Upload Cover Image
         $coverPath = null;
         if ($request->hasFile('cover_image')) {

@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>Edit Profil — Bugar.in</title>
-    <meta name="description" content="Kelola informasi akun, preferensi olahraga, dan sinkronisasi perangkat kebugaran Anda di Bugar.in.">
+    <meta name="description" content="Kelola informasi akun dan preferensi olahraga Anda di Bugar.in.">
 
     <!-- Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -64,108 +64,41 @@
       x-cloak>
 
     @php
-        $avatarExists = !empty($user->avatar);
-        $avatarUrl = $avatarExists ? (\Illuminate\Support\Str::startsWith($user->avatar, ['http://', 'https://']) ? $user->avatar : \Illuminate\Support\Facades\Storage::url($user->avatar)) : null;
+        $avatarExists = $user->avatar && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar);
         $userInitials = collect(explode(' ', $user->name ?? 'User'))
             ->map(fn($w) => strtoupper(substr($w, 0, 1)))
             ->take(2)->implode('');
     @endphp
 
     <!-- ==============================================================
-         1. TOP NAVIGATION BAR (Header persis gambar)
-         ============================================================== -->
-    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-xs">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-18 py-3.5 gap-4">
-                
-                <!-- Left: Logo & Main Navigation -->
-                <div class="flex items-center gap-8">
-                    <!-- Brand Logo -->
-                    <a href="{{ route('landing') }}" class="flex items-center gap-2.5 group">
-                        <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm shadow-blue-300 group-hover:scale-105 transition-transform duration-200">
-                            <!-- Motion/Run Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                                <path d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/>
-                            </svg>
-                        </div>
-                        <span class="font-extrabold text-xl text-blue-600 tracking-tight">
-                            Bugar<span class="text-slate-900">.in</span>
-                        </span>
-                    </a>
-
-                    <!-- Nav Menu Items -->
-                    <nav class="hidden lg:flex items-center gap-6">
-                        <a href="{{ route('landing') }}" class="text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors">Eksplorasi</a>
-                        <a href="{{ route('user.dashboard') }}" class="text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors">Dashboard</a>
-                        <a href="#" class="text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors">Jadwal Kegiatan</a>
-                        <a href="#" class="text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors">Riwayat Saya</a>
-                        <a href="#" class="text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors">Leaderboard</a>
-                    </nav>
-                </div>
-
-                <!-- Right: Search, Notifications & User Avatar Dropdown -->
-                <div class="flex items-center gap-4">
-                    <!-- Search Input -->
-                    <div class="relative hidden md:block">
-                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-                        <input type="text"
-                               placeholder="Cari komunitas, event, venue..."
-                               class="w-64 pl-9 pr-4 py-2 text-xs rounded-full bg-slate-50 border border-slate-200/80 placeholder:text-slate-400 focus:w-72 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none">
-                    </div>
-
-                    <!-- Notification Bell with Red Dot -->
-                    <button type="button" class="relative p-2 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors" aria-label="Notifikasi">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
-                        <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-                    </button>
-
-                    <!-- User Profile Dropdown Pill -->
-                    <a href="{{ route('user.profile.edit') }}" class="flex items-center gap-2.5 pl-2 pr-1 py-1 rounded-full hover:bg-slate-50 transition-colors cursor-pointer group">
-                        <div class="w-8 h-8 rounded-full overflow-hidden border border-blue-200 bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">
-                            <template x-if="avatarPreview">
-                                <img :src="avatarPreview" alt="Avatar" class="w-full h-full object-cover">
-                            </template>
-                            <template x-if="!avatarPreview">
-                                <span>{{ $userInitials }}</span>
-                            </template>
-                        </div>
-                        <div class="hidden sm:block text-left leading-tight">
-                            <div class="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors" x-text="form.name || '{{ addslashes($user->name) }}'">
-                                {{ $user->name }}
-                            </div>
-                            <div class="text-[11px] font-semibold text-cyan-600">Member</div>
-                        </div>
-                    </a>
-
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- ==============================================================
          MAIN CONTENT AREA
          ============================================================== -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <!-- Breadcrumb Nav -->
-        <nav class="flex items-center gap-2 text-sm text-slate-500 mb-6" aria-label="Breadcrumb">
-            <a href="{{ route('user.dashboard') }}" class="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-700 hover:underline">
+        <!-- Tombol Kembali + Breadcrumb Nav -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <a href="{{ route('user.dashboard') }}"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm font-semibold text-slate-700 shadow-2xs hover:border-blue-400 hover:text-blue-600 transition-all active:scale-95">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
-                <span>Akun Saya</span>
+                <span>Kembali ke Dashboard</span>
             </a>
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-            <span class="font-bold text-slate-900">Edit Profil</span>
-        </nav>
+
+            <!-- Breadcrumb Nav -->
+            <nav class="flex items-center gap-2 text-sm text-slate-500" aria-label="Breadcrumb">
+                <a href="{{ route('user.dashboard') }}" class="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-700 hover:underline">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span>Akun Saya</span>
+                </a>
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+                <span class="font-bold text-slate-900">Edit Profil</span>
+            </nav>
+        </div>
 
         <!-- Flash Success Notification -->
         @if(session('success'))
@@ -181,8 +114,8 @@
 
         <!-- Validation Errors Notification -->
         @if ($errors->any())
-            <div class="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold shadow-xs">
-                <div class="font-bold text-sm mb-1.5 flex items-center gap-1.5 text-red-700">
+            <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold shadow-xs">
+                <div class="font-bold text-sm mb-1.5 flex items-center gap-1.5 text-rose-700">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
@@ -362,7 +295,7 @@
                                 </div>
                             </div>
                             <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">
-                                Langkah 1 dari 3
+                                Langkah 1 dari 2
                             </span>
                         </div>
 
@@ -373,7 +306,7 @@
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                 <!-- Nama Lengkap -->
                                 <div>
-                                    <label for="name" class="block text-xs font-bold text-slate-700 mb-1.5">Nama Lengkap <span class="text-red-500">*</span></label>
+                                    <label for="name" class="block text-xs font-bold text-slate-700 mb-1.5">Nama Lengkap <span class="text-rose-500">*</span></label>
                                     <div class="relative">
                                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -411,7 +344,7 @@
                                 <!-- Email Akun -->
                                 <div>
                                     <div class="flex items-center justify-between mb-1.5">
-                                        <label for="email" class="block text-xs font-bold text-slate-700">Email Akun <span class="text-red-500">*</span></label>
+                                        <label for="email" class="block text-xs font-bold text-slate-700">Email Akun <span class="text-rose-500">*</span></label>
                                         @if($user->email_verified_at)
                                             <span class="inline-flex items-center gap-1 text-xs font-bold text-cyan-600">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -496,13 +429,22 @@
                                 </div>
                             </div>
                             <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">
-                                Langkah 2 dari 3
+                                Langkah 2 dari 2
                             </span>
                         </div>
 
                         <!-- Content -->
                         <div class="space-y-6">
                             
+                            <!-- Hidden inputs: data preferensi dikirim ke ProfileController@update -->
+                            <input type="hidden" name="preferences_submitted" value="1">
+                            <template x-for="sport in form.sports" :key="sport">
+                                <input type="hidden" name="sports[]" :value="sport">
+                            </template>
+                            <input type="hidden" name="fitness_level" :value="form.fitness_level">
+                            <input type="hidden" name="weekly_target" :value="form.weekly_target">
+                            <input type="hidden" name="sparring_open" :value="form.sparring_open ? 1 : 0">
+
                             <!-- 1. Cabang Olahraga Favorit (Multi-Select Pills) -->
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 mb-3">
@@ -609,116 +551,9 @@
 
                 </div>
 
-                <!-- RIGHT COLUMN (4 COLS): Akun Tertaut, Statistik, Status -->
+                <!-- RIGHT COLUMN (4 COLS): Statistik, Status -->
                 <div class="lg:col-span-4 space-y-6">
                     
-                    <!-- CARD 1: AKUN TERTAUT -->
-                    <div class="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs">
-                        
-                        <div class="flex items-center gap-3 mb-3">
-                            <div class="w-9 h-9 rounded-xl bg-cyan-500 text-white flex items-center justify-center shadow-xs">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-base font-extrabold text-slate-900 leading-tight">Akun Tertaut</h3>
-                                <p class="text-xs text-slate-400">Sinkronisasi GPS &amp; metrik pace</p>
-                            </div>
-                        </div>
-
-                        <p class="text-xs text-blue-600 font-medium leading-relaxed mb-4">
-                            Aktivitas dari perangkat Anda akan otomatis dihitung ke dalam leaderboard mingguan dan event streak Bugar.in.
-                        </p>
-
-                        <!-- Devices List -->
-                        <div class="space-y-3">
-                            
-                            <!-- 1. Strava -->
-                            <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50/70 border border-slate-100">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-xl bg-white border border-slate-200/70 flex items-center justify-center p-1.5 shadow-2xs">
-                                        <svg viewBox="0 0 24 24" fill="#fc4c02" class="w-5 h-5">
-                                            <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.925 15.688h4.172"/>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold text-slate-800">Strava</div>
-                                        <div class="flex items-center gap-1 text-[11px] font-semibold"
-                                             :class="accounts.strava ? 'text-emerald-600' : 'text-slate-400'">
-                                            <span class="w-1.5 h-1.5 rounded-full"
-                                                  :class="accounts.strava ? 'bg-emerald-500' : 'bg-slate-300'"></span>
-                                            <span x-text="accounts.strava ? 'Terhubung ✓' : 'Terputus'">Terhubung ✓</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button type="button"
-                                        @click="accounts.strava = !accounts.strava"
-                                        :class="accounts.strava ? 'text-red-500 hover:text-red-600' : 'text-blue-600 hover:text-blue-700'"
-                                        class="text-xs font-bold px-2 py-1 transition-colors cursor-pointer"
-                                        x-text="accounts.strava ? 'Putus' : 'Sambungkan'">
-                                    Putus
-                                </button>
-                            </div>
-
-                            <!-- 2. Garmin Connect -->
-                            <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50/70 border border-slate-100">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-xl bg-white border border-slate-200/70 flex items-center justify-center p-1.5 shadow-2xs">
-                                        <svg viewBox="0 0 24 24" fill="#007cc3" class="w-5 h-5">
-                                            <path d="M12 2L2 22h20L12 2zm0 5l6.5 13H5.5L12 7z"/>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold text-slate-800">Garmin Connect</div>
-                                        <div class="text-[11px] text-slate-400 font-medium"
-                                             x-text="accounts.garmin ? 'Terhubung ✓' : 'Belum tersambung'">Belum tersambung</div>
-                                    </div>
-                                </div>
-                                <button type="button"
-                                        @click="accounts.garmin = !accounts.garmin"
-                                        :class="accounts.garmin ? 'text-red-500 hover:text-red-600' : 'bg-white border border-slate-200 text-slate-700 hover:border-blue-400 hover:text-blue-600 shadow-2xs'"
-                                        class="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
-                                        x-text="accounts.garmin ? 'Putus' : 'Sambungkan'">
-                                    Sambungkan
-                                </button>
-                            </div>
-
-                            <!-- 3. Google Fit -->
-                            <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50/70 border border-slate-100">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-xl bg-white border border-slate-200/70 flex items-center justify-center p-1.5 shadow-2xs">
-                                        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none">
-                                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ea4335"/>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold text-slate-800">Google Fit</div>
-                                        <div class="text-[11px] text-slate-400 font-medium"
-                                             x-text="accounts.googleFit ? 'Terhubung ✓' : 'Sinkronisasi langkah'">Sinkronisasi langkah</div>
-                                    </div>
-                                </div>
-                                <button type="button"
-                                        @click="accounts.googleFit = !accounts.googleFit"
-                                        :class="accounts.googleFit ? 'text-red-500 hover:text-red-600' : 'bg-white border border-slate-200 text-slate-700 hover:border-blue-400 hover:text-blue-600 shadow-2xs'"
-                                        class="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
-                                        x-text="accounts.googleFit ? 'Putus' : 'Sambungkan'">
-                                    Sambungkan
-                                </button>
-                            </div>
-
-                        </div>
-
-                        <!-- Encryption Notice -->
-                        <div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-cyan-600 font-semibold">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                            </svg>
-                            <span>Data kesehatan dienkripsi secara end-to-end.</span>
-                        </div>
-
-                    </div>
-
                     <!-- CARD 2: STATISTIK BULAN INI -->
                     <div class="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs">
                         
@@ -812,49 +647,23 @@
     </main>
 
     <!-- ==============================================================
-         5. FOOTER (Persis Gambar)
-         ============================================================== -->
-    <footer class="mt-16 border-t border-slate-200/60 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            
-            <div class="flex items-center gap-3">
-                <div class="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-extrabold shadow-2xs">
-                    B
-                </div>
-                <span class="text-xs font-bold text-blue-600">Bugar.in</span>
-                <span class="text-xs text-slate-400 font-medium">© 2026 Bugar.in Indonesia. Elevate your movement.</span>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-5 text-xs text-slate-500 font-medium">
-                <a href="#" class="hover:text-blue-600 transition-colors">Komunitas</a>
-                <a href="#" class="hover:text-blue-600 transition-colors">Penyelenggara</a>
-                <a href="#" class="hover:text-blue-600 transition-colors">Syarat &amp; Ketentuan</a>
-                <a href="#" class="hover:text-blue-600 transition-colors">Kebijakan Privasi</a>
-            </div>
-
-        </div>
-    </footer>
-
-    <!-- ==============================================================
          ALPINE.JS LOGIC SCRIPT
          ============================================================== -->
     <script>
         function editProfileApp() {
             return {
-                // Hanya gunakan gambar avatar jika user benar-benar telah mengunggahnya
-                avatarPreview: @json($avatarUrl),
+                avatarPreview: @json($avatarExists ? asset('storage/' . $user->avatar) : null),
 
-                // Form State sesuai data user nyata dari database
                 form: {
                     name: @json(old('name', $user->name ?? '')),
                     username: @json(old('username', $user->username ?? '')),
                     email: @json(old('email', $user->email ?? '')),
                     phone: @json(old('phone', $user->phone ?? '')),
                     bio: @json(old('bio', $user->bio ?? '')),
-                    sports: ['running', 'padel', 'cycling', 'strength'],
-                    fitness_level: 'intermediate',
-                    weekly_target: '3-4',
-                    sparring_open: true
+                    sports: @json(old('sports', $user->sports ?? [])),
+                    fitness_level: @json(old('fitness_level', $user->fitness_level ?? 'intermediate')),
+                    weekly_target: @json(old('weekly_target', $user->weekly_target ?? '3-4')),
+                    sparring_open: @json((bool) old('sparring_open', $user->sparring_open ?? true))
                 },
 
                 // Daftar Cabor Favorit
@@ -867,12 +676,6 @@
                     { id: 'basketball', label: 'Basket', icon: '🏀' },
                     { id: 'trail', label: 'Trail Run / Hiking', icon: '🧗' },
                 ],
-
-                accounts: {
-                    strava: true,
-                    garmin: false,
-                    googleFit: false
-                },
 
                 get bioCount() {
                     return (this.form.bio || '').length;
