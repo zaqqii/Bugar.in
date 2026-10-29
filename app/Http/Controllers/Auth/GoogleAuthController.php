@@ -236,8 +236,8 @@ class GoogleAuthController extends Controller
         Auth::login($user, remember: true);
         $request->session()->regenerate();
 
-        return redirect()->route('user.dashboard')
-            ->with('success', 'Akun berhasil dibuat! Selamat datang di Bugar.in, ' . $user->name . '.');
+        return redirect()->route('user.onboarding.sports')
+            ->with('success', 'Akun berhasil dibuat! Silakan tentukan cabang olahraga minatmu.');
     }
 
     /**

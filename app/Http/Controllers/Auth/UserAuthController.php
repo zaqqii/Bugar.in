@@ -60,8 +60,11 @@ class UserAuthController extends Controller
             'role'     => 'user',
         ]);
 
-        return redirect()->route('auth.user.login')
-            ->with('success', 'Pendaftaran berhasil! Silakan masuk menggunakan email dan kata sandi kamu.');
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()->route('user.onboarding.sports')
+            ->with('success', 'Akun berhasil dibuat! Silakan tentukan cabang olahraga minatmu.');
     }
 
     /**

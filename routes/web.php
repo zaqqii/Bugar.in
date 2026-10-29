@@ -72,6 +72,8 @@ use App\Http\Controllers\PenyediaKomunitas\AkunController as PenyediaAkunControl
 // ============================================================
 Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/onboarding/sports', [ProfileController::class, 'showOnboardingSports'])->name('onboarding.sports');
+    Route::post('/onboarding/sports', [ProfileController::class, 'saveOnboardingSports'])->name('onboarding.sports.store');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::get('/explore', function () {
