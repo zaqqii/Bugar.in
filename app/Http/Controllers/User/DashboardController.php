@@ -61,16 +61,34 @@ class DashboardController extends Controller
             abort(403);
         }
 
-        $schedule->participants()->firstOrCreate([
-            'user_id' => $user->id,
-        ], [
-            'participatable_type' => Schedule::class,
-            'participatable_id' => $schedule->id,
-            'status' => 'registered',
-            'registered_at' => now(),
+        // Cek apakah sudah terdaftar
+        $existing = Participant::where('user_id', $user->id)
+            ->where('participatable_type', Schedule::class)
+            ->where('participatable_id', $schedule->id)
+            ->first();
+
+        if ($existing) {
+            if (in_array($existing->status, ['waiting_list', 'registered', 'attended'])) {
+                return back()->with('info', 'Kamu sudah mendaftar sesi ini. Menunggu konfirmasi dari penyedia komunitas.');
+            }
+            // Jika pernah dibatalkan, daftar ulang
+            $existing->update([
+                'status'      => 'waiting_list',
+                'registered_at' => now(),
+                'cancelled_at'  => null,
+            ]);
+            return back()->with('success', 'Permintaan bergabung sesi latihan dikirim! Menunggu konfirmasi penyedia komunitas.');
+        }
+
+        Participant::create([
+            'user_id'              => $user->id,
+            'participatable_type'  => Schedule::class,
+            'participatable_id'    => $schedule->id,
+            'status'               => 'waiting_list',
+            'registered_at'        => now(),
         ]);
 
-        return back()->with('success', 'Berhasil mendaftar sesi latihan.');
+        return back()->with('success', 'Permintaan bergabung sesi latihan dikirim! Menunggu konfirmasi penyedia komunitas.');
     }
 
     public function joinEvent(Event $event)
@@ -81,16 +99,75 @@ class DashboardController extends Controller
             abort(403);
         }
 
-        $event->participants()->firstOrCreate([
-            'user_id' => $user->id,
-        ], [
-            'participatable_type' => Event::class,
-            'participatable_id' => $event->id,
-            'status' => 'registered',
-            'registered_at' => now(),
+        // Cek apakah sudah terdaftar
+        $existing = Participant::where('user_id', $user->id)
+            ->where('participatable_type', Event::class)
+            ->where('participatable_id', $event->id)
+            ->first();
+
+        if ($existing) {
+            if (in_array($existing->status, ['waiting_list', 'waiting_payment', 'registered', 'attended'])) {
+                $label = $existing->statusLabel();
+                return back()->with('info', "Kamu sudah mendaftar event ini. Status: {$label}.");
+            }
+            // Daftar ulang jika sebelumnya dibatalkan
+            $newStatus = $event->registration_fee > 0 ? 'waiting_payment' : 'waiting_list';
+            $existing->update([
+                'status'        => $newStatus,
+                'registered_at' => now(),
+                'cancelled_at'  => null,
+            ]);
+            $label = $existing->fresh()->statusLabel();
+            return back()->with('success', "Pendaftaran event dikirim! Status: {$label}.");
+        }
+
+        // Event berbayar → waiting_payment, gratis → waiting_list (menunggu konfirmasi)
+        $status = $event->registration_fee > 0 ? 'waiting_payment' : 'waiting_list';
+
+        Participant::create([
+            'user_id'              => $user->id,
+            'participatable_type'  => Event::class,
+            'participatable_id'    => $event->id,
+            'status'               => $status,
+            'registered_at'        => now(),
         ]);
 
-        return back()->with('success', 'Berhasil mendaftar event.');
+        if ($event->registration_fee > 0) {
+            $fee = 'Rp ' . number_format($event->registration_fee, 0, ',', '.');
+            return back()->with('success', "Pendaftaran event berhasil! Silakan selesaikan pembayaran sebesar {$fee} kepada penyelenggara. Status: Menunggu Pembayaran.");
+        }
+
+        return back()->with('success', 'Permintaan bergabung event dikirim! Menunggu konfirmasi dari penyedia komunitas.');
+    }
+
+    public function cancelParticipation(Request $request)
+    {
+        $user = Auth::user();
+        if (! $user) {
+            abort(403);
+        }
+
+        $type = $request->input('type'); // 'schedule' or 'event'
+        $id   = $request->input('id');
+
+        $morphType = $type === 'event' ? Event::class : Schedule::class;
+
+        $participant = Participant::where('user_id', $user->id)
+            ->where('participatable_type', $morphType)
+            ->where('participatable_id', $id)
+            ->whereIn('status', ['waiting_list', 'waiting_payment', 'registered'])
+            ->first();
+
+        if (! $participant) {
+            return back()->with('info', 'Tidak ada pendaftaran aktif yang dapat dibatalkan.');
+        }
+
+        $participant->update([
+            'status'       => 'cancelled',
+            'cancelled_at' => now(),
+        ]);
+
+        return back()->with('success', 'Pendaftaran berhasil dibatalkan.');
     }
 
     public function redeemReward($rewardId)
@@ -454,6 +531,14 @@ class DashboardController extends Controller
             ? $user->followedCommunities()->pluck('communities.id')->all()
             : [];
 
+        // Partisipasi aktif user (jadwal & event) untuk tombol status
+        $userParticipants = ($user instanceof User)
+            ? Participant::where('user_id', $user->id)
+                ->whereIn('status', ['waiting_list', 'waiting_payment', 'registered', 'attended'])
+                ->get()
+                ->keyBy(fn($p) => $p->participatable_type . '-' . $p->participatable_id)
+            : collect();
+
         // Agregasi Statistik Asli
         $userCommunitiesCount = $userMemberships->count();
         $totalCommunitiesCount = $communities->count();
@@ -491,7 +576,8 @@ class DashboardController extends Controller
             'totalSchedulesCount',
             'sportCategories',
             'cities',
-            'topCommunities'
+            'topCommunities',
+            'userParticipants'
         ));
     }
 }

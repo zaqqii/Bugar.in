@@ -482,6 +482,10 @@
         gap: 0.625rem;
     }
 
+    .auth-host-socials--login {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .auth-host-social-btn {
         display: flex;
         align-items: center;

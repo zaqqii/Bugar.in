@@ -641,6 +641,10 @@
     gap: 0.625rem;
 }
 
+.auth-social-grid--login {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .auth-social-btn {
     display: flex;
     align-items: center;
@@ -655,6 +659,7 @@
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
+    text-decoration: none;
     transition: all 200ms ease;
     white-space: nowrap;
 }

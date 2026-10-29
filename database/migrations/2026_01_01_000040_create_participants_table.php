@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             // Polymorphic: can belong to schedule OR event
             $table->morphs('participatable'); // participatable_id + participatable_type
-            $table->enum('status', ['registered', 'waiting_list', 'cancelled', 'attended', 'no_show'])->default('registered');
+            $table->enum('status', ['registered', 'waiting_list', 'waiting_payment', 'cancelled', 'attended', 'no_show'])->default('registered');
             $table->string('qr_code')->unique()->nullable(); // unique QR for check-in
             $table->string('notes')->nullable();
             $table->timestamp('registered_at')->useCurrent();
