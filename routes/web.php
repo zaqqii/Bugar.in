@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\Auth\PenyediaKomunitasAuthController;
+use App\Http\Controllers\Auth\AdminAuthController;
+use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\PenyediaKomunitas\DashboardController as PenyediaDashboardController;
 use App\Http\Controllers\User\CommunityController;
@@ -19,6 +21,27 @@ Route::get('/', [LandingController::class, 'index'])->name('landing');
 Route::get('/auth/selection', function () {
     return view('auth.selection');
 })->name('auth.selection');
+
+Route::get('/auth/{audience}/social/{provider}/redirect', [SocialAuthController::class, 'redirect'])
+    ->where(['audience' => 'user|penyedia-komunitas', 'provider' => 'google|apple'])
+    ->name('auth.social.redirect');
+Route::get('/auth/social/google/callback', [SocialAuthController::class, 'googleCallback'])
+    ->name('auth.social.google.callback');
+Route::post('/auth/social/apple/callback', [SocialAuthController::class, 'appleCallback'])
+    ->name('auth.social.apple.callback');
+
+// ============================================================
+// ADMIN AUTH & CONSOLE ROUTES
+// ============================================================
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
+
+    Route::middleware('admin')->group(function () {
+        Route::view('/dashboard', 'admin.dashboard')->name('dashboard');
+        Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
+    });
+});
 
 // ============================================================
 // GOOGLE OAUTH ROUTES (Shared / Role-aware)
@@ -69,6 +92,7 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::post('/communities/{id}/join', [CommunityController::class, 'join'])->name('communities.join');
     Route::post('/schedules/{schedule}/join', [DashboardController::class, 'joinSchedule'])->name('schedules.join');
     Route::post('/events/{event}/join', [DashboardController::class, 'joinEvent'])->name('events.join');
+    Route::post('/participation/cancel', [DashboardController::class, 'cancelParticipation'])->name('participation.cancel');
     Route::post('/rewards/{reward}/redeem', [DashboardController::class, 'redeemReward'])->name('rewards.redeem');
     Route::post('/streak/check-in', [DashboardController::class, 'streakCheckIn'])->name('streak.check-in');
     Route::post('/logout', [UserAuthController::class, 'logout'])->name('logout');

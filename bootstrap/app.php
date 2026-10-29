@@ -14,8 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
         $middleware->redirectGuestsTo(fn () => route('auth.user.login'));
+        $middleware->validateCsrfTokens(except: [
+            'auth/social/apple/callback',
+        ]);
         $middleware->alias([
             'community_owner' => \App\Http\Middleware\EnsureCommunityOwner::class,
+            'admin' => \App\Http\Middleware\EnsureAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

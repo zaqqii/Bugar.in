@@ -12,9 +12,11 @@
         agendaView: 'calendar',
         agendaTypeFilter: 'all',
         agendaCommunityFilter: 'all',
+        agendaScheduleFilter: 'all', // 'all' | 'popular' | 'mine'
         agendaMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         agendaSelectedDate: new Date().toLocaleDateString('sv-SE'),
         agendaSelectedId: null,
+        userParticipantKeys: @js($userParticipants->keys()->values() ?? collect()),
 
         agendaDateKey(date) {
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -30,8 +32,19 @@
             });
         },
         agendaMatchesFilters(item) {
-            return (this.agendaTypeFilter === 'all' || item.type === this.agendaTypeFilter) &&
-                (this.agendaCommunityFilter === 'all' || item.community === this.agendaCommunityFilter);
+            if (this.agendaTypeFilter !== 'all' && item.type !== this.agendaTypeFilter) return false;
+            if (this.agendaCommunityFilter !== 'all' && item.community !== this.agendaCommunityFilter) return false;
+            if (this.agendaScheduleFilter === 'mine') {
+                // Hanya tampilkan item yang sudah diikuti user
+                const typePrefix = item.kind === 'event' ? 'App\\\\Models\\\\Event' : 'App\\\\Models\\\\Schedule';
+                const realId = item.id.replace('event-', '').replace('schedule-', '');
+                const key = `${typePrefix}-${realId}`;
+                return this.userParticipantKeys.includes(key);
+            }
+            if (this.agendaScheduleFilter === 'popular') {
+                return (item.capacity > 0 && (item.filled / item.capacity) >= 0.5) || item.filled >= 5;
+            }
+            return true;
         },
         agendaForDate(date) {
             const key = this.agendaDateKey(date);
@@ -63,6 +76,11 @@
                 this.agendaForDate(date).forEach(item => upcoming.push({ ...item, occurrenceDate: this.agendaDateKey(date) }));
             }
             return upcoming;
+        },
+        isJoinedItem(item) {
+            const typePrefix = item.kind === 'event' ? 'App\\\\Models\\\\Event' : 'App\\\\Models\\\\Schedule';
+            const realId = item.id.replace('event-', '').replace('schedule-', '');
+            return this.userParticipantKeys.includes(`${typePrefix}-${realId}`);
         },
         leaderboardMetric: 'points',
         leaderboardUsers: @js($leaderboardUsers->map(fn($rankedUser) => [
@@ -138,6 +156,19 @@
         }
     }" class="space-y-8 w-full max-w-7xl">
 
+        {{-- Flash messages --}}
+        @if(session('success'))
+            <div role="status" class="flex items-start gap-3 rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-sm font-semibold text-emerald-800 shadow-xs">
+                <span class="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">✓</span>
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
+        @if(session('info'))
+            <div role="status" class="flex items-start gap-3 rounded-2xl bg-blue-50 border border-blue-200 p-4 text-sm font-semibold text-blue-800 shadow-xs">
+                <span class="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">i</span>
+                <span>{{ session('info') }}</span>
+            </div>
+        @endif
         @if(session('status') || session('streak_error') || session('participation_error'))
             <div role="status" class="rounded-xl {{ session('streak_error') || session('participation_error') ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-700' }} p-4 text-sm font-semibold">
                 {{ session('status') ?? session('streak_error') ?? session('participation_error') }}
@@ -171,9 +202,36 @@
                             <option value="workshop">Workshop</option>
                             <option value="other">Lainnya</option>
                         </select>
+
+                        {{-- Filter: Semua / Paling Ramai / Diikuti Saya --}}
+                        <div class="flex rounded-xl border border-blue-100 bg-white/90 p-1 sm:col-span-2 shadow-2xs gap-1">
+                            <button type="button" @click="agendaScheduleFilter = 'all'"
+                                :class="agendaScheduleFilter === 'all' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'"
+                                class="flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all">
+                                🗓 Semua
+                            </button>
+                            <button type="button" @click="agendaScheduleFilter = 'popular'"
+                                :class="agendaScheduleFilter === 'popular' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'"
+                                class="flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all">
+                                🔥 Terpopuler
+                            </button>
+                            <button type="button" @click="agendaScheduleFilter = 'mine'"
+                                :class="agendaScheduleFilter === 'mine' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'"
+                                class="flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all">
+                                ✓ Diikuti Saya
+                            </button>
+                        </div>
+
                         <div class="flex rounded-xl border border-blue-100 bg-white/90 p-1 sm:col-span-2 shadow-2xs">
                             <button type="button" @click="agendaView = 'calendar'" :class="agendaView === 'calendar' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'" class="flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-all">▦ Kalender Bulan</button>
                             <button type="button" @click="agendaView = 'list'" :class="agendaView === 'list' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'" class="flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-all">☷ Daftar List</button>
+                        </div>
+
+                        {{-- Info badge ketika filter aktif --}}
+                        <div x-show="agendaScheduleFilter !== 'all'" class="sm:col-span-2 flex items-center gap-2 rounded-xl bg-blue-50 border border-blue-100 px-3 py-2 text-xs text-blue-700 font-semibold">
+                            <span x-show="agendaScheduleFilter === 'mine'">✓ Menampilkan jadwal yang sudah kamu ikuti</span>
+                            <span x-show="agendaScheduleFilter === 'popular'">🔥 Menampilkan jadwal dengan kepadatan peserta ≥50%</span>
+                            <button type="button" @click="agendaScheduleFilter = 'all'" class="ml-auto text-[11px] underline text-blue-500">Reset</button>
                         </div>
                     </div>
                 </div>
@@ -247,6 +305,33 @@
                                     <div><span class="block text-[10px] font-bold uppercase text-slate-400">Kapasitas Slot</span><strong class="mt-1 block text-sm text-slate-800" x-text="agendaSelectedItem.capacity ? `${agendaSelectedItem.filled}/${agendaSelectedItem.capacity} Peserta` : 'Tanpa batas peserta'"></strong></div>
                                 </div>
                                 <a x-show="agendaSelectedItem.maps_url" :href="agendaSelectedItem.maps_url" target="_blank" rel="noopener noreferrer" class="mt-5 block w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 px-4 py-3 text-center text-sm font-bold text-white shadow-md shadow-blue-500/20 transition-all">Buka Peta Lokasi <span aria-hidden="true">→</span></a>
+
+                                {{-- Status join / tombol join berdasarkan item yang dipilih --}}
+                                <div class="mt-3" x-show="agendaSelectedItem">
+                                    <div x-show="isJoinedItem(agendaSelectedItem)"
+                                         class="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-800">
+                                        <span class="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
+                                        Kamu sudah mendaftar kegiatan ini
+                                    </div>
+                                    <div x-show="!isJoinedItem(agendaSelectedItem)" class="space-y-2">
+                                        <template x-if="agendaSelectedItem && agendaSelectedItem.kind === 'schedule'">
+                                            <form method="POST" :action="`/user/schedules/${agendaSelectedItem.id.replace('schedule-','')}/join`">
+                                                @csrf
+                                                <button type="submit" class="w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:brightness-105 px-4 py-3 text-center text-sm font-bold text-white shadow-xs transition-all">
+                                                    Ikuti Sesi Latihan Ini →
+                                                </button>
+                                            </form>
+                                        </template>
+                                        <template x-if="agendaSelectedItem && agendaSelectedItem.kind === 'event'">
+                                            <form method="POST" :action="`/user/events/${agendaSelectedItem.id.replace('event-','')}/join`">
+                                                @csrf
+                                                <button type="submit" class="w-full rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:brightness-105 px-4 py-3 text-center text-sm font-bold text-white shadow-xs transition-all">
+                                                    Daftar Event Ini →
+                                                </button>
+                                            </form>
+                                        </template>
+                                    </div>
+                                </div>
                             </div>
                         </template>
                         <div x-show="!agendaSelectedItem" class="py-8 text-center">
@@ -611,6 +696,10 @@
                         @else
                             <div class="space-y-3">
                                 @foreach($schedules->take(2) as $sch)
+                                    @php
+                                        $schKey = \App\Models\Schedule::class . '-' . $sch->id;
+                                        $schParticipant = $userParticipants[$schKey] ?? null;
+                                    @endphp
                                     <div class="p-3.5 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-white hover:border-blue-200 transition-all flex items-center justify-between gap-3">
                                         <div class="min-w-0">
                                             <span class="text-[10px] font-bold text-cyan-600 uppercase tracking-wider block">
@@ -621,10 +710,16 @@
                                                 {{ $sch->community?->name ?? 'Komunitas' }} &bull; {{ $sch->location ?? 'Lokasi belum ditentukan' }}
                                             </p>
                                         </div>
-                                        <form method="POST" action="{{ route('user.schedules.join', $sch) }}" class="flex-shrink-0">
-                                            @csrf
-                                            <button type="submit" class="btn-primary text-[11px] py-1.5 px-3 rounded-lg">Ikut</button>
-                                        </form>
+                                        @if($schParticipant)
+                                            <span class="flex-shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold {{ $schParticipant->status === 'waiting_list' ? 'text-amber-700 bg-amber-50' : 'text-emerald-700 bg-emerald-50' }} rounded-lg px-2.5 py-1.5 border {{ $schParticipant->status === 'waiting_list' ? 'border-amber-100' : 'border-emerald-100' }}">
+                                                {{ $schParticipant->status === 'waiting_list' ? '⏳ Menunggu' : '✓ Terdaftar' }}
+                                            </span>
+                                        @else
+                                            <form method="POST" action="{{ route('user.schedules.join', $sch) }}" class="flex-shrink-0">
+                                                @csrf
+                                                <button type="submit" class="btn-primary text-[11px] py-1.5 px-3 rounded-lg">Ikut</button>
+                                            </form>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>
@@ -722,7 +817,66 @@
 
                             <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
                                 <span class="text-[11px] text-slate-400">Kuota: {{ $event->capacity ?? 'Bebas' }} peserta</span>
-                                <form method="POST" action="{{ route('user.events.join', $event) }}">@csrf<button type="submit" class="btn-primary text-[11px] py-1.5 px-3">Daftar Event</button></form>
+                                @php
+                                    $morphKey = \App\Models\Event::class . '-' . $event->id;
+                                    $eventParticipant = $userParticipants[$morphKey] ?? null;
+                                @endphp
+                                @if($eventParticipant)
+                                    {{-- Tampilkan status saat ini --}}
+                                    @php
+                                        $statusColor = match($eventParticipant->status) {
+                                            'waiting_payment' => 'bg-amber-50 border-amber-200 text-amber-800',
+                                            'waiting_list'    => 'bg-blue-50 border-blue-200 text-blue-800',
+                                            'registered'      => 'bg-emerald-50 border-emerald-200 text-emerald-800',
+                                            'attended'        => 'bg-cyan-50 border-cyan-200 text-cyan-800',
+                                            default           => 'bg-slate-50 border-slate-200 text-slate-600',
+                                        };
+                                        $statusIcon = match($eventParticipant->status) {
+                                            'waiting_payment' => '💳',
+                                            'waiting_list'    => '⏳',
+                                            'registered', 'attended' => '✓',
+                                            default => '•',
+                                        };
+                                    @endphp
+                                    <div class="flex flex-col gap-1.5 w-full">
+                                        <div class="flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold {{ $statusColor }}">
+                                            <span>{{ $statusIcon }}</span>
+                                            <span>{{ $eventParticipant->statusLabel() }}</span>
+                                        </div>
+                                        @if($eventParticipant->status === 'waiting_payment')
+                                            <p class="text-[10px] text-amber-700 leading-relaxed">
+                                                Selesaikan pembayaran <strong>Rp {{ number_format($event->registration_fee, 0, ',', '.') }}</strong> kepada penyelenggara untuk konfirmasi pendaftaran.
+                                            </p>
+                                        @elseif($eventParticipant->status === 'waiting_list')
+                                            <p class="text-[10px] text-blue-600 leading-relaxed">
+                                                Menunggu konfirmasi dari penyedia komunitas.
+                                            </p>
+                                        @endif
+                                        {{-- Tombol batalkan --}}
+                                        @if(in_array($eventParticipant->status, ['waiting_list', 'waiting_payment', 'registered']))
+                                            <form method="POST" action="{{ route('user.participation.cancel') }}">
+                                                @csrf
+                                                <input type="hidden" name="type" value="event">
+                                                <input type="hidden" name="id" value="{{ $event->id }}">
+                                                <button type="submit" class="text-[11px] text-slate-400 hover:text-red-500 transition-colors underline">
+                                                    Batalkan pendaftaran
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                @else
+                                    <form method="POST" action="{{ route('user.events.join', $event) }}">
+                                        @csrf
+                                        @if($event->registration_fee > 0)
+                                            <button type="submit" class="btn-primary text-[11px] py-1.5 px-3 flex items-center gap-1">
+                                                <span>💳</span>
+                                                <span>Daftar · Rp {{ number_format($event->registration_fee, 0, ',', '.') }}</span>
+                                            </button>
+                                        @else
+                                            <button type="submit" class="btn-primary text-[11px] py-1.5 px-3">Daftar Event (Gratis)</button>
+                                        @endif
+                                    </form>
+                                @endif
                             </div>
                             </div>
                         </div>

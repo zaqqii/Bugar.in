@@ -345,20 +345,12 @@
                         </p>
 
                         {{-- Error alert login --}}
-                        @if(session('error'))
+                        @if($errors->has('social') || ($errors->has('login') && old('form_type') === 'login'))
                             <div class="auth-error-alert" role="alert">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                 </svg>
-                                {{ session('error') }}
-                            </div>
-                        @endif
-                        @if($errors->has('login') && old('form_type') === 'login')
-                            <div class="auth-error-alert" role="alert">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                </svg>
-                                {{ $errors->first('login') }}
+                                {{ $errors->first('social') ?: $errors->first('login') }}
                             </div>
                         @endif
 
@@ -465,9 +457,9 @@
                                 <span>atau masuk dengan</span>
                             </div>
 
-                            {{-- Social Buttons (Hanya Google) --}}
-                            <div class="auth-social-grid">
-                                <a href="{{ route('auth.google.redirect', ['role' => 'user']) }}" class="auth-social-btn" id="btn-login-google" style="text-decoration:none;">
+                            {{-- Social Buttons --}}
+                            <div class="auth-social-grid auth-social-grid--login">
+                                <a href="{{ route('auth.social.redirect', ['audience' => 'user', 'provider' => 'google']) }}" class="auth-social-btn" id="btn-login-google">
                                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -475,6 +467,12 @@
                                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                                     </svg>
                                     Google
+                                </a>
+                                <a href="{{ route('auth.social.redirect', ['audience' => 'user', 'provider' => 'apple']) }}" class="auth-social-btn" id="btn-login-apple">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#000000" aria-hidden="true">
+                                        <path d="M16.365 1.43c0 1.14-.416 2.202-1.248 3.187-.999 1.164-2.207 1.836-3.52 1.727a3.53 3.53 0 0 1-.027-.43c0-1.095.476-2.267 1.32-3.227.422-.486.96-.89 1.614-1.21.652-.316 1.268-.49 1.848-.52.017.157.013.314.013.473ZM20.65 17.61c-.36.827-.786 1.59-1.278 2.295-.672.958-1.22 1.621-1.638 1.988-.647.603-1.34.912-2.08.93-.533 0-1.177-.151-1.927-.46-.751-.306-1.441-.458-2.067-.458-.657 0-1.367.152-2.132.458-.766.309-1.384.469-1.855.484-.71.03-1.42-.288-2.132-.954-.452-.4-1.024-1.087-1.715-2.061-.742-1.04-1.352-2.247-1.83-3.625-.513-1.49-.77-2.934-.77-4.336 0-1.604.347-2.986 1.041-4.144a6.106 6.106 0 0 1 2.133-2.204 5.73 5.73 0 0 1 2.884-.83c.566 0 1.308.176 2.23.52.92.344 1.512.52 1.771.52.194 0 .852-.206 1.971-.617 1.058-.38 1.952-.538 2.678-.474 1.978.16 3.463.94 4.44 2.345-1.77 1.072-2.645 2.572-2.627 4.495.016 1.499.564 2.747 1.642 3.737.488.452 1.033.802 1.636 1.05-.13.38-.267.746-.414 1.1Z"/>
+                                    </svg>
+                                    Apple
                                 </a>
                             </div>
 

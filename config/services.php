@@ -39,17 +39,17 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI'),
-        'guzzle' => [
-            'verify' => env('CURL_CA_BUNDLE', (function () {
-                if ($ca = ini_get('curl.cainfo')) {
-                    if (file_exists($ca)) return $ca;
-                }
-                if (file_exists('C:/xampp/apache/bin/curl-ca-bundle.crt')) {
-                    return 'C:/xampp/apache/bin/curl-ca-bundle.crt';
-                }
-                return true;
-            })()),
-        ],
+    ],
+
+    'apple' => [
+        'client_id' => env('APPLE_CLIENT_ID'),
+        'client_secret' => env('APPLE_CLIENT_SECRET'),
+        'key_id' => env('APPLE_KEY_ID'),
+        'team_id' => env('APPLE_TEAM_ID'),
+        'private_key' => env('APPLE_PRIVATE_KEY'),
+        'passphrase' => env('APPLE_PASSPHRASE'),
+        'redirect' => env('APPLE_REDIRECT_URI'),
+        'nonce_ttl' => env('APPLE_NONCE_TTL', 600),
     ],
 
 ];
