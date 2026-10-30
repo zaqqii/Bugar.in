@@ -162,6 +162,15 @@ Load dari Google Fonts. Selalu gunakan Plus Jakarta Sans untuk semua halaman use
 - Tampilkan bonus login harian sebagai status singkat yang mudah dibedakan dari saldo poin.
 - Gunakan aksen Lime Energy (`#84CC16`) untuk angka bonus; pertahankan teks utama Dark Slate agar terbaca.
 
+### 4.7 Level Pengguna
+
+- Level dihitung dari saldo Gerak Poin ditambah bonus progres berdasarkan rekor streak terpanjang.
+- Setiap 7 hari rekor streak memberi 20 skor level; setiap 300 skor menaikkan level.
+- Tampilkan level, kontribusi poin dan streak, serta progress bar menuju level berikutnya pada dashboard dan profil.
+- Bonus streak adalah skor progres saja, tidak mengubah saldo Gerak Poin.
+- Benefit level belum ditampilkan sampai aturan benefit ditentukan.
+- Gunakan Royal Blue/Cyan untuk identitas level dan Lime Energy untuk aksen progres atau bonus.
+
 ---
 
 ## 5. Spacing & Layout

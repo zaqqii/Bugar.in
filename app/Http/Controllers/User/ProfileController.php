@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\Streak;
 use App\Models\User;
+use App\Services\UserLevelService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -76,7 +77,7 @@ class ProfileController extends Controller
     /**
      * Tampilkan halaman Edit Profil pengguna yang sedang login.
      */
-    public function edit(Request $request)
+    public function edit(Request $request, UserLevelService $levelService)
     {
         /** @var User $user */
         $user = Auth::user();
@@ -110,6 +111,7 @@ class ProfileController extends Controller
         }
 
         $availableSports = User::availableSports();
+        $levelProgress = $levelService->progress($user);
 
         return view('user.edit_profile', compact(
             'user',
@@ -117,7 +119,8 @@ class ProfileController extends Controller
             'streakPoints',
             'consistencyRate',
             'consistencyTrend',
-            'availableSports'
+            'availableSports',
+            'levelProgress'
         ));
     }
 

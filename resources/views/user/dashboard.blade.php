@@ -1025,6 +1025,21 @@
                 <div class="glass-card rounded-2xl border border-blue-100 p-5"><p class="text-xs font-bold uppercase tracking-wide text-slate-500">Rekor Streak</p><p class="mt-3 text-3xl font-extrabold text-cyan-600">{{ number_format($streakStats['longest'], 0, ',', '.') }} <span class="text-base">hari</span></p><p class="mt-1 text-xs text-slate-500">Rekor dari kalender kehadiran layak</p></div>
             </div>
 
+            <div class="glass-card rounded-2xl border border-cyan-100 bg-gradient-to-r from-white via-blue-50/70 to-cyan-50/80 p-5 sm:p-6">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wide text-cyan-700">Level Pengguna</p>
+                        <h4 class="mt-1 text-2xl font-extrabold text-blue-700">Level {{ $levelProgress['level'] }}</h4>
+                        <p class="mt-1 text-xs text-slate-600">{{ number_format($levelProgress['total_points'], 0, ',', '.') }} Gerak Poin + {{ number_format($levelProgress['streak_score'], 0, ',', '.') }} skor bonus dari rekor streak {{ $levelProgress['longest_streak'] }} hari.</p>
+                    </div>
+                    <span class="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-cyan-700 shadow-sm">{{ number_format($levelProgress['score'], 0, ',', '.') }} skor level</span>
+                </div>
+                <div class="mt-4 h-2.5 overflow-hidden rounded-full bg-white">
+                    <div class="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-700" style="width: {{ $levelProgress['progress_percentage'] }}%"></div>
+                </div>
+                <p class="mt-2 text-xs text-slate-500">{{ number_format($levelProgress['progress_points'], 0, ',', '.') }} / 300 menuju level berikutnya · kurang {{ number_format($levelProgress['points_to_next_level'], 0, ',', '.') }} skor. Bonus streak hanya untuk progres level dan tidak mengurangi saldo poin.</p>
+            </div>
+
             <div class="glass-card rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <div><h4 class="text-lg font-extrabold text-blue-700">Ritme Olahraga Pekan Ini</h4><p class="mt-1 text-xs text-slate-500">{{ $streakStats['active_days_this_week'] }} dari 5 hari target berdasarkan kehadiran komunitas</p></div>

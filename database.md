@@ -409,6 +409,7 @@ CASCADE hanya berjalan pada hard delete. Soft delete (`deleted_at`) tidak memicu
 7. `events.registration_fee` ada di schema, tetapi sistem pembayaran di luar scope proyek. Perlakukan sebagai informasi tampilan, default 0.
 8. `community_ratings.rating` tidak dibatasi di DB, validasi 1–5 dilakukan di aplikasi.
 9. **Gerak Poin pengguna:** login harian memberi 2 poin satu kali per tanggal Asia/Jakarta; permintaan ikut jadwal memberi 15 poin jika komunitas `verified`, selain itu 10 poin. Poin jadwal hanya diberikan sekali per pengguna per jadwal, termasuk setelah batal dan daftar ulang. Simpan ledger dengan `points_histories.source = other` dan deskripsi yang menjelaskan aktivitas; update `users.total_points` dan ledger dalam transaksi yang sama. Jadwal berulang belum memberi poin kehadiran per sesi sampai sesi bertanggal tersedia di schema.
+10. **Level pengguna:** level dihitung saat halaman dimuat, tanpa tabel atau migration tambahan. Skor level = `users.total_points` + 20 skor untuk setiap 7 hari dari `MAX(streaks.longest_streak)` lintas kategori olahraga. Setiap 300 skor menaikkan level. Bonus streak hanya untuk progres level, tidak ditambahkan ke saldo Gerak Poin/ledger. Gunakan rekor terpanjang agar level tidak turun saat streak aktif terputus. Benefit level belum ditetapkan.
 
 ## Cara mengubah schema
 

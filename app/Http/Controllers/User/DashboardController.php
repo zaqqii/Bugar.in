@@ -11,6 +11,7 @@ use App\Models\PointsHistory;
 use App\Models\Schedule;
 use App\Models\Streak;
 use App\Models\User;
+use App\Services\UserLevelService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -324,7 +325,7 @@ class DashboardController extends Controller
         });
     }
 
-    public function index(Request $request)
+    public function index(Request $request, UserLevelService $levelService)
     {
         $user = Auth::user();
 
@@ -530,6 +531,7 @@ class DashboardController extends Controller
                     ->sum('points')
                 : 0),
         ];
+        $levelProgress = $user instanceof User ? $levelService->progress($user) : null;
 
         $pointRewards = collect([]);
 
@@ -577,6 +579,7 @@ class DashboardController extends Controller
             'streakMilestones',
             'pointsHistory',
             'pointsStats',
+            'levelProgress',
             'pointRewards',
             'userMemberships',
             'followedCommunityIds',

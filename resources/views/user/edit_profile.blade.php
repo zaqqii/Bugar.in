@@ -255,7 +255,7 @@
                                         </svg>
                                     </div>
                                     <span class="font-extrabold text-sm text-cyan-800">
-                                        Level {{ max(1, floor(($user->total_points ?? 0) / 300) + 1) }} • {{ $user->total_points ?? 0 }} Poin
+                                        Level {{ $levelProgress['level'] }} • {{ number_format($levelProgress['score'], 0, ',', '.') }} Skor
                                     </span>
                                 </div>
                                 <div class="w-7 h-7 rounded-lg bg-white text-cyan-500 flex items-center justify-center shadow-xs border border-cyan-100">
@@ -625,8 +625,9 @@
                             <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
                                 <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status</span>
                                 <div class="flex items-baseline gap-0.5">
-                                    <span class="text-xl sm:text-2xl font-extrabold text-cyan-600 tracking-tight">Level {{ max(1, floor(($user->total_points ?? 0) / 300) + 1) }}</span>
+                                    <span class="text-xl sm:text-2xl font-extrabold text-cyan-600 tracking-tight">Level {{ $levelProgress['level'] }}</span>
                                 </div>
+                                <p class="mt-1 text-[10px] text-slate-500">{{ number_format($levelProgress['progress_points'], 0, ',', '.') }} / 300 skor level</p>
                             </div>
                         </div>
 
