@@ -171,6 +171,14 @@ Load dari Google Fonts. Selalu gunakan Plus Jakarta Sans untuk semua halaman use
 - Benefit level belum ditampilkan sampai aturan benefit ditentukan.
 - Gunakan Royal Blue/Cyan untuk identitas level dan Lime Energy untuk aksen progres atau bonus.
 
+### 4.8 Pengumuman & Pengingat Kegiatan
+
+- Letakkan pengumuman pengingat pada bagian atas halaman dashboard user.
+- Ingatkan user tentang event atau jadwal rutin dengan pendaftaran aktif (`registered` atau `waiting_list`), sekitar 24 jam sebelum waktu kegiatan.
+- Tampilkan judul kegiatan, waktu, komunitas/lokasi bila tersedia, status sudah dibaca, dan aksi tandai dibaca.
+- Gunakan aksen Cyan untuk pengingat event dan Royal Blue untuk jadwal rutin.
+- Job dijalankan setiap hari pukul 08.00 WIB; scheduler Laravel dan queue worker harus berjalan agar pengingat dibuat otomatis.
+
 ---
 
 ## 5. Spacing & Layout

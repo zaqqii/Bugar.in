@@ -68,6 +68,11 @@ class User extends Authenticatable
         return $this->hasMany(Participant::class);
     }
 
+    public function userAnnouncements()
+    {
+        return $this->hasMany(UserAnnouncement::class);
+    }
+
     public function streaks()
     {
         return $this->hasMany(Streak::class);

@@ -97,6 +97,7 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::post('/participation/cancel', [DashboardController::class, 'cancelParticipation'])->name('participation.cancel');
     Route::post('/rewards/{reward}/redeem', [DashboardController::class, 'redeemReward'])->name('rewards.redeem');
     Route::post('/streak/check-in', [DashboardController::class, 'streakCheckIn'])->name('streak.check-in');
+    Route::post('/announcements/{announcement}/read', [DashboardController::class, 'readAnnouncement'])->name('announcements.read');
     Route::post('/logout', [UserAuthController::class, 'logout'])->name('logout');
 });
 

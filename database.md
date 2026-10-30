@@ -329,6 +329,8 @@ Unik: (`user_id`, `sport_category`).
 
 Tabel ini custom, bukan format bawaan Laravel Notifications (channel `database` memakai `id` uuid dan skema berbeda). Jangan memakai `$user->notify()` ke channel database tanpa menyesuaikan.
 
+Pengingat event dan jadwal disimpan dengan `type` `event_reminder` / `schedule_reminder`, `user_id` sebagai penerima, serta polymorphic `notifiable_*` sebagai event/jadwal sumber. `data.occurrence_date` menjadi kunci deduplikasi per pendaftar dan per kejadian. Peserta berstatus `registered` atau `waiting_list` menerima pengingat; `waiting_payment`, `cancelled`, `attended`, dan `no_show` tidak. Job harian membersihkan pengingat lebih dari 30 hari; tabel `jobs` sudah disediakan oleh migration dasar.
+
 ### audit_logs
 | Kolom | Tipe | Catatan |
 |---|---|---|

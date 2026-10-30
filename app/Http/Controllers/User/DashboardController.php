@@ -11,6 +11,7 @@ use App\Models\PointsHistory;
 use App\Models\Schedule;
 use App\Models\Streak;
 use App\Models\User;
+use App\Models\UserAnnouncement;
 use App\Services\UserLevelService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -179,6 +180,15 @@ class DashboardController extends Controller
         ]);
 
         return back()->with('success', 'Pendaftaran berhasil dibatalkan.');
+    }
+
+    public function readAnnouncement(UserAnnouncement $announcement)
+    {
+        abort_unless((int) $announcement->user_id === (int) Auth::id(), 404);
+
+        $announcement->update(['read_at' => now()]);
+
+        return back();
     }
 
     public function redeemReward($rewardId)
@@ -532,6 +542,13 @@ class DashboardController extends Controller
                 : 0),
         ];
         $levelProgress = $user instanceof User ? $levelService->progress($user) : null;
+        $announcements = $user instanceof User
+            ? $user->userAnnouncements()
+                ->whereIn('type', ['event_reminder', 'schedule_reminder'])
+                ->latest()
+                ->limit(6)
+                ->get()
+            : collect();
 
         $pointRewards = collect([]);
 
@@ -580,6 +597,7 @@ class DashboardController extends Controller
             'pointsHistory',
             'pointsStats',
             'levelProgress',
+            'announcements',
             'pointRewards',
             'userMemberships',
             'followedCommunityIds',

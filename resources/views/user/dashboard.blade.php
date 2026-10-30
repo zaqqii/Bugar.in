@@ -175,6 +175,47 @@
             </div>
         @endif
 
+        <section aria-labelledby="user-announcements-heading" class="glass-card rounded-2xl border border-cyan-100 bg-gradient-to-r from-white via-blue-50/60 to-cyan-50/70 p-5 sm:p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-cyan-700">Informasi untukmu</span>
+                    <h2 id="user-announcements-heading" class="mt-1 text-xl font-extrabold text-blue-800">Pengumuman &amp; Pengingat</h2>
+                    <p class="mt-1 text-xs text-slate-600">Pengingat event dan jadwal dengan pendaftaran aktif akan muncul menjelang waktu pelaksanaan.</p>
+                </div>
+                @if($announcements->isNotEmpty())
+                    <span class="rounded-full bg-white px-3 py-1 text-xs font-bold text-cyan-700 shadow-xs">{{ $announcements->whereNull('read_at')->count() }} belum dibaca</span>
+                @endif
+            </div>
+
+            @if($announcements->isEmpty())
+                <p class="mt-4 rounded-xl border border-blue-100 bg-white/80 p-4 text-sm text-slate-600">Belum ada pengingat kegiatan. Setelah pendaftaran event atau jadwal aktif, pengingat akan tampil sekitar 24 jam sebelum kegiatan.</p>
+            @else
+                <div class="mt-4 space-y-3">
+                    @foreach($announcements as $announcement)
+                        <article class="flex flex-wrap items-start justify-between gap-3 rounded-xl border {{ $announcement->read_at ? 'border-slate-100 bg-white/70' : 'border-cyan-100 bg-white' }} p-4">
+                            <div class="flex min-w-0 flex-1 items-start gap-3">
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $announcement->type === 'event_reminder' ? 'bg-cyan-100 text-cyan-700' : 'bg-blue-100 text-blue-700' }}" aria-hidden="true">{{ $announcement->type === 'event_reminder' ? '📅' : '🏃' }}</span>
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="text-sm font-bold text-slate-900">{{ $announcement->title }}</h3>
+                                        @if(!$announcement->read_at)<span class="rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-bold text-cyan-800">Baru</span>@endif
+                                    </div>
+                                    <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ $announcement->body }}</p>
+                                    <time class="mt-2 block text-[10px] text-slate-400" datetime="{{ $announcement->created_at?->toIso8601String() }}">Dibuat {{ $announcement->created_at?->timezone('Asia/Jakarta')->format('d M Y, H:i') }} WIB</time>
+                                </div>
+                            </div>
+                            @if(!$announcement->read_at)
+                                <form method="POST" action="{{ route('user.announcements.read', $announcement) }}">
+                                    @csrf
+                                    <button type="submit" class="rounded-lg border border-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">Tandai dibaca</button>
+                                </form>
+                            @endif
+                        </article>
+                    @endforeach
+                </div>
+            @endif
+        </section>
+
         {{-- ============================================================
              5. MODUL: KALENDER JADWAL & AGENDA OLAHRAGA
              ============================================================ --}}
