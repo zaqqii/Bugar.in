@@ -66,6 +66,12 @@
 
             {{-- Main Page Content --}}
             <div class="flex-1 px-5 sm:px-8 py-6 overflow-x-hidden">
+                @if(session('daily_login_reward'))
+                    <div role="status" class="mb-5 flex items-start gap-3 rounded-2xl border border-lime-200 bg-lime-50 p-4 text-sm font-semibold text-slate-800 shadow-xs">
+                        <span class="flex-shrink-0 rounded-full bg-lime-500 px-2 py-0.5 text-xs font-extrabold text-white">+{{ session('daily_login_reward') }}</span>
+                        <span>Bonus login harian Poin Gerak berhasil ditambahkan.</span>
+                    </div>
+                @endif
                 @yield('content')
             </div>
         </main>

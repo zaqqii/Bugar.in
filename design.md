@@ -156,6 +156,12 @@ Load dari Google Fonts. Selalu gunakan Plus Jakarta Sans untuk semua halaman use
 - Hari ini: Royal Blue background
 - Streak flame 🔥 hanya jika streak > 3 hari
 
+### 4.6 Gerak Poin
+
+- Tampilkan perolehan poin pada feedback sukses setelah pengguna mengajukan ikut jadwal.
+- Tampilkan bonus login harian sebagai status singkat yang mudah dibedakan dari saldo poin.
+- Gunakan aksen Lime Energy (`#84CC16`) untuk angka bonus; pertahankan teks utama Dark Slate agar terbaca.
+
 ---
 
 ## 5. Spacing & Layout

@@ -408,6 +408,7 @@ CASCADE hanya berjalan pada hard delete. Soft delete (`deleted_at`) tidak memicu
 6. **Komunitas baru berstatus `pending`** sampai admin memverifikasi. Tampilan dan fitur penyedia sebaiknya menyesuaikan status ini.
 7. `events.registration_fee` ada di schema, tetapi sistem pembayaran di luar scope proyek. Perlakukan sebagai informasi tampilan, default 0.
 8. `community_ratings.rating` tidak dibatasi di DB, validasi 1–5 dilakukan di aplikasi.
+9. **Gerak Poin pengguna:** login harian memberi 2 poin satu kali per tanggal Asia/Jakarta; permintaan ikut jadwal memberi 15 poin jika komunitas `verified`, selain itu 10 poin. Poin jadwal hanya diberikan sekali per pengguna per jadwal, termasuk setelah batal dan daftar ulang. Simpan ledger dengan `points_histories.source = other` dan deskripsi yang menjelaskan aktivitas; update `users.total_points` dan ledger dalam transaksi yang sama. Jadwal berulang belum memberi poin kehadiran per sesi sampai sesi bertanggal tersedia di schema.
 
 ## Cara mengubah schema
 
