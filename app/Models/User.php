@@ -68,6 +68,11 @@ class User extends Authenticatable
         return $this->hasMany(Participant::class);
     }
 
+    public function userAnnouncements()
+    {
+        return $this->hasMany(UserAnnouncement::class);
+    }
+
     public function streaks()
     {
         return $this->hasMany(Streak::class);
@@ -86,5 +91,38 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    /**
+     * Daftar cabang olahraga lengkap yang didukung oleh Bugar.in.
+     * Digunakan untuk onboarding setelah registrasi, edit profil, dan filter komunitas.
+     */
+    public static function availableSports(): array
+    {
+        return [
+            ['id' => 'lari', 'label' => 'Lari / Running', 'icon' => '🏃', 'category' => 'Cardio', 'aliases' => ['running']],
+            ['id' => 'sepeda', 'label' => 'Sepeda / Cycling', 'icon' => '🚴', 'category' => 'Cardio', 'aliases' => ['cycling']],
+            ['id' => 'renang', 'label' => 'Renang / Swimming', 'icon' => '🏊', 'category' => 'Cardio', 'aliases' => ['swimming']],
+            ['id' => 'badminton', 'label' => 'Badminton / Bulu Tangkis', 'icon' => '🏸', 'category' => 'Raket', 'aliases' => []],
+            ['id' => 'padel', 'label' => 'Padel Tennis', 'icon' => '🎾', 'category' => 'Raket', 'aliases' => []],
+            ['id' => 'tenis', 'label' => 'Tenis Lapangan', 'icon' => '🎾', 'category' => 'Raket', 'aliases' => ['tennis']],
+            ['id' => 'tenis_meja', 'label' => 'Tenis Meja / Pingpong', 'icon' => '🏓', 'category' => 'Raket', 'aliases' => ['table_tennis']],
+            ['id' => 'basket', 'label' => 'Basket / Basketball', 'icon' => '🏀', 'category' => 'Tim', 'aliases' => ['basketball']],
+            ['id' => 'futsal', 'label' => 'Futsal / Mini Soccer', 'icon' => '⚽', 'category' => 'Tim', 'aliases' => []],
+            ['id' => 'sepakbola', 'label' => 'Sepak Bola / Football', 'icon' => '⚽', 'category' => 'Tim', 'aliases' => ['football', 'soccer']],
+            ['id' => 'voli', 'label' => 'Voli / Volleyball', 'icon' => '🏐', 'category' => 'Tim', 'aliases' => ['volleyball']],
+            ['id' => 'gym', 'label' => 'Gym & Fitness', 'icon' => '🏋️', 'category' => 'Strength & Fitness', 'aliases' => ['strength', 'fitness']],
+            ['id' => 'kalistenik', 'label' => 'Calisthenics / Bodyweight', 'icon' => '💪', 'category' => 'Strength & Fitness', 'aliases' => ['calisthenics']],
+            ['id' => 'senam', 'label' => 'Senam / Aerobik / Zumba', 'icon' => '🤸', 'category' => 'Strength & Fitness', 'aliases' => ['aerobik', 'zumba']],
+            ['id' => 'yoga', 'label' => 'Yoga & Pilates', 'icon' => '🧘', 'category' => 'Mind & Body', 'aliases' => ['pilates']],
+            ['id' => 'hiking', 'label' => 'Hiking & Trail Run', 'icon' => '🧗', 'category' => 'Outdoor & Combat', 'aliases' => ['trail', 'outdoor']],
+            ['id' => 'bela_diri', 'label' => 'Bela Diri / Martial Arts', 'icon' => '🥋', 'category' => 'Outdoor & Combat', 'aliases' => ['martial', 'martial_arts']],
+            ['id' => 'boxing', 'label' => 'Boxing & Muay Thai', 'icon' => '🥊', 'category' => 'Outdoor & Combat', 'aliases' => ['kickboxing']],
+            ['id' => 'golf', 'label' => 'Golf', 'icon' => '⛳', 'category' => 'Akurasi & Lainnya', 'aliases' => []],
+            ['id' => 'panahan', 'label' => 'Panahan / Archery', 'icon' => '🏹', 'category' => 'Akurasi & Lainnya', 'aliases' => ['archery']],
+            ['id' => 'bowling', 'label' => 'Bowling', 'icon' => '🎳', 'category' => 'Akurasi & Lainnya', 'aliases' => []],
+            ['id' => 'skate', 'label' => 'Skateboard & Roller Skate', 'icon' => '🛹', 'category' => 'Akurasi & Lainnya', 'aliases' => ['skateboard']],
+            ['id' => 'other', 'label' => 'Olahraga Lainnya', 'icon' => '🎯', 'category' => 'Akurasi & Lainnya', 'aliases' => []],
+        ];
     }
 }

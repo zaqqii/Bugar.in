@@ -175,6 +175,47 @@
             </div>
         @endif
 
+        <section aria-labelledby="user-announcements-heading" class="glass-card rounded-2xl border border-cyan-100 bg-gradient-to-r from-white via-blue-50/60 to-cyan-50/70 p-5 sm:p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-cyan-700">Informasi untukmu</span>
+                    <h2 id="user-announcements-heading" class="mt-1 text-xl font-extrabold text-blue-800">Pengumuman &amp; Pengingat</h2>
+                    <p class="mt-1 text-xs text-slate-600">Pengingat event dan jadwal dengan pendaftaran aktif akan muncul menjelang waktu pelaksanaan.</p>
+                </div>
+                @if($announcements->isNotEmpty())
+                    <span class="rounded-full bg-white px-3 py-1 text-xs font-bold text-cyan-700 shadow-xs">{{ $announcements->whereNull('read_at')->count() }} belum dibaca</span>
+                @endif
+            </div>
+
+            @if($announcements->isEmpty())
+                <p class="mt-4 rounded-xl border border-blue-100 bg-white/80 p-4 text-sm text-slate-600">Belum ada pengingat kegiatan. Setelah pendaftaran event atau jadwal aktif, pengingat akan tampil sekitar 24 jam sebelum kegiatan.</p>
+            @else
+                <div class="mt-4 space-y-3">
+                    @foreach($announcements as $announcement)
+                        <article class="flex flex-wrap items-start justify-between gap-3 rounded-xl border {{ $announcement->read_at ? 'border-slate-100 bg-white/70' : 'border-cyan-100 bg-white' }} p-4">
+                            <div class="flex min-w-0 flex-1 items-start gap-3">
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $announcement->type === 'event_reminder' ? 'bg-cyan-100 text-cyan-700' : 'bg-blue-100 text-blue-700' }}" aria-hidden="true">{{ $announcement->type === 'event_reminder' ? '📅' : '🏃' }}</span>
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="text-sm font-bold text-slate-900">{{ $announcement->title }}</h3>
+                                        @if(!$announcement->read_at)<span class="rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-bold text-cyan-800">Baru</span>@endif
+                                    </div>
+                                    <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ $announcement->body }}</p>
+                                    <time class="mt-2 block text-[10px] text-slate-400" datetime="{{ $announcement->created_at?->toIso8601String() }}">Dibuat {{ $announcement->created_at?->timezone('Asia/Jakarta')->format('d M Y, H:i') }} WIB</time>
+                                </div>
+                            </div>
+                            @if(!$announcement->read_at)
+                                <form method="POST" action="{{ route('user.announcements.read', $announcement) }}">
+                                    @csrf
+                                    <button type="submit" class="rounded-lg border border-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">Tandai dibaca</button>
+                                </form>
+                            @endif
+                        </article>
+                    @endforeach
+                </div>
+            @endif
+        </section>
+
         {{-- ============================================================
              5. MODUL: KALENDER JADWAL & AGENDA OLAHRAGA
              ============================================================ --}}
@@ -1023,6 +1064,21 @@
                 <div class="glass-card rounded-2xl border border-blue-100 p-5"><p class="text-xs font-bold uppercase tracking-wide text-slate-500">Gerak Poin</p><p class="mt-3 text-3xl font-extrabold text-cyan-600">{{ number_format($pointsStats['balance'], 0, ',', '.') }} <span class="text-base">PTS</span></p><p class="mt-1 text-xs text-slate-500">Saldo poin akunmu</p></div>
                 <div class="glass-card rounded-2xl border border-blue-100 p-5"><p class="text-xs font-bold uppercase tracking-wide text-slate-500">Sesi Terverifikasi</p><p class="mt-3 text-3xl font-extrabold text-blue-600">{{ number_format($streakStats['sessions'], 0, ',', '.') }} <span class="text-base">sesi</span></p><p class="mt-1 text-xs text-slate-500">Kehadiran dari komunitas yang memenuhi syarat</p></div>
                 <div class="glass-card rounded-2xl border border-blue-100 p-5"><p class="text-xs font-bold uppercase tracking-wide text-slate-500">Rekor Streak</p><p class="mt-3 text-3xl font-extrabold text-cyan-600">{{ number_format($streakStats['longest'], 0, ',', '.') }} <span class="text-base">hari</span></p><p class="mt-1 text-xs text-slate-500">Rekor dari kalender kehadiran layak</p></div>
+            </div>
+
+            <div class="glass-card rounded-2xl border border-cyan-100 bg-gradient-to-r from-white via-blue-50/70 to-cyan-50/80 p-5 sm:p-6">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wide text-cyan-700">Level Pengguna</p>
+                        <h4 class="mt-1 text-2xl font-extrabold text-blue-700">Level {{ $levelProgress['level'] }}</h4>
+                        <p class="mt-1 text-xs text-slate-600">{{ number_format($levelProgress['total_points'], 0, ',', '.') }} Gerak Poin + {{ number_format($levelProgress['streak_score'], 0, ',', '.') }} skor bonus dari rekor streak {{ $levelProgress['longest_streak'] }} hari.</p>
+                    </div>
+                    <span class="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-cyan-700 shadow-sm">{{ number_format($levelProgress['score'], 0, ',', '.') }} skor level</span>
+                </div>
+                <div class="mt-4 h-2.5 overflow-hidden rounded-full bg-white">
+                    <div class="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-700" style="width: {{ $levelProgress['progress_percentage'] }}%"></div>
+                </div>
+                <p class="mt-2 text-xs text-slate-500">{{ number_format($levelProgress['progress_points'], 0, ',', '.') }} / 300 menuju level berikutnya · kurang {{ number_format($levelProgress['points_to_next_level'], 0, ',', '.') }} skor. Bonus streak hanya untuk progres level dan tidak mengurangi saldo poin.</p>
             </div>
 
             <div class="glass-card rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
