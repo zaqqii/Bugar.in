@@ -125,6 +125,12 @@ Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware(['a
     Route::get('/events', [PenyediaEventController::class, 'index'])->name('events.index');
     Route::get('/events/create', [PenyediaEventController::class, 'create'])->name('events.create');
     Route::post('/events', [PenyediaEventController::class, 'store'])->name('events.store');
+    Route::get('/events/{event}/edit', [PenyediaEventController::class, 'edit'])->name('events.edit');
+    Route::put('/events/{event}', [PenyediaEventController::class, 'update'])->name('events.update');
+    Route::post('/events/{event}/publish', [PenyediaEventController::class, 'publish'])->name('events.publish');
+    Route::post('/events/{event}/close-registration', [PenyediaEventController::class, 'closeRegistration'])->name('events.close-registration');
+    Route::post('/events/{event}/cancel', [PenyediaEventController::class, 'cancel'])->name('events.cancel');
+    Route::delete('/events/{event}', [PenyediaEventController::class, 'destroy'])->name('events.destroy');
     Route::view('/statistik', 'penyedia-komunitas.statistik.index')->name('statistik.index');
     Route::get('/akun', [PenyediaAkunController::class, 'index'])->name('akun.index');
     Route::put('/akun/profil', [PenyediaAkunController::class, 'updateProfile'])->name('akun.update-profile');

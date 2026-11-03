@@ -17,9 +17,18 @@ class CommunityController extends Controller
         $community = Community::where('id', $id)
             ->orWhere('slug', $id)
             ->with(['owner', 'events' => function ($q) {
-                $q->where('is_active', true)->orderBy('event_date', 'asc');
+                $q->where('is_active', true)
+                  ->whereIn('status', ['published', 'registration_closed', 'ongoing'])
+                  ->orderBy('event_date', 'asc');
             }, 'members.user'])
-            ->withCount(['members', 'followers', 'events'])
+            ->withCount([
+                'members',
+                'followers',
+                'events' => function ($q) {
+                    $q->where('is_active', true)
+                      ->whereIn('status', ['published', 'registration_closed', 'ongoing']);
+                }
+            ])
             ->firstOrFail();
 
         $isMember = auth()->check()

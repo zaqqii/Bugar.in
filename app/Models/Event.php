@@ -69,4 +69,34 @@ class Event extends Model
         }
         return (int) min(100, round(($this->participants_count / $this->capacity) * 100));
     }
+
+    public function activeParticipantsCount(): int
+    {
+        return $this->participants()->whereIn('status', ['registered', 'waiting_payment'])->count();
+    }
+
+    public function canBeEdited(): bool
+    {
+        return !in_array($this->status, ['completed', 'cancelled'], true);
+    }
+
+    public function canBeCancelled(): bool
+    {
+        return in_array($this->status, ['draft', 'published', 'registration_closed'], true);
+    }
+
+    public function canBePublished(): bool
+    {
+        return $this->status === 'draft';
+    }
+
+    public function canCloseRegistration(): bool
+    {
+        return $this->status === 'published';
+    }
+
+    public function canBeDeleted(): bool
+    {
+        return $this->status === 'draft' || $this->participants()->count() === 0;
+    }
 }
