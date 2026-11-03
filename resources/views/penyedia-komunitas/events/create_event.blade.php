@@ -1,36 +1,86 @@
 @extends('layouts.penyedia-komunitas')
 
-@section('title', 'Buat Event Baru - Penyedia Komunitas')
+@php
+    $isEdit = isset($event) && $event !== null;
+    $parsed = $parsed ?? [];
+
+    $initialPreviewUrl = null;
+    if ($isEdit && !empty($event->cover_image)) {
+        $initialPreviewUrl = \Illuminate\Support\Str::startsWith($event->cover_image, ['http://', 'https://'])
+            ? $event->cover_image
+            : \Illuminate\Support\Facades\Storage::url($event->cover_image);
+    }
+
+    $initialForm = [
+        'title' => old('title', $event->title ?? ''),
+        'type' => old('type', $event->type ?? 'fun_match'),
+        'description' => old('description', $parsed['description'] ?? $event->description ?? ''),
+        'rundown' => old('rundown', $parsed['rundown'] ?? ''),
+        'cover_image' => null,
+        'event_date' => old('event_date', isset($event->event_date) ? $event->event_date->format('Y-m-d') : ''),
+        'registration_close_at' => old('registration_close_at', isset($event->registration_close_at) ? $event->registration_close_at->format('Y-m-d') : ''),
+        'timezone' => old('timezone', $parsed['timezone'] ?? 'WIB'),
+        'start_time' => old('start_time', isset($event->start_time) ? substr($event->start_time, 0, 5) : ''),
+        'end_time' => old('end_time', isset($event->end_time) ? substr($event->end_time, 0, 5) : ''),
+        'location' => old('location', $event->location ?? ''),
+        'maps_url' => old('maps_url', $event->maps_url ?? ''),
+        'capacity_type' => old('capacity_type', ($isEdit && $event->capacity === null) ? 'unlimited' : 'limited'),
+        'capacity' => old('capacity', $event->capacity ?? ''),
+        'is_paid' => old('is_paid', ($isEdit && (float)($event->registration_fee ?? 0) > 0) ? '1' : '0'),
+        'registration_fee' => old('registration_fee', isset($event->registration_fee) ? (int)$event->registration_fee : ''),
+        'payment_method' => old('payment_method', $parsed['payment_method'] ?? 'Transfer Bank BCA'),
+        'payment_account' => old('payment_account', $parsed['payment_account'] ?? ''),
+        'requirements' => old('requirements', $parsed['requirements'] ?? $event->requirements ?? ''),
+        'organizer_contact' => old('organizer_contact', $parsed['organizer_contact'] ?? '')
+    ];
+@endphp
+
+@section('title', ($isEdit ? 'Edit Event: ' . $event->title : 'Buat Event Baru') . ' - Penyedia Komunitas')
 
 @section('content')
 <div class="max-w-5xl mx-auto pb-16" x-data="eventWizard()">
 
     {{-- Breadcrumb & Back --}}
     <div class="mb-6 flex items-center justify-between">
-        <a href="{{ route('penyedia-komunitas.dashboard') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-primary-600 transition-colors">
+        <a href="{{ route('penyedia-komunitas.events.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-primary-600 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Kembali ke Dashboard
+            Kembali ke Daftar Event
         </a>
+
+        @if(!$isEdit || $event->status === 'draft')
+            <button type="button"
+                    @click="submitWithAction('draft')"
+                    :disabled="isSubmitting"
+                    class="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-sm inline-flex items-center gap-2 disabled:opacity-50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+                <span>Simpan Draft</span>
+            </button>
+        @endif
     </div>
 
     {{-- Page Header --}}
     <div class="mb-8">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-bold tracking-wide uppercase mb-2">
+            <span class="w-2 h-2 rounded-full bg-primary-500"></span>
+            {{ strtoupper($community->sport_category ?? 'Olahraga') }} &bull; {{ strtoupper($community->name) }}
+        </div>
         <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Buat Event Komunitas Baru
+            {{ $isEdit ? 'Edit Agenda Event' : 'Buat Event Komunitas Baru' }}
         </h1>
         <p class="text-slate-500 mt-1 text-sm md:text-base">
-            Publikasikan agenda olahraga komunitasmu untuk menjaring lebih banyak peserta dan kembangkan jaringan komunitas.
+            {{ $isEdit ? 'Perbarui informasi agenda, waktu, lokasi, dan detail tiket event komunitas Anda.' : 'Publikasikan agenda olahraga komunitasmu untuk menjaring lebih banyak peserta dan kembangkan jaringan komunitas.' }}
         </p>
     </div>
 
     {{-- WIZARD STEPPER & ANIMATED PROGRESS BAR --}}
     <div class="bg-white rounded-2xl border border-slate-200 p-6 mb-8 shadow-sm">
         <div class="relative">
-            {{-- Background Track Line (Presisi dari center lingkaran 1 ke lingkaran 3) --}}
+            {{-- Background Track Line --}}
             <div class="absolute top-[22px] -translate-y-1/2 left-[16.666%] right-[16.666%] h-1 bg-slate-200 z-0 hidden md:block rounded-full overflow-hidden">
-                {{-- Animated Progress Line dengan Gradasi Royal Blue -> Cyan --}}
                 <div class="h-full bg-gradient-to-r from-blue-700 via-blue-500 to-cyan-500 rounded-full transition-all duration-500 ease-in-out"
                     :style="`width: ${step === 1 ? '0%' : (step === 2 ? '50%' : '100%')}`"></div>
             </div>
@@ -38,7 +88,7 @@
             {{-- Steps Grid --}}
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
                 
-                {{-- STEP 1 (Awal Gradasi: Royal Blue) --}}
+                {{-- STEP 1 --}}
                 <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="goToStep(1)">
                     <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm relative z-10 ring-4 ring-white"
                         :class="step >= 1 
@@ -62,7 +112,7 @@
                     </div>
                 </div>
 
-                {{-- STEP 2 (Tengah Gradasi: Blend Blue ke Cyan) --}}
+                {{-- STEP 2 --}}
                 <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="goToStep(2)">
                     <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm relative z-10 ring-4 ring-white"
                         :class="step >= 2 
@@ -86,7 +136,7 @@
                     </div>
                 </div>
 
-                {{-- STEP 3 (Ujung Gradasi: Cyan) --}}
+                {{-- STEP 3 --}}
                 <div class="flex items-center md:flex-col md:text-center gap-4 cursor-pointer" @click="goToStep(3)">
                     <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm relative z-10 ring-4 ring-white"
                         :class="step === 3 
@@ -125,8 +175,18 @@
     @endif
 
     {{-- MAIN FORM --}}
-    <form id="createEventForm" action="{{ route('penyedia-komunitas.events.store') }}" method="POST" enctype="multipart/form-data" @submit="handleSubmit($event)">
+    <form id="eventForm"
+          action="{{ $isEdit ? route('penyedia-komunitas.events.update', $event) : route('penyedia-komunitas.events.store') }}"
+          method="POST"
+          enctype="multipart/form-data"
+          @submit="handleSubmit($event)">
         @csrf
+        @if($isEdit)
+            @method('PUT')
+        @endif
+
+        <input type="hidden" name="action" :value="submitAction">
+        <input type="hidden" name="status" :value="submitAction === 'draft' ? 'draft' : 'published'">
 
         {{-- ============================================================ --}}
         {{-- BAGIAN 1 : INFORMASI EVENT                                    --}}
@@ -139,97 +199,59 @@
 
             <div class="bg-white rounded-2xl border border-slate-200/90 p-6 md:p-8 shadow-sm">
 
+                {{-- Section Title --}}
+                <div class="flex items-center gap-3 pb-5 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-sm">
+                        01
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Informasi Dasar &amp; Visual Event</h2>
+                        <p class="text-xs text-slate-400">Tentukan nama acara, jenis kegiatan, dan banner pemikat calon peserta.</p>
+                    </div>
+                </div>
+
                 {{-- Fields Container --}}
                 <div class="mt-6 space-y-6">
 
                     {{-- 1. Nama Event --}}
                     <div>
-                        <label for="title" class="block text-sm font-semibold text-slate-700 mb-2">
-                            Nama Event <span class="text-red-500">*</span>
-                        </label>
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="title" class="block text-sm font-semibold text-slate-700">
+                                Nama Event <span class="text-red-500">*</span>
+                            </label>
+                            <span class="text-xs font-semibold tabular-nums"
+                                  :class="(form.title ? form.title.length : 0) > 80 ? 'text-rose-600 font-bold' : 'text-slate-400'">
+                                <span x-text="form.title ? form.title.length : 0">0</span>/80 karakter
+                            </span>
+                        </div>
                         <input type="text"
                                id="title"
                                name="title"
                                x-model="form.title"
+                               maxlength="80"
                                placeholder="Contoh : Bugar Fun Run 5K Bersama Komunitas"
                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
                                :class="errors.title ? 'border-red-400 ring-2 ring-red-100' : ''"
                                required>
-                        <p x-show="errors.title" x-text="errors.title" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                        <div class="flex items-center justify-between mt-1.5 text-xs">
+                            <p x-show="errors.title" x-text="errors.title" class="text-red-500 font-medium"></p>
+                            <p class="text-slate-400 ml-auto text-[11px]">Batas maksimal 80 karakter agar judul tampil rapi dan proporsional.</p>
+                        </div>
                     </div>
 
-                   {{-- Kategori Olahraga --}}
-                    <div class="mb-6" x-data="{ 
-                        open: false, 
-                        categories: [
-                            { value: 'badminton', label: 'Badminton / Bulu Tangkis' },
-                            { value: 'running', label: 'Running / Lari' },
-                            { value: 'futsal', label: 'Futsal' },
-                            { value: 'basketball', label: 'Bola Basket' },
-                            { value: 'football', label: 'Sepak Bola' },
-                            { value: 'cycling', label: 'Sepeda' },
-                            { value: 'swimming', label: 'Berenang' },
-                            { value: 'yoga', label: 'Yoga & Pilates' },
-                            { value: 'tennis', label: 'Tenis Lapangan' },
-                            { value: 'table_tennis', label: 'Tenis Meja' },
-                            { value: 'other', label: 'Olahraga Lainnya' }
-                        ],
-                        get selectedLabel() {
-                            if (form.sport_category === 'other') {
-                                return form.other_sport_category ? ('Lainnya: ' + form.other_sport_category) : 'Olahraga Lainnya';
-                            }
-                            let cat = this.categories.find(c => c.value === form.sport_category);
-                            return cat ? cat.label : '-- Pilih Kategori Olahraga --';
-                        }
-                    }">
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">
-                            Kategori Olahraga <span class="text-red-500">*</span>
-                        </label>
-
-                        <div class="relative" @click.outside="open = false">
-                            <button type="button" 
-                                    @click="open = !open"
-                                    class="w-full px-4 py-3 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 cursor-pointer text-left shadow-sm"
-                                    :class="errors.sport_category ? 'border-red-400 ring-2 ring-red-100' : ''">
-                                <span :class="!form.sport_category ? 'text-slate-400' : 'text-slate-800 font-medium'" x-text="selectedLabel"></span>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400 transition-transform duration-300" :class="open ? 'rotate-180 text-primary-500' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-
-                            <input type="hidden" name="sport_category" :value="form.sport_category === 'other' ? (form.other_sport_category || 'other') : form.sport_category">
-
-                            <div x-show="open"
-                                x-transition:enter="transition ease-out duration-200"
-                                x-transition:enter-start="opacity-0 -translate-y-2 scale-95"
-                                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                                class="absolute top-full left-0 right-0 mt-2 z-50 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 space-y-0.5"
-                                style="display: none;">
-                                <template x-for="cat in categories" :key="cat.value">
-                                    <button type="button"
-                                            @click="form.sport_category = (form.sport_category === cat.value ? null : cat.value); open = false;"
-                                            class="w-full text-left px-3.5 py-2.5 rounded-lg text-sm transition-all duration-150 flex items-center justify-between"
-                                            :class="form.sport_category === cat.value ? 'bg-primary-50/80 text-primary-700 font-bold' : 'text-slate-700 hover:bg-slate-100/80'">
-                                        <span x-text="cat.label"></span>
-                                        <svg x-show="form.sport_category === cat.value" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                    </button>
-                                </template>
-                            </div>
+                    {{-- Info Cabang Olahraga (Otomatis dari Komunitas) --}}
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Cabang Olahraga Event</span>
+                            <span class="text-sm font-bold text-slate-800">{{ ucfirst($community->sport_category ?? 'Olahraga') }}</span>
                         </div>
-
-                        {{-- Input Muncul Otomatis Jika Memilih Lainnya --}}
-                        <div x-show="form.sport_category === 'other'" x-transition class="mt-3">
-                            <input type="text" 
-                                x-model="form.other_sport_category"
-                                placeholder="Ketik nama cabang olahraga" 
-                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
-                                :class="errors.sport_category ? 'border-red-400 ring-2 ring-red-100' : ''">
-                        </div>
-
-                        <p x-show="errors.sport_category" x-text="errors.sport_category" class="text-xs text-red-500 mt-1 font-medium"></p>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-semibold self-start sm:self-auto">
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary-500"></span>
+                            Ditentukan dari profil komunitas
+                        </span>
                     </div>
 
-                    {{-- Jenis Event --}}
+                    {{-- 2. Jenis Event --}}
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-3">
                             Jenis Event <span class="text-red-500">*</span>
@@ -290,7 +312,7 @@
                                   name="rundown"
                                   rows="4"
                                   x-model="form.rundown"
-                                  placeholder="Contoh format :&#10;06.00 - 06.30 : Registrasi Ulang & Pemanasan&#10;06.30 - 08.00 : Sesi Olahraga Bersama&#10;08.00 - 08.30 : Pembagian Hadiah &Foto Bersama"
+                                  placeholder="Contoh format :&#10;06.00 - 06.30 : Registrasi Ulang & Pemanasan&#10;06.30 - 08.00 : Sesi Olahraga Bersama&#10;08.00 - 08.30 : Cooling Down & Sesi Foto Bersama"
                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm font-mono placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"></textarea>
                         <p class="text-xs text-slate-400 mt-1.5">Informasikan alur kegiatan agar peserta hadir tepat waktu.</p>
                     </div>
@@ -298,7 +320,10 @@
                     {{-- 5. Cover Banner --}}
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-2">
-                            Cover Banner Event <span class="text-red-500">*</span>
+                            Cover Banner Event <span class="text-red-500" x-show="!isEdit">*</span>
+                            @if($isEdit)
+                                <span class="text-xs text-slate-400 font-normal ml-2">(Kosongkan jika tidak ingin mengubah cover)</span>
+                            @endif
                         </label>
                         
                         {{-- Dropzone / Upload Area --}}
@@ -318,40 +343,33 @@
                                    class="hidden">
 
                             {{-- PREVIEW JIKA ADA FOTO --}}
-                            <template x-if="previewUrl">
-                                <div class="relative w-full aspect-[21/9] rounded-xl overflow-hidden shadow-inner border border-slate-200">
+                            <div x-show="previewUrl" class="space-y-4" style="display: none;">
+                                <div class="relative max-w-md mx-auto aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-md">
                                     <img :src="previewUrl" alt="Cover Preview" class="w-full h-full object-cover">
-                                    <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                                        <button type="button"
-                                                @click.stop="$refs.coverFileInput.click()"
-                                                class="px-4 py-2 rounded-lg bg-white/95 text-slate-800 text-xs font-bold hover:bg-white shadow">
-                                            Ganti Gambar
-                                        </button>
-                                        <button type="button"
-                                                @click.stop="removeImage()"
-                                                class="px-4 py-2 rounded-lg bg-red-500/90 text-white text-xs font-bold hover:bg-red-600 shadow">
-                                            Hapus
-                                        </button>
-                                    </div>
+                                    <button type="button"
+                                            @click.stop="removeImage()"
+                                            class="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-white transition-colors"
+                                            title="Hapus foto">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
                                 </div>
-                            </template>
+                                <p class="text-xs text-slate-500 font-medium">Klik atau seret gambar baru untuk mengganti cover banner.</p>
+                            </div>
 
                             {{-- PLACEHOLDER JIKA BELUM ADA FOTO --}}
-                            <template x-if="!previewUrl">
-                                <div class="py-4 flex flex-col items-center justify-center">
-                                    <div class="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-primary-500 shadow-sm group-hover:scale-105 group-hover:border-primary-300 transition-all duration-200 mb-3">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                    <div class="text-sm font-semibold text-slate-700">
-                                        <span class="text-primary-600 underline">Klik untuk upload</span> atau drag & drop banner di sini
-                                    </div>
-                                    <p class="text-xs text-slate-400 mt-1">
-                                        Format PNG, JPG, atau WEBP. Disarankan rasio 16:9 / 2:1 (Maks. 2MB).
-                                    </p>
+                            <div x-show="!previewUrl" class="space-y-3">
+                                <div class="w-12 h-12 rounded-full bg-primary-50 text-primary-600 mx-auto flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                                    </svg>
                                 </div>
-                            </template>
+                                <div>
+                                    <span class="text-sm font-bold text-slate-700 block">Pilih foto atau seret ke sini</span>
+                                    <span class="text-xs text-slate-400 mt-1 block">Format didukung: JPG, PNG, atau WEBP (Maksimal 2MB). Disarankan rasio 16:9.</span>
+                                </div>
+                            </div>
 
                         </div>
                         <p x-show="errors.cover_image" x-text="errors.cover_image" class="text-xs text-red-500 mt-1.5 font-medium"></p>
@@ -359,17 +377,14 @@
 
                 </div>
 
-                {{-- Action / Next Button --}}
+                {{-- Action / Buttons --}}
                 <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
-                    <a href="{{ route('penyedia-komunitas.dashboard') }}"
-                       class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
-                        Batal
-                    </a>
+                    <div></div>
                     <button type="button"
                             @click="validateAndNext(1)"
-class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 hover:from-blue-800 hover:via-blue-700 hover:to-cyan-600 text-white text-sm font-bold shadow-lg shadow-blue-500/20 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5">
-                        Lanjut ke Jadwal & Lokasi
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 text-white text-sm font-bold shadow-md shadow-blue-500/20 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5">
+                        <span>Lanjut ke Jadwal &amp; Lokasi</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
                     </button>
@@ -380,150 +395,127 @@ class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cya
         </div>
 
         {{-- ============================================================ --}}
-        {{-- BAGIAN 2 : JADWAL & LOKASI                                   --}}
+        {{-- BAGIAN 2 : JADWAL & LOKASI                                     --}}
         {{-- ============================================================ --}}
         <div x-show="step === 2"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 translate-y-3"
              x-transition:enter-end="opacity-100 translate-y-0"
-             class="space-y-6">
+             class="space-y-6"
+             style="display: none;">
 
             <div class="bg-white rounded-2xl border border-slate-200/90 p-6 md:p-8 shadow-sm">
 
-                <div class="space-y-6">
-
-                {{-- 1. Pilihan Zona Waktu (WIB, WITA, WIT) --}}
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">
-                            Pilih Zona Waktu <span class="text-red-500">*</span>
-                        </label>
-                        <div class="grid grid-cols-3 gap-3">
-                            <button type="button"
-                                    @click="form.timezone = 'WIB'"
-                                    class="py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-200 text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                                    :class="form.timezone === 'WIB'
-                                        ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/25 ring-2 ring-primary-500/20'
-                                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'">
-                                <span>WIB</span>
-                                <span class="text-[10px] font-normal" :class="form.timezone === 'WIB' ? 'text-white/80' : 'text-slate-400'">(UTC+7)</span>
-                            </button>
-                            <button type="button"
-                                    @click="form.timezone = 'WITA'"
-                                    class="py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-200 text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                                    :class="form.timezone === 'WITA'
-                                        ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/25 ring-2 ring-primary-500/20'
-                                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'">
-                                <span>WITA</span>
-                                <span class="text-[10px] font-normal" :class="form.timezone === 'WITA' ? 'text-white/80' : 'text-slate-400'">(UTC+8)</span>
-                            </button>
-                            <button type="button"
-                                    @click="form.timezone = 'WIT'"
-                                    class="py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-200 text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                                    :class="form.timezone === 'WIT'
-                                        ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/25 ring-2 ring-primary-500/20'
-                                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'">
-                                <span>WIT</span>
-                                <span class="text-[10px] font-normal" :class="form.timezone === 'WIT' ? 'text-white/80' : 'text-slate-400'">(UTC+9)</span>
-                            </button>
-                        </div>
-                        <input type="hidden" name="timezone" :value="form.timezone">
+                {{-- Section Title --}}
+                <div class="flex items-center gap-3 pb-5 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                        02
                     </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Waktu &amp; Lokasi Pelaksanaan</h2>
+                        <p class="text-xs text-slate-400">Atur jadwal pelaksanaan event, batas penutupan pendaftaran, dan titik temu lokasi.</p>
+                    </div>
+                </div>
 
-                    {{-- 2. Tanggal Event & Batas Akhir Pendaftaran (Grid 2 Kolom) --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {{-- Fields Container --}}
+                <div class="mt-6 space-y-6">
 
-                        {{-- Tanggal Pelaksanaan --}}
+                    {{-- Tanggal & Batas Registrasi --}}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                        {{-- Tanggal Event --}}
                         <div>
                             <label for="event_date" class="block text-sm font-semibold text-slate-700 mb-2">
-                                Tanggal Pelaksanaan <span class="text-red-500">*</span>
+                                Tanggal Pelaksanaan Event <span class="text-red-500">*</span>
                             </label>
                             <input type="date"
                                    id="event_date"
                                    name="event_date"
                                    x-model="form.event_date"
-                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 cursor-pointer"
+                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
                                    :class="errors.event_date ? 'border-red-400 ring-2 ring-red-100' : ''"
                                    required>
-                            <p x-show="errors.event_date" x-text="errors.event_date" class="text-xs text-red-500 mt-1 font-medium"></p>
+                            <p x-show="errors.event_date" x-text="errors.event_date" class="text-xs text-red-500 mt-1.5 font-medium"></p>
                         </div>
 
-                        {{-- Batas Akhir Pendaftaran --}}
+                        {{-- Batas Akhir Registrasi --}}
                         <div>
                             <label for="registration_close_at" class="block text-sm font-semibold text-slate-700 mb-2">
-                                Batas Akhir Pendaftaran <span class="text-red-500">*</span>
+                                Batas Penutupan Pendaftaran <span class="text-red-500">*</span>
                             </label>
-                            <input type="datetime-local"
+                            <input type="date"
                                    id="registration_close_at"
                                    name="registration_close_at"
                                    x-model="form.registration_close_at"
-                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 cursor-pointer"
+                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
                                    :class="errors.registration_close_at ? 'border-red-400 ring-2 ring-red-100' : ''"
                                    required>
-                            <p x-show="errors.registration_close_at" x-text="errors.registration_close_at" class="text-xs text-red-500 mt-1 font-medium"></p>
+                            <p x-show="errors.registration_close_at" x-text="errors.registration_close_at" class="text-xs text-red-500 mt-1.5 font-medium"></p>
                         </div>
 
                     </div>
 
-                    {{-- 3. Waktu Mulai & Waktu Selesai (Grid 2 Kolom) --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {{-- Jam Mulai, Selesai & Zona Waktu --}}
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-                        {{-- Waktu Mulai --}}
+                        {{-- Jam Mulai --}}
                         <div>
                             <label for="start_time" class="block text-sm font-semibold text-slate-700 mb-2">
-                                Waktu Mulai (<span x-text="form.timezone" class="text-primary-600"></span>) <span class="text-red-500">*</span>
+                                Jam Mulai <span class="text-red-500">*</span>
                             </label>
                             <input type="time"
                                    id="start_time"
                                    name="start_time"
                                    x-model="form.start_time"
-                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 cursor-pointer"
+                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
                                    :class="errors.start_time ? 'border-red-400 ring-2 ring-red-100' : ''"
                                    required>
-                            <p x-show="errors.start_time" x-text="errors.start_time" class="text-xs text-red-500 mt-1 font-medium"></p>
+                            <p x-show="errors.start_time" x-text="errors.start_time" class="text-xs text-red-500 mt-1.5 font-medium"></p>
                         </div>
 
-                        {{-- Waktu Selesai --}}
+                        {{-- Jam Selesai --}}
                         <div>
                             <label for="end_time" class="block text-sm font-semibold text-slate-700 mb-2">
-                                Waktu Selesai (<span x-text="form.timezone" class="text-primary-600"></span>, Opsional)
+                                Jam Selesai (Opsional)
                             </label>
                             <input type="time"
                                    id="end_time"
                                    name="end_time"
                                    x-model="form.end_time"
-                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 cursor-pointer">
+                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200">
+                        </div>
+
+                        {{-- Zona Waktu --}}
+                        <div>
+                            <label for="timezone" class="block text-sm font-semibold text-slate-700 mb-2">
+                                Zona Waktu
+                            </label>
+                            <select id="timezone"
+                                    name="timezone"
+                                    x-model="form.timezone"
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200">
+                                <option value="WIB">WIB (Waktu Indonesia Barat)</option>
+                                <option value="WITA">WITA (Waktu Indonesia Tengah)</option>
+                                <option value="WIT">WIT (Waktu Indonesia Timur)</option>
+                            </select>
                         </div>
 
                     </div>
 
-                    {{-- 3. Nama Lokasi & Venue --}}
+                    {{-- Nama Tempat / Lokasi --}}
                     <div>
                         <label for="location" class="block text-sm font-semibold text-slate-700 mb-2">
                             Nama Tempat / Lokasi <span class="text-red-500">*</span>
                         </label>
-                        <input type="text"
-                               id="location"
-                               name="location"
-                               x-model="form.location"
-                               placeholder="Contoh : Lapangan Futsal Maestro, Jl. Tubagus Ismail No. 12, Bandung"
-                               class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
-                               :class="errors.location ? 'border-red-400 ring-2 ring-red-100' : ''"
-                               required>
-                        <p x-show="errors.location" x-text="errors.location" class="text-xs text-red-500 mt-1 font-medium"></p>
-                    </div>
-
-                    {{-- 4. Tautan Google Maps --}}
-                    <div>
-                        <label for="maps_url" class="block text-sm font-semibold text-slate-700 mb-2">
-                            Tautan Google Maps (Opsional)
-                        </label>
                         <div class="relative">
-                            <input type="url"
-                                   id="maps_url"
-                                   name="maps_url"
-                                   x-model="form.maps_url"
-                                   placeholder="Contoh : https://maps.app.goo.gl/..."
-                                   class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200">
+                            <input type="text"
+                                   id="location"
+                                   name="location"
+                                   x-model="form.location"
+                                   placeholder="Contoh : Lapangan Futsal Champion Court 2, Jakarta Barat"
+                                   class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
+                                   :class="errors.location ? 'border-red-400 ring-2 ring-red-100' : ''"
+                                   required>
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z" />
@@ -531,6 +523,28 @@ class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cya
                                 </svg>
                             </div>
                         </div>
+                        <p x-show="errors.location" x-text="errors.location" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                    </div>
+
+                    {{-- Google Maps URL --}}
+                    <div>
+                        <label for="maps_url" class="block text-sm font-semibold text-slate-700 mb-2">
+                            Link Google Maps (Opsional)
+                        </label>
+                        <div class="relative">
+                            <input type="url"
+                                   id="maps_url"
+                                   name="maps_url"
+                                   x-model="form.maps_url"
+                                   placeholder="https://maps.google.com/..."
+                                   class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1.5">Memudahkan peserta menavigasi rute langsung dari aplikasi.</p>
                     </div>
 
                 </div>
@@ -545,11 +559,12 @@ class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cya
                         </svg>
                         Sebelumnya
                     </button>
+                    
                     <button type="button"
                             @click="validateAndNext(2)"
-                            class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 hover:from-blue-800 hover:via-blue-700 hover:to-cyan-600 text-white text-sm font-bold shadow-lg shadow-blue-500/20 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5">
-                        Lanjut ke Pendaftaran & Pembayaran
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white text-sm font-bold shadow-md shadow-cyan-500/20 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5">
+                        <span>Lanjut ke Biaya &amp; Kuota</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
                     </button>
@@ -560,222 +575,190 @@ class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cya
         </div>
 
         {{-- ============================================================ --}}
-        {{-- BAGIAN 3 : PENDAFTARAN & PEMBAYARAN                          --}}
+        {{-- BAGIAN 3 : BIAYA, KUOTA & KONTAK                               --}}
         {{-- ============================================================ --}}
         <div x-show="step === 3"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 translate-y-3"
              x-transition:enter-end="opacity-100 translate-y-0"
-             class="space-y-6">
+             class="space-y-6"
+             style="display: none;">
 
             <div class="bg-white rounded-2xl border border-slate-200/90 p-6 md:p-8 shadow-sm">
 
-                <div class="space-y-6">
+                {{-- Section Title --}}
+                <div class="flex items-center gap-3 pb-5 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center font-bold text-sm">
+                        03
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Tiket, Kapasitas &amp; Persyaratan</h2>
+                        <p class="text-xs text-slate-400">Tentukan apakah kegiatan gratis atau berbayar, batas jumlah peserta, dan kontak narahubung.</p>
+                    </div>
+                </div>
 
-                    {{-- 1. Kuota Peserta & Biaya Pendaftaran (Grid 2 Kolom) --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {{-- Fields Container --}}
+                <div class="mt-6 space-y-6">
 
-                        {{-- Kuota Peserta --}}
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Kuota Peserta <span class="text-red-500">*</span>
-                            </label>
+                    {{-- 1. Jenis Tiket (Gratis vs Berbayar) --}}
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-3">
+                            Jenis Akses &amp; Biaya Pendaftaran <span class="text-red-500">*</span>
+                        </label>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             
-                            {{-- Pilihan Terbatas vs Unlimited --}}
-                            <div class="grid grid-cols-2 gap-2 mb-3">
-                                <button type="button"
-                                        @click="form.capacity_type = 'limited'"
-                                        class="py-2.5 px-3 rounded-xl border text-xs font-bold transition-all duration-200 text-center"
-                                        :class="form.capacity_type === 'limited' 
-                                            ? 'border-primary-500 bg-primary-50/70 text-primary-700 ring-2 ring-primary-500/20 shadow-sm' 
-                                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'">
-                                    Terbatas
-                                </button>
-                                <button type="button"
-                                        @click="form.capacity_type = 'unlimited'; form.capacity = ''"
-                                        class="py-2.5 px-3 rounded-xl border text-xs font-bold transition-all duration-200 text-center"
-                                        :class="form.capacity_type === 'unlimited' 
-                                            ? 'border-primary-500 bg-primary-50/70 text-primary-700 ring-2 ring-primary-500/20 shadow-sm' 
-                                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'">
-                                    Tanpa Batas
-                                </button>
+                            {{-- Pilihan Gratis --}}
+                            <div class="relative p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 flex items-start gap-3.5"
+                                 :class="form.is_paid === '0' 
+                                    ? 'border-emerald-500 bg-emerald-50/40 shadow-sm' 
+                                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'"
+                                 @click="form.is_paid = '0'; form.registration_fee = '0'; formattedFee = ''">
+                                <div class="w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-colors"
+                                     :class="form.is_paid === '0' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-300'">
+                                    <div x-show="form.is_paid === '0'" class="w-2 h-2 rounded-full bg-white"></div>
+                                </div>
+                                <div>
+                                    <span class="block text-sm font-bold text-slate-800">Gratis (Free Entry)</span>
+                                    <span class="block text-xs text-slate-400 mt-0.5">Peserta dapat mendaftar tanpa dipungut biaya apa pun.</span>
+                                </div>
                             </div>
 
-                            <input type="hidden" name="capacity_type" :value="form.capacity_type">
+                            {{-- Pilihan Berbayar --}}
+                            <div class="relative p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 flex items-start gap-3.5"
+                                 :class="form.is_paid === '1' 
+                                    ? 'border-primary-500 bg-primary-50/40 shadow-sm' 
+                                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'"
+                                 @click="form.is_paid = '1'">
+                                <div class="w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-colors"
+                                     :class="form.is_paid === '1' ? 'border-primary-600 bg-primary-600 text-white' : 'border-slate-300'">
+                                    <div x-show="form.is_paid === '1'" class="w-2 h-2 rounded-full bg-white"></div>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="block text-sm font-bold text-slate-800">Berbayar (Tiket Berbayar)</span>
+                                        @if(!$community->isVerified())
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">Perlu Verifikasi</span>
+                                        @endif
+                                    </div>
+                                    <span class="block text-xs text-slate-400 mt-0.5">Dikenakan tiket untuk biaya sewa venue, konsumsi, atau hadiah.</span>
+                                </div>
+                            </div>
 
-                            {{-- Input Nominal Kuota jika Terbatas --}}
-                            <div x-show="form.capacity_type === 'limited'"
-                                 x-transition:enter="transition ease-out duration-200"
-                                 x-transition:enter-start="opacity-0 -translate-y-1"
-                                 x-transition:enter-end="opacity-100 translate-y-0"
-                                 class="relative">
+                        </div>
+                        <input type="hidden" name="is_paid" :value="form.is_paid">
+                    </div>
+
+                    {{-- Warning jika Komunitas Belum Terverifikasi dan memilih berbayar --}}
+                    @if(!$community->isVerified())
+                        <div x-show="form.is_paid === '1'" x-transition class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 space-y-1">
+                            <div class="font-bold flex items-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                Perhatian: Komunitas Anda belum terverifikasi
+                            </div>
+                            <p>Hanya komunitas terverifikasi yang dapat mempublikasikan event berbayar. Anda dapat menyimpan event ini sebagai <strong>Draft</strong> sekarang, dan mempublikasikannya setelah komunitas Anda terverifikasi di menu Pengaturan Akun.</p>
+                        </div>
+                    @endif
+
+                    {{-- Input Nominal (Jika Berbayar) --}}
+                    <div x-show="form.is_paid === '1'" x-transition class="space-y-4">
+                        <div>
+                            <label for="registration_fee" class="block text-sm font-semibold text-slate-700 mb-2">
+                                Biaya Pendaftaran per Peserta (Rp) <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-sm font-bold text-slate-400 pointer-events-none">Rp</span>
+                                <input type="text"
+                                       id="registration_fee_display"
+                                       :value="formattedFee"
+                                       @input="handleFeeInput($event)"
+                                       placeholder="Contoh : 50.000"
+                                       class="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm font-bold placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
+                                       :class="errors.registration_fee ? 'border-red-400 ring-2 ring-red-100' : ''">
+                                <input type="hidden" name="registration_fee" :value="form.registration_fee">
+                            </div>
+                            <p x-show="errors.registration_fee" x-text="errors.registration_fee" class="text-xs text-red-500 mt-1 font-medium"></p>
+                        </div>
+
+                        {{-- Metode & Rekening Pembayaran --}}
+                        <div class="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/90 space-y-4">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-primary-500"></span>
+                                <h3 class="text-sm font-bold text-slate-800">Instruksi & Rekening Pembayaran</h3>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="payment_method" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                        Metode / Nama Bank <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text"
+                                           id="payment_method"
+                                           name="payment_method"
+                                           x-model="form.payment_method"
+                                           placeholder="Contoh : Transfer BCA / Mandiri / GoPay"
+                                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-primary-500">
+                                </div>
+                                <div>
+                                    <label for="payment_account" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                        Nomor Rekening / No. HP <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text"
+                                           id="payment_account"
+                                           name="payment_account"
+                                           x-model="form.payment_account"
+                                           placeholder="1234567890 a/n Nama Penyelenggara"
+                                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-primary-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- 2. Batasan Kuota Peserta --}}
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">
+                            Kapasitas / Kuota Peserta <span class="text-red-500">*</span>
+                        </label>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                            <label class="p-3.5 rounded-xl border flex items-center gap-3 cursor-pointer transition-all"
+                                   :class="form.capacity_type === 'limited' ? 'border-primary-500 bg-primary-50/40 text-primary-900 font-bold' : 'border-slate-200 bg-white text-slate-600'">
+                                <input type="radio" name="capacity_type" value="limited" x-model="form.capacity_type" class="text-primary-600">
+                                <span class="text-xs">Terbatas (Maksimal Kuota)</span>
+                            </label>
+                            <label class="p-3.5 rounded-xl border flex items-center gap-3 cursor-pointer transition-all"
+                                   :class="form.capacity_type === 'unlimited' ? 'border-primary-500 bg-primary-50/40 text-primary-900 font-bold' : 'border-slate-200 bg-white text-slate-600'">
+                                <input type="radio" name="capacity_type" value="unlimited" x-model="form.capacity_type" class="text-primary-600">
+                                <span class="text-xs">Tidak Terbatas (Unlimited)</span>
+                            </label>
+                        </div>
+
+                        <div x-show="form.capacity_type === 'limited'" x-transition>
+                            <div class="relative max-w-xs">
                                 <input type="number"
                                        id="capacity"
                                        name="capacity"
                                        x-model="form.capacity"
                                        min="1"
-                                       placeholder="Contoh : 32"
-                                       class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                       placeholder="Contoh : 30"
+                                       class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500"
                                        :class="errors.capacity ? 'border-red-400 ring-2 ring-red-100' : ''">
-                                <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-xs font-semibold text-slate-400 pointer-events-none">
-                                    Peserta
-                                </span>
+                                <span class="absolute inset-y-0 right-0 pr-4 flex items-center text-xs text-slate-400 font-semibold pointer-events-none">Orang</span>
                             </div>
-                            <p x-show="errors.capacity" x-text="errors.capacity" class="text-xs text-red-500 mt-1 font-medium"></p>
-                            <p class="text-xs text-slate-400 mt-1.5" x-show="form.capacity_type === 'unlimited'">
-                                Semua pendaftar dapat bergabung tanpa batas maksimal kuota.
-                            </p>
-                        </div>
-
-                        {{-- Biaya Pendaftaran --}}
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Biaya Pendaftaran <span class="text-red-500">*</span>
-                            </label>
-
-                            @php
-                                $isCommunityVerified = $community?->isVerified() ?? false;
-                            @endphp
-
-                            {{-- Pilihan Gratis vs Berbayar --}}
-                            <div class="grid grid-cols-2 gap-2 mb-3">
-                                <button type="button"
-                                        @click="form.is_paid = '0'; form.registration_fee = '0'; formattedFee = ''"
-                                        class="py-2.5 px-3 rounded-xl border text-xs font-bold transition-all duration-200 text-center"
-                                        :class="form.is_paid === '0' 
-                                            ? 'border-primary-500 bg-primary-50/70 text-primary-700 ring-2 ring-primary-500/20 shadow-sm' 
-                                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'">
-                                    Gratis (Free)
-                                </button>
-                                <button type="button"
-                                        @if($isCommunityVerified)
-                                            @click="form.is_paid = '1'"
-                                            class="py-2.5 px-3 rounded-xl border text-xs font-bold transition-all duration-200 text-center"
-                                            :class="form.is_paid === '1' 
-                                                ? 'border-primary-500 bg-primary-50/70 text-primary-700 ring-2 ring-primary-500/20 shadow-sm' 
-                                                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
-                                        @else
-                                            disabled
-                                            title="Verifikasi komunitas Anda untuk membuka fitur tiket berbayar"
-                                            class="py-2.5 px-3 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 text-xs font-bold text-center cursor-not-allowed flex items-center justify-center gap-1.5 opacity-75"
-                                        @endif>
-                                    @if(!$isCommunityVerified)
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                                        </svg>
-                                    @endif
-                                    Berbayar (Tiket)
-                                </button>
-                            </div>
-
-                            @if(!$isCommunityVerified)
-                                <div class="mb-3 p-3 rounded-xl bg-amber-50/90 border border-amber-200 text-xs flex items-start gap-2.5 text-amber-900 shadow-sm">
-                                    <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z" />
-                                    </svg>
-                                    <div class="leading-relaxed">
-                                        <span class="font-bold text-amber-900">Event Berbayar Khusus Komunitas Terverifikasi.</span>
-                                        <p class="text-amber-800 mt-0.5">
-                                            Komunitas Anda saat ini belum terverifikasi (hanya dapat membuat event biasa/gratis dan jadwal latihan). Anda bisa melakukan verifikasi instan atau gratis (15 pengikut) di menu 
-                                            <a href="{{ route('penyedia-komunitas.akun.index') }}" class="font-bold underline text-primary-700 hover:text-primary-800">Pengaturan Akun</a>.
-                                        </p>
-                                    </div>
-                                </div>
+                            @if($isEdit && $event->activeParticipantsCount() > 0)
+                                <p class="text-[11px] text-amber-600 mt-1 font-medium">
+                                    Catatan: Minimal {{ $event->activeParticipantsCount() }} kursi (jumlah peserta yang sudah mendaftar).
+                                </p>
                             @endif
-
-                            <input type="hidden" name="is_paid" :value="form.is_paid">
-
-                            {{-- Input Nominal Biaya jika Berbayar --}}
-                            <div x-show="form.is_paid === '1'"
-                                 x-transition:enter="transition ease-out duration-200"
-                                 x-transition:enter-start="opacity-0 -translate-y-1"
-                                 x-transition:enter-end="opacity-100 translate-y-0"
-                                 class="relative">
-                                <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-bold text-slate-500 pointer-events-none">
-                                    Rp
-                                </span>
-                                <input type="text"
-                                       inputmode="numeric"
-                                       id="registration_fee"
-                                       :value="formattedFee"
-                                       @input="handleFeeInput($event)"
-                                       placeholder="Contoh : 50.000"
-                                       class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                       :class="errors.registration_fee ? 'border-red-400 ring-2 ring-red-100' : ''">
-                                <input type="hidden" name="registration_fee" :value="form.registration_fee">
-                            </div>
-                            <p x-show="errors.registration_fee" x-text="errors.registration_fee" class="text-xs text-red-500 mt-1 font-medium"></p>
-                            <p class="text-xs text-slate-400 mt-1.5" x-show="form.is_paid === '0'">
-                                Peserta tidak dipungut biaya registrasi untuk mengikuti kegiatan ini.
-                            </p>
+                            <p x-show="errors.capacity" x-text="errors.capacity" class="text-xs text-red-500 mt-1 font-medium"></p>
                         </div>
-
                     </div>
 
-                    {{-- 2. Detail Pembayaran (Muncul Jika Event Berbayar) --}}
-                    <div x-show="form.is_paid === '1'"
-                         x-transition:enter="transition ease-out duration-300"
-                         x-transition:enter-start="opacity-0 -translate-y-2"
-                         x-transition:enter-end="opacity-100 translate-y-0"
-                         class="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/90 space-y-4">
-
-                        <div class="flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-primary-500"></span>
-                            <h3 class="text-sm font-bold text-slate-800">Instruksi & Rekening Pembayaran</h3>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-                            {{-- Metode Pembayaran --}}
-                            <div>
-                                <label for="payment_method" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                    Metode Pembayaran <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <select id="payment_method"
-                                            name="payment_method"
-                                            x-model="form.payment_method"
-                                            class="w-full px-4 py-2.5 appearance-none rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition cursor-pointer">
-                                        <option value="Transfer Bank BCA">Transfer Bank BCA</option>
-                                        <option value="Transfer Bank Mandiri">Transfer Bank Mandiri</option>
-                                        <option value="Transfer Bank BRI">Transfer Bank BRI</option>
-                                        <option value="Transfer Bank BNI">Transfer Bank BNI</option>
-                                        <option value="QRIS">QRIS (Scan Barcode)</option>
-                                        <option value="GoPay / OVO / DANA">E-Wallet (GoPay / OVO / DANA)</option>
-                                        <option value="Tunai / OTS">Tunai / On The Spot (Di Lokasi)</option>
-                                    </select>
-                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- No. Rekening / No. Tujuan & Atas Nama --}}
-                            <div>
-                                <label for="payment_account" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                    No. Rekening / No. Tujuan & Atas Nama <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text"
-                                       id="payment_account"
-                                       name="payment_account"
-                                       x-model="form.payment_account"
-                                       placeholder="Contoh : BCA 842019281 a.n. Komunitas Bugar"
-                                       class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition"
-                                       :class="errors.payment_account ? 'border-red-400 ring-2 ring-red-100' : ''">
-                                <p x-show="errors.payment_account" x-text="errors.payment_account" class="text-xs text-red-500 mt-1 font-medium"></p>
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    {{-- 3. Syarat & Ketentuan Peserta --}}
+                    {{-- 3. Persyaratan Peserta --}}
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <label for="requirements" class="block text-sm font-semibold text-slate-700">
-                                Syarat & Ketentuan Peserta (Opsional)
+                                Syarat &amp; Ketentuan Peserta (Opsional)
                             </label>
                             <button type="button"
                                     @click="insertRequirementsTemplate()"
@@ -788,81 +771,64 @@ class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cya
                         </div>
                         <textarea id="requirements"
                                   name="requirements"
-                                  rows="4"
+                                  rows="3"
                                   x-model="form.requirements"
-                                  placeholder="Contoh format :&#10;1. Terbuka untuk umum / member komunitas&#10;2. Wajib mengenakan pakaian dan sepatu olahraga yang sesuai&#10;3. Membawa botol minum pribadi (tumbler)&#10;4. Kondisi tubuh dalam keadaan sehat dan fit"
-                                  class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"></textarea>
-                        <p class="text-xs text-slate-400 mt-1.5">Syarat khusus seperti batasan umur, dresscode, atau kelengkapan yang wajib dibawa.</p>
+                                  placeholder="Contoh : Wajib memakai sepatu olahraga, membawa botol minum sendiri, dll."
+                                  class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm font-mono placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500"></textarea>
                     </div>
 
-                    {{-- 4. Kontak Penyelenggara --}}
+                    {{-- 4. Narahubung / Kontak Penyelenggara --}}
                     <div>
                         <label for="organizer_contact" class="block text-sm font-semibold text-slate-700 mb-2">
                             Kontak Penyelenggara / Narahubung <span class="text-red-500">*</span>
                         </label>
-                        <div class="relative">
-                            <input type="text"
-                                   id="organizer_contact"
-                                   name="organizer_contact"
-                                   x-model="form.organizer_contact"
-                                   placeholder="Contoh : WhatsApp 0812-3456-7890 (Admin Budi) / Instagram @komunitas_sport"
-                                   class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
-                                   :class="errors.organizer_contact ? 'border-red-400 ring-2 ring-red-100' : ''"
-                                   required>
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                </svg>
-                            </div>
-                        </div>
+                        <input type="text"
+                               id="organizer_contact"
+                               name="organizer_contact"
+                               x-model="form.organizer_contact"
+                               placeholder="WhatsApp 0812-3456-7890 (Admin Budi) / Instagram @komunitas"
+                               class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500"
+                               :class="errors.organizer_contact ? 'border-red-400 ring-2 ring-red-100' : ''"
+                               required>
                         <p x-show="errors.organizer_contact" x-text="errors.organizer_contact" class="text-xs text-red-500 mt-1 font-medium"></p>
-                    </div>
-
-                    {{-- Ringkasan Mini Sebelum Submit --}}
-                    <div class="p-4 rounded-xl bg-primary-50/50 border border-primary-100 text-xs text-slate-600 flex items-start gap-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div>
-                            <span class="font-bold text-primary-800">Periksa Kembali Data:</span>
-                            Event yang dipublikasikan akan langsung tampil di dashboard dan dapat dilihat oleh calon peserta di portal publik Bugar.in.
-                        </div>
                     </div>
 
                 </div>
 
                 {{-- Action / Buttons --}}
-                <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+                <div class="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <button type="button"
                             @click="goToStep(2)"
-                            class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors inline-flex items-center gap-2">
+                            class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors inline-flex items-center gap-2 self-start">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                         Sebelumnya
                     </button>
                     
-                    <button type="submit"
-                            :disabled="isSubmitting"
-                            class="px-7 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 hover:from-blue-800 hover:via-blue-700 hover:to-cyan-600 text-white text-sm font-bold shadow-lg shadow-blue-500/25 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                        <template x-if="!isSubmitting">
-                            <span class="inline-flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Publikasikan Event Sekarang
+                    <div class="flex items-center gap-3">
+                        @if(!$isEdit || $event->status === 'draft')
+                            <button type="button"
+                                    @click="submitWithAction('draft')"
+                                    :disabled="isSubmitting"
+                                    class="px-5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold shadow-sm inline-flex items-center gap-2 transition-all disabled:opacity-50">
+                                <span>Simpan Draft</span>
+                            </button>
+                        @endif
+
+                        <button type="button"
+                                @click="submitWithAction('publish')"
+                                :disabled="isSubmitting"
+                                class="px-7 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 hover:from-blue-800 hover:via-blue-700 hover:to-cyan-600 text-white text-sm font-bold shadow-lg shadow-blue-500/25 inline-flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50">
+                            <span x-show="!isSubmitting">
+                                {{ $isEdit ? ($event->status === 'draft' ? 'Publikasikan Event' : 'Simpan Perubahan') : 'Publikasikan Event Sekarang' }}
                             </span>
-                        </template>
-                        <template x-if="isSubmitting">
-                            <span class="inline-flex items-center gap-2">
-                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
+                            <span x-show="isSubmitting" class="inline-flex items-center gap-2" style="display: none;">
+                                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 Memproses...
                             </span>
-                        </template>
-                    </button>
+                        </button>
+                    </div>
                 </div>
 
             </div>
@@ -878,10 +844,13 @@ class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-cya
 function eventWizard() {
     return {
         step: {{ $errors->hasAny(['capacity', 'registration_fee', 'payment_account', 'organizer_contact']) ? 3 : ($errors->hasAny(['event_date', 'registration_close_at', 'start_time', 'location', 'maps_url']) ? 2 : 1) }},
+        isEdit: @json($isEdit),
         isDragging: false,
-        previewUrl: null,
+        previewUrl: @json($initialPreviewUrl),
         errors: {},
         formattedFee: '',
+        submitAction: 'publish',
+        isSubmitting: false,
         eventTypes: [
             { 
                 value: 'fun_match', 
@@ -890,17 +859,17 @@ function eventWizard() {
             },
             { 
                 value: 'tournament', 
-                label: 'Tournament',
+                label: 'Turnamen',
                 icon: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>'
             },
             { 
                 value: 'gathering', 
-                label: 'Gathering',
+                label: 'Gathering / Kumpul',
                 icon: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>'
             },
             { 
-                value: 'conference', 
-                label: 'Conference',
+                value: 'workshop', 
+                label: 'Workshop / Coaching',
                 icon: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>'
             },
             { 
@@ -909,37 +878,8 @@ function eventWizard() {
                 icon: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" /></svg>'
             }
         ],
-        isSubmitting: false,
-        form: {
-            title: @json(old('title', '')),
-            type: @json(old('type', 'fun_match')),
-            sport_category: @json(old('sport_category', $community->sport_category ?? '')),
-            other_sport_category: @json(old('other_sport_category', '')),
-            description: @json(old('description', '')),
-            rundown: @json(old('rundown', '')),
-            cover_image: null,
-            event_date: @json(old('event_date', '')),
-            registration_close_at: @json(old('registration_close_at', '')),
-            timezone: @json(old('timezone', 'WIB')),
-            start_time: @json(old('start_time', '')),
-            end_time: @json(old('end_time', '')),
-            location: @json(old('location', '')),
-            maps_url: @json(old('maps_url', '')),
-            capacity_type: @json(old('capacity_type', 'limited')),
-            capacity: @json(old('capacity', '')),
-            is_paid: @json(old('is_paid', '0')),
-            registration_fee: @json(old('registration_fee', '')),
-            payment_method: @json(old('payment_method', 'Transfer Bank BCA')),
-            payment_account: @json(old('payment_account', '')),
-            requirements: @json(old('requirements', '')),
-            organizer_contact: @json(old('organizer_contact', ''))
-        },
+        form: @json($initialForm),
         init() {
-            const predefined = ['badminton', 'running', 'futsal', 'basketball', 'football', 'cycling', 'swimming', 'yoga', 'tennis', 'table_tennis'];
-            if (this.form.sport_category && !predefined.includes(this.form.sport_category)) {
-                this.form.other_sport_category = this.form.sport_category;
-                this.form.sport_category = 'other';
-            }
             if (this.form.registration_fee && Number(this.form.registration_fee) > 0) {
                 this.formattedFee = Number(this.form.registration_fee).toLocaleString('id-ID');
             }
@@ -959,31 +899,23 @@ function eventWizard() {
             if (currentStep === 1) {
                 if (!this.form.title || !this.form.title.trim()) {
                     this.errors.title = 'Nama event wajib diisi.';
+                } else if (this.form.title.trim().length > 80) {
+                    this.errors.title = 'Nama event tidak boleh lebih dari 80 karakter.';
                 }
                 if (!this.form.type) {
                     this.errors.type = 'Pilih salah satu jenis event.';
                 }
-                if (!this.form.sport_category) {
-                    this.errors.sport_category = 'Pilih kategori olahraga.';
-                } else if (this.form.sport_category === 'other' && (!this.form.other_sport_category || !this.form.other_sport_category.trim())) {
-                    this.errors.sport_category = 'Ketik nama cabang olahraga jika memilih Olahraga Lainnya.';
-                }
                 if (!this.form.description || !this.form.description.trim()) {
                     this.errors.description = 'Deskripsi event wajib diisi.';
                 }
-                if (!this.previewUrl && !this.form.cover_image) {
+                if (!this.isEdit && !this.previewUrl && !this.form.cover_image) {
                     this.errors.cover_image = 'Cover banner event wajib diunggah.';
                 }
 
                 if (Object.keys(this.errors).length === 0) {
                     this.goToStep(2);
                 } else {
-                    this.$nextTick(() => {
-                        const firstError = document.querySelector('[class*="border-red-400"]');
-                        if (firstError) {
-                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    });
+                    this.scrollToFirstError();
                 }
             } else if (currentStep === 2) {
                 if (!this.form.event_date) {
@@ -999,7 +931,6 @@ function eventWizard() {
                     this.errors.location = 'Nama tempat / lokasi event wajib diisi.';
                 }
 
-                // Validasi logis: batas pendaftaran tidak boleh melewati hari H
                 if (this.form.event_date && this.form.registration_close_at) {
                     const eventDate = new Date(this.form.event_date);
                     const regClose = new Date(this.form.registration_close_at);
@@ -1011,12 +942,7 @@ function eventWizard() {
                 if (Object.keys(this.errors).length === 0) {
                     this.goToStep(3);
                 } else {
-                    this.$nextTick(() => {
-                        const firstError = document.querySelector('[class*="border-red-400"]');
-                        if (firstError) {
-                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    });
+                    this.scrollToFirstError();
                 }
             }
         },
@@ -1061,25 +987,52 @@ function eventWizard() {
         insertRequirementsTemplate() {
             this.form.requirements = "1. Terbuka untuk umum / member komunitas\n2. Wajib mengenakan pakaian dan sepatu olahraga yang sesuai\n3. Membawa botol minum pribadi (tumbler)\n4. Kondisi tubuh dalam keadaan sehat dan fit\n5. Hadir di lokasi minimal 15 menit sebelum kegiatan dimulai";
         },
+        submitWithAction(actionName) {
+            this.submitAction = actionName;
+
+            if (actionName === 'draft') {
+                this.errors = {};
+                if (!this.form.title || !this.form.title.trim()) {
+                    this.errors.title = 'Nama event wajib diisi untuk menyimpan draft.';
+                    this.goToStep(1);
+                    this.scrollToFirstError();
+                    return;
+                } else if (this.form.title.trim().length > 80) {
+                    this.errors.title = 'Nama event tidak boleh lebih dari 80 karakter.';
+                    this.goToStep(1);
+                    this.scrollToFirstError();
+                    return;
+                }
+                this.isSubmitting = true;
+                const formElem = document.getElementById('eventForm');
+                this.$nextTick(() => formElem.submit());
+                return;
+            }
+
+            // Publish action validates everything
+            const formElem = document.getElementById('eventForm');
+            formElem.requestSubmit();
+        },
         handleSubmit(event) {
+            if (this.submitAction === 'draft') {
+                return true;
+            }
+
             this.errors = {};
 
             // Validasi Step 1
             if (!this.form.title || !this.form.title.trim()) {
                 this.errors.title = 'Nama event wajib diisi.';
+            } else if (this.form.title.trim().length > 80) {
+                this.errors.title = 'Nama event tidak boleh lebih dari 80 karakter.';
             }
             if (!this.form.type) {
                 this.errors.type = 'Pilih salah satu jenis event.';
             }
-            if (!this.form.sport_category) {
-                this.errors.sport_category = 'Pilih kategori olahraga.';
-            } else if (this.form.sport_category === 'other' && (!this.form.other_sport_category || !this.form.other_sport_category.trim())) {
-                this.errors.sport_category = 'Ketik nama cabang olahraga jika memilih Olahraga Lainnya.';
-            }
             if (!this.form.description || !this.form.description.trim()) {
                 this.errors.description = 'Deskripsi event wajib diisi.';
             }
-            if (!this.previewUrl && !this.form.cover_image) {
+            if (!this.isEdit && !this.previewUrl && !this.form.cover_image) {
                 this.errors.cover_image = 'Cover banner event wajib diunggah.';
             }
 
@@ -1115,22 +1068,27 @@ function eventWizard() {
 
             if (Object.keys(this.errors).length > 0) {
                 event.preventDefault();
-                if (this.errors.title || this.errors.type || this.errors.sport_category || this.errors.description || this.errors.cover_image) {
+                if (this.errors.title || this.errors.type || this.errors.description || this.errors.cover_image) {
                     this.goToStep(1);
                 } else if (this.errors.event_date || this.errors.registration_close_at || this.errors.start_time || this.errors.location) {
                     this.goToStep(2);
+                } else {
+                    this.goToStep(3);
                 }
-                this.$nextTick(() => {
-                    const firstError = document.querySelector('[class*="border-red-400"]');
-                    if (firstError) {
-                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                });
+                this.scrollToFirstError();
                 return false;
             }
 
             this.isSubmitting = true;
             return true;
+        },
+        scrollToFirstError() {
+            this.$nextTick(() => {
+                const firstError = document.querySelector('[class*="border-red-400"]');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
         }
     };
 }

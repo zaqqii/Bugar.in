@@ -111,45 +111,86 @@ class DashboardController extends Controller
             abort(403);
         }
 
-        // Cek apakah sudah terdaftar
-        $existing = Participant::where('user_id', $user->id)
-            ->where('participatable_type', Event::class)
-            ->where('participatable_id', $event->id)
-            ->first();
+        return DB::transaction(function () use ($event, $user) {
+            /** @var Event $lockedEvent */
+            $lockedEvent = Event::where('id', $event->id)->lockForUpdate()->firstOrFail();
 
-        if ($existing) {
-            if (in_array($existing->status, ['waiting_list', 'waiting_payment', 'registered', 'attended'])) {
-                $label = $existing->statusLabel();
-                return back()->with('info', "Kamu sudah mendaftar event ini. Status: {$label}.");
+            // 1. Tolak jika status bukan published
+            if ($lockedEvent->status !== 'published') {
+                return back()->with('error', 'Pendaftaran untuk event ini tidak dibuka (status event: ' . ($lockedEvent->status) . ').');
             }
-            // Daftar ulang jika sebelumnya dibatalkan
-            $newStatus = $event->registration_fee > 0 ? 'waiting_payment' : 'waiting_list';
-            $existing->update([
-                'status'        => $newStatus,
-                'registered_at' => now(),
-                'cancelled_at'  => null,
-            ]);
-            $label = $existing->fresh()->statusLabel();
-            return back()->with('success', "Pendaftaran event dikirim! Status: {$label}.");
-        }
 
-        // Event berbayar → waiting_payment, gratis → waiting_list (menunggu konfirmasi)
-        $status = $event->registration_fee > 0 ? 'waiting_payment' : 'waiting_list';
+            // 2. Tolak jika di luar jendela registration_open_at / registration_close_at (null-safe)
+            $now = now();
+            if ($lockedEvent->registration_open_at && $now->lt($lockedEvent->registration_open_at)) {
+                return back()->with('error', 'Pendaftaran belum dibuka (dibuka pada ' . $lockedEvent->registration_open_at->translatedFormat('d M Y, H:i') . ').');
+            }
 
-        Participant::create([
-            'user_id'              => $user->id,
-            'participatable_type'  => Event::class,
-            'participatable_id'    => $event->id,
-            'status'               => $status,
-            'registered_at'        => now(),
-        ]);
+            if ($lockedEvent->registration_close_at) {
+                $closeAt = $lockedEvent->registration_close_at->copy()->endOfDay();
+                if ($now->gt($closeAt)) {
+                    return back()->with('error', 'Pendaftaran untuk event ini sudah ditutup pada ' . $lockedEvent->registration_close_at->translatedFormat('d M Y') . '.');
+                }
+            }
 
-        if ($event->registration_fee > 0) {
-            $fee = 'Rp ' . number_format($event->registration_fee, 0, ',', '.');
-            return back()->with('success', "Pendaftaran event berhasil! Silakan selesaikan pembayaran sebesar {$fee} kepada penyelenggara. Status: Menunggu Pembayaran.");
-        }
+            // 3. Cek apakah sudah terdaftar aktif
+            $existing = Participant::where('user_id', $user->id)
+                ->where('participatable_type', Event::class)
+                ->where('participatable_id', $lockedEvent->id)
+                ->lockForUpdate()
+                ->first();
 
-        return back()->with('success', 'Permintaan bergabung event dikirim! Menunggu konfirmasi dari penyedia komunitas.');
+            if ($existing && in_array($existing->status, ['registered', 'waiting_payment', 'waiting_list', 'attended'], true)) {
+                $label = $existing->statusLabel();
+                return back()->with('info', "Kamu sudah terdaftar di event ini. Status saat ini: {$label}.");
+            }
+
+            // 4. Hitung kursi terpakai dari participant berstatus registered dan waiting_payment
+            $usedSeats = Participant::where('participatable_type', Event::class)
+                ->where('participatable_id', $lockedEvent->id)
+                ->whereIn('status', ['registered', 'waiting_payment'])
+                ->count();
+
+            $isFull = $lockedEvent->capacity !== null && $usedSeats >= $lockedEvent->capacity;
+
+            // 5. Tentukan status baru
+            if ($isFull) {
+                $newStatus = 'waiting_list';
+            } else {
+                $newStatus = (float) $lockedEvent->registration_fee > 0 ? 'waiting_payment' : 'registered';
+            }
+
+            // 6. Simpan / Perbarui pendaftaran
+            if ($existing) {
+                $existing->update([
+                    'status'        => $newStatus,
+                    'registered_at' => now(),
+                    'cancelled_at'  => null,
+                ]);
+            } else {
+                Participant::create([
+                    'user_id'              => $user->id,
+                    'participatable_type'  => Event::class,
+                    'participatable_id'    => $lockedEvent->id,
+                    'status'               => $newStatus,
+                    'registered_at'        => now(),
+                ]);
+            }
+
+            // 7. Increment events.participants_count hanya untuk status yang memakai kursi
+            if (in_array($newStatus, ['registered', 'waiting_payment'], true)) {
+                $lockedEvent->increment('participants_count');
+            }
+
+            if ($newStatus === 'waiting_list') {
+                return back()->with('info', 'Kuota kursi event sudah penuh. Kamu dimasukkan ke dalam Waiting List (Daftar Tunggu).');
+            } elseif ($newStatus === 'waiting_payment') {
+                $fee = 'Rp ' . number_format($lockedEvent->registration_fee, 0, ',', '.');
+                return back()->with('success', "Pendaftaran event berhasil! Silakan selesaikan pembayaran sebesar {$fee} kepada penyelenggara. Status: Menunggu Pembayaran.");
+            } else {
+                return back()->with('success', 'Selamat! Pendaftaran event berhasil. Kamu telah terdaftar resmi sebagai peserta.');
+            }
+        });
     }
 
     public function cancelParticipation(Request $request)
@@ -164,22 +205,35 @@ class DashboardController extends Controller
 
         $morphType = $type === 'event' ? Event::class : Schedule::class;
 
-        $participant = Participant::where('user_id', $user->id)
-            ->where('participatable_type', $morphType)
-            ->where('participatable_id', $id)
-            ->whereIn('status', ['waiting_list', 'waiting_payment', 'registered'])
-            ->first();
+        return DB::transaction(function () use ($user, $morphType, $id, $type) {
+            $participant = Participant::where('user_id', $user->id)
+                ->where('participatable_type', $morphType)
+                ->where('participatable_id', $id)
+                ->whereIn('status', ['waiting_list', 'waiting_payment', 'registered'])
+                ->lockForUpdate()
+                ->first();
 
-        if (! $participant) {
-            return back()->with('info', 'Tidak ada pendaftaran aktif yang dapat dibatalkan.');
-        }
+            if (! $participant) {
+                return back()->with('info', 'Tidak ada pendaftaran aktif yang dapat dibatalkan.');
+            }
 
-        $participant->update([
-            'status'       => 'cancelled',
-            'cancelled_at' => now(),
-        ]);
+            $oldStatus = $participant->status;
 
-        return back()->with('success', 'Pendaftaran berhasil dibatalkan.');
+            $participant->update([
+                'status'       => 'cancelled',
+                'cancelled_at' => now(),
+            ]);
+
+            // Jika pembatalan event dan sebelumnya memakai kursi, kurangi participants_count
+            if ($type === 'event' && in_array($oldStatus, ['registered', 'waiting_payment'], true)) {
+                $event = Event::where('id', $id)->lockForUpdate()->first();
+                if ($event && $event->participants_count > 0) {
+                    $event->decrement('participants_count');
+                }
+            }
+
+            return back()->with('success', 'Pendaftaran berhasil dibatalkan.');
+        });
     }
 
     public function readAnnouncement(UserAnnouncement $announcement)
@@ -341,8 +395,8 @@ class DashboardController extends Controller
 
         // Data Asli Komunitas dari Database (mengambil seluruh komunitas yang aktif)
         $communities = Community::where('is_active', true)
-            ->with(['owner', 'schedules', 'events'])
-            ->withCount(['members', 'schedules', 'events', 'followers'])
+            ->with(['owner', 'schedules', 'events' => fn($q) => $q->active()])
+            ->withCount(['members', 'schedules', 'events' => fn($q) => $q->active(), 'followers'])
             ->latest()
             ->get();
 
@@ -353,8 +407,9 @@ class DashboardController extends Controller
             fn($a, $b) => ($b->followers_count ?? 0) <=> ($a->followers_count ?? 0),
         ])->take(3)->values();
 
-        // Data Asli Event Mendatang dari Database
+        // Data Asli Event Mendatang dari Database (Hanya yang berstatus published, registration_closed, atau ongoing)
         $events = Event::where('is_active', true)
+            ->active()
             ->with('community')
             ->orderBy('event_date', 'asc')
             ->get();
