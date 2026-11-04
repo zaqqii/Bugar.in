@@ -31,6 +31,7 @@ class User extends Authenticatable
         'weight_kg',
         'total_points',
         'is_active',
+        'join_blocked_until',
     ];
 
     protected $hidden = [
@@ -45,6 +46,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'sports' => 'array',
             'sparring_open' => 'boolean',
+            'join_blocked_until' => 'datetime',
         ];
     }
 
@@ -81,6 +83,16 @@ class User extends Authenticatable
     public function pointsHistories()
     {
         return $this->hasMany(PointsHistory::class);
+    }
+
+    public function communityBlocks()
+    {
+        return $this->hasMany(CommunityBlock::class);
+    }
+
+    public function isJoinBlocked(): bool
+    {
+        return $this->join_blocked_until !== null && $this->join_blocked_until->isFuture();
     }
 
     public function isCommunityOwner(): bool

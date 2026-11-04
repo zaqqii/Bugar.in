@@ -48,11 +48,11 @@ class CreateUpcomingActivityReminders implements ShouldQueue
                         $type = 'event_reminder';
                         $activityLabel = 'Event';
                     } elseif ($activity instanceof Schedule) {
-                        if (! $activity->is_active || in_array($activity->status, ['cancelled', 'completed'], true)) {
+                        if (! $activity->is_active || in_array($activity->status, ['cancelled', 'completed'], true) || $activity->isCancelled()) {
                             continue;
                         }
 
-                        $occurrence = $this->nextScheduleOccurrence($activity, $now);
+                        $occurrence = $activity->startsAt();
                         $type = 'schedule_reminder';
                         $activityLabel = 'Jadwal olahraga';
                     } else {
@@ -71,30 +71,6 @@ class CreateUpcomingActivityReminders implements ShouldQueue
             ->whereIn('type', ['event_reminder', 'schedule_reminder'])
             ->whereDate('created_at', '<', $now->copy()->subDays(30)->toDateString())
             ->delete();
-    }
-
-    private function nextScheduleOccurrence(Schedule $schedule, Carbon $now): Carbon
-    {
-        $weekday = [
-            'sunday' => Carbon::SUNDAY,
-            'monday' => Carbon::MONDAY,
-            'tuesday' => Carbon::TUESDAY,
-            'wednesday' => Carbon::WEDNESDAY,
-            'thursday' => Carbon::THURSDAY,
-            'friday' => Carbon::FRIDAY,
-            'saturday' => Carbon::SATURDAY,
-        ][strtolower(trim($schedule->day_of_week))] ?? Carbon::MONDAY;
-
-        $daysUntil = ($weekday - $now->dayOfWeek + 7) % 7;
-        $occurrence = $now->copy()->startOfDay()->addDays($daysUntil);
-        [$hour, $minute, $second] = array_pad(array_map('intval', explode(':', $schedule->start_time)), 3, 0);
-        $occurrence->setTime($hour, $minute, $second);
-
-        if ($occurrence->lt($now)) {
-            $occurrence->addWeek();
-        }
-
-        return $occurrence;
     }
 
     private function createReminder(
