@@ -242,32 +242,6 @@
                                 </div>
                             </div>
 
-                            {{-- Minat Olahraga --}}
-                            <div class="auth-field auth-field--full">
-                                <div class="auth-field-label-row">
-                                    <label class="auth-field-label">Pilihan Minat Olahraga Utama <span class="auth-field-hint">(Bisa pilih lebih dari satu)</span></label>
-                                    <span class="auth-field-link">Personalisasi Komunitas</span>
-                                </div>
-                                <div class="auth-sports-grid">
-                                    <template x-for="sport in sports" :key="sport.id">
-                                        <button
-                                            type="button"
-                                            class="auth-sport-chip"
-                                            :class="{ 'active': selectedSports.includes(sport.id) }"
-                                            @click="toggleSport(sport.id)"
-                                            :id="'sport-' + sport.id"
-                                            :aria-pressed="selectedSports.includes(sport.id)">
-                                            <span x-html="sport.icon" aria-hidden="true"></span>
-                                            <span x-text="sport.label"></span>
-                                        </button>
-                                    </template>
-                                </div>
-                                {{-- hidden inputs untuk submit --}}
-                                <template x-for="s in selectedSports" :key="s">
-                                    <input type="hidden" name="sports[]" :value="s">
-                                </template>
-                            </div>
-
                             {{-- Terms & Conditions --}}
                             <div class="auth-terms">
                                 <label class="auth-terms-label" for="reg-terms">
@@ -345,20 +319,12 @@
                         </p>
 
                         {{-- Error alert login --}}
-                        @if(session('error'))
+                        @if($errors->has('social') || ($errors->has('login') && old('form_type') === 'login'))
                             <div class="auth-error-alert" role="alert">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                 </svg>
-                                {{ session('error') }}
-                            </div>
-                        @endif
-                        @if($errors->has('login') && old('form_type') === 'login')
-                            <div class="auth-error-alert" role="alert">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                </svg>
-                                {{ $errors->first('login') }}
+                                {{ $errors->first('social') ?: $errors->first('login') }}
                             </div>
                         @endif
 
@@ -465,9 +431,9 @@
                                 <span>atau masuk dengan</span>
                             </div>
 
-                            {{-- Social Buttons (Hanya Google) --}}
-                            <div class="auth-social-grid">
-                                <a href="{{ route('auth.google.redirect', ['role' => 'user']) }}" class="auth-social-btn" id="btn-login-google" style="text-decoration:none;">
+                            {{-- Social Buttons --}}
+                            <div class="auth-social-grid auth-social-grid--login">
+                                <a href="{{ route('auth.social.redirect', ['audience' => 'user', 'provider' => 'google']) }}" class="auth-social-btn" id="btn-login-google">
                                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -608,34 +574,6 @@
             isSubmitting: false,
             loginInput: '{{ old("form_type") === "login" ? old("login") : "" }}',
             loginPassword: '',
-            selectedSports: ['lari'],
-            sports: [
-                {
-                    id: 'lari',
-                    label: 'Lari / Running',
-                    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg>'
-                },
-                {
-                    id: 'padel',
-                    label: 'Padel',
-                    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>'
-                },
-                {
-                    id: 'sepeda',
-                    label: 'Sepeda / Cycling',
-                    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="5" cy="18" r="3"/><circle cx="19" cy="18" r="3"/><path stroke-linecap="round" stroke-linejoin="round" d="M5 18l4-10 6 0 2 5M9 8h10l-3 7"/></svg>'
-                },
-                {
-                    id: 'tenis',
-                    label: 'Tenis',
-                    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M4.93 4.93c4.15 4.15 4.15 9.9 0 14.14M19.07 4.93c-4.15 4.15-4.15 9.9 0 14.14"/></svg>'
-                },
-                {
-                    id: 'badminton',
-                    label: 'Badminton',
-                    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21l18-18M9 3l3 3-9 9-3-3 9-9z"/></svg>'
-                },
-            ],
 
             init() {
                 // Set initial mode from URL if needed
@@ -696,15 +634,6 @@
                 }
                 this.isSubmitting = true;
                 return true;
-            },
-
-            toggleSport(id) {
-                const idx = this.selectedSports.indexOf(id);
-                if (idx === -1) {
-                    this.selectedSports.push(id);
-                } else {
-                    this.selectedSports.splice(idx, 1);
-                }
             }
         };
     }

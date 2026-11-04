@@ -56,6 +56,25 @@
 <div x-data="{
     activeTab: 'tentang',
     copiedShare: false,
+    scheduleModalOpen: false,
+    modalSchedule: null,
+    openScheduleModal(data) {
+        this.modalSchedule = data;
+        this.scheduleModalOpen = true;
+        if (data.availabilityUrl) {
+            fetch(data.availabilityUrl)
+                .then(res => res.json())
+                .then(res => {
+                    if (this.modalSchedule && this.modalSchedule.id === data.id) {
+                        this.modalSchedule.registeredCount = res.registered_count;
+                        this.modalSchedule.remaining = res.remaining;
+                        this.modalSchedule.capacity = res.capacity;
+                        this.modalSchedule.isFull = res.is_full;
+                    }
+                })
+                .catch(() => {});
+        }
+    },
     shareCommunity() {
         if (navigator.share) {
             navigator.share({
@@ -70,6 +89,45 @@
         }
     }
 }" class="max-w-7xl mx-auto space-y-6">
+
+    {{-- Banner Jika User Terkena Sanksi No-Show join_blocked_until --}}
+    @if(auth()->check() && auth()->user()->isJoinBlocked())
+        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-3 shadow-xs">
+            <span class="text-xl">⚠️</span>
+            <div>
+                <strong class="font-bold text-sm block mb-0.5">Pendaftaran Jadwal Dibatasi Sementara</strong>
+                Akun Anda sedang dibatasi dari mendaftar ke jadwal hingga <strong>{{ auth()->user()->join_blocked_until->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d F Y, H:i') }} WIB</strong> karena akumulasi ketidakhadiran (no-show).
+            </div>
+        </div>
+    @endif
+
+    {{-- Banner Jika User Diblokir di Komunitas Ini --}}
+    @if(auth()->check() && $community->isUserBlocked(auth()->user()))
+        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-3 shadow-xs">
+            <span class="text-xl">🚫</span>
+            <div>
+                <strong class="font-bold text-sm block mb-0.5">Akses Komunitas Dibatasi</strong>
+                Anda telah diblokir dari komunitas ini dan tidak dapat mendaftar ke jadwal kegiatan yang diselenggarakan oleh {{ $community->name }}.
+            </div>
+        </div>
+    @endif
+
+    {{-- Flash Status Message --}}
+    @if(session('success'))
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-xs">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold shadow-xs">
+            {{ session('error') }}
+        </div>
+    @endif
+    @if(session('info'))
+        <div class="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold shadow-xs">
+            {{ session('info') }}
+        </div>
+    @endif
 
     {{-- Breadcrumb Navigasi Atas --}}
     <div class="flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
@@ -589,6 +647,153 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {{-- Jadwal Sesi Bertanggal Komunitas --}}
+                    @if(isset($community->schedules) && $community->schedules->isNotEmpty())
+                        @foreach($community->schedules as $sch)
+                            @php
+                                $schDateFormatted = $sch->date ? $sch->date->locale('id')->isoFormat('ddd, D MMM Y') : $sch->dayLabel();
+                                $schDateFull = $sch->date ? $sch->date->locale('id')->isoFormat('dddd, D MMMM Y') : $sch->dayLabel();
+                                $schIsJoined = in_array($sch->id, $joinedScheduleIds);
+                                $initRegistered = $sch->activeParticipantsCount();
+                                $initCapacity = $sch->capacity;
+                                $initRemaining = $sch->remainingSlots();
+                                $initIsFull = $initCapacity !== null && $initRegistered >= $initCapacity;
+                            @endphp
+                            <div x-data="{
+                                registeredCount: {{ $initRegistered }},
+                                capacity: {{ $initCapacity !== null ? $initCapacity : 'null' }},
+                                remaining: {{ $initRemaining !== null ? $initRemaining : 'null' }},
+                                isFull: {{ $initIsFull ? 'true' : 'false' }},
+                                status: '{{ $sch->status }}',
+                                fetchAvailability() {
+                                    if (document.hidden) return;
+                                    fetch('{{ route('user.schedules.availability', $sch->id) }}')
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            this.registeredCount = data.registered_count;
+                                            this.capacity = data.capacity;
+                                            this.remaining = data.remaining;
+                                            this.isFull = data.is_full;
+                                            this.status = data.status;
+                                        })
+                                        .catch(() => {});
+                                },
+                                init() {
+                                    setInterval(() => this.fetchAvailability(), 30000);
+                                    document.addEventListener('visibilitychange', () => {
+                                        if (!document.hidden) this.fetchAvailability();
+                                    });
+                                }
+                            }" class="rounded-2xl border border-slate-200 p-4 bg-slate-50/60 hover:bg-white hover:shadow-xs transition-all flex flex-col justify-between">
+                                <div>
+                                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border {{ $sch->levelBadgeClass() }}">
+                                                {{ $sch->levelLabel() }}
+                                            </span>
+                                            @if($sch->series_id)
+                                                <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">
+                                                    🔗 Seri
+                                                </span>
+                                            @endif
+                                            @if($sch->streak_enabled)
+                                                <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
+                                                    🔥 Streak Aktif
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <span class="text-xs font-bold text-slate-500">
+                                            {{ $schDateFormatted }}
+                                        </span>
+                                    </div>
+                                    <h4 class="text-sm font-bold text-slate-900 mt-2 cursor-pointer hover:text-blue-600 transition-colors"
+                                        @click="openScheduleModal({
+                                            id: {{ $sch->id }},
+                                            title: '{{ addslashes($sch->title) }}',
+                                            dateFull: '{{ $schDateFull }}',
+                                            time: '{{ substr($sch->start_time, 0, 5) }} - {{ substr($sch->end_time, 0, 5) }} WIB',
+                                            location: '{{ addslashes($sch->location) }}',
+                                            mapsUrl: '{{ $sch->maps_url }}',
+                                            description: '{{ addslashes($sch->description ?? '') }}',
+                                            levelLabel: '{{ $sch->levelLabel() }}',
+                                            levelBadgeClass: '{{ $sch->levelBadgeClass() }}',
+                                            streakEnabled: {{ $sch->streak_enabled ? 'true' : 'false' }},
+                                            seriesId: '{{ $sch->series_id }}',
+                                            capacity: {{ $initCapacity !== null ? $initCapacity : 'null' }},
+                                            registeredCount: registeredCount,
+                                            remaining: remaining,
+                                            isFull: isFull,
+                                            isJoined: {{ $schIsJoined ? 'true' : 'false' }},
+                                            availabilityUrl: '{{ route('user.schedules.availability', $sch->id) }}',
+                                            joinUrl: '{{ route('user.schedules.join', $sch->id) }}'
+                                        })">{{ $sch->title }}</h4>
+                                    <p class="text-xs text-slate-500 mt-1 line-clamp-2">{{ $sch->description ?? 'Latihan bersama rekan komunitas.' }}</p>
+
+                                    <div class="mt-2 text-xs text-slate-600">
+                                        <span class="font-semibold" x-text="capacity ? `${registeredCount} peserta • Sisa ${remaining !== null ? remaining : (capacity - registeredCount)} dari ${capacity}` : `${registeredCount} peserta • Tanpa batas slot`">
+                                            {{ $initCapacity ? "{$initRegistered} peserta • Sisa {$initRemaining} dari {$initCapacity}" : "{$initRegistered} peserta • Tanpa batas slot" }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs gap-2 flex-wrap">
+                                    <span class="font-bold text-blue-600">{{ substr($sch->start_time, 0, 5) }} - {{ substr($sch->end_time, 0, 5) }} WIB</span>
+                                    
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <button type="button"
+                                                @click="openScheduleModal({
+                                                    id: {{ $sch->id }},
+                                                    title: '{{ addslashes($sch->title) }}',
+                                                    dateFull: '{{ $schDateFull }}',
+                                                    time: '{{ substr($sch->start_time, 0, 5) }} - {{ substr($sch->end_time, 0, 5) }} WIB',
+                                                    location: '{{ addslashes($sch->location) }}',
+                                                    mapsUrl: '{{ $sch->maps_url }}',
+                                                    description: '{{ addslashes($sch->description ?? '') }}',
+                                                    levelLabel: '{{ $sch->levelLabel() }}',
+                                                    levelBadgeClass: '{{ $sch->levelBadgeClass() }}',
+                                                    streakEnabled: {{ $sch->streak_enabled ? 'true' : 'false' }},
+                                                    seriesId: '{{ $sch->series_id }}',
+                                                    capacity: {{ $initCapacity !== null ? $initCapacity : 'null' }},
+                                                    registeredCount: registeredCount,
+                                                    remaining: remaining,
+                                                    isFull: isFull,
+                                                    isJoined: {{ $schIsJoined ? 'true' : 'false' }},
+                                                    availabilityUrl: '{{ route('user.schedules.availability', $sch->id) }}',
+                                                    joinUrl: '{{ route('user.schedules.join', $sch->id) }}'
+                                                })"
+                                                class="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition">
+                                            Detail
+                                        </button>
+
+                                        @if($schIsJoined)
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+                                                ✓ Terdaftar
+                                            </span>
+                                            <form method="POST" action="{{ route('user.participation.cancel') }}" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan keikutsertaan dalam jadwal ini?')">
+                                                @csrf
+                                                <input type="hidden" name="type" value="schedule">
+                                                <input type="hidden" name="id" value="{{ $sch->id }}">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">
+                                                    Batalkan
+                                                </button>
+                                            </form>
+                                        @else
+                                            <form method="POST" action="{{ route('user.schedules.join', $sch->id) }}">
+                                                @csrf
+                                                <button type="submit"
+                                                        :disabled="isFull"
+                                                        :class="isFull ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'btn-primary'"
+                                                        class="text-xs py-1.5 px-3 rounded-lg font-bold transition"
+                                                        x-text="isFull ? 'Penuh' : 'Ikuti Sesi'">
+                                                    {{ $initIsFull ? 'Penuh' : 'Ikuti Sesi' }}
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    @endif
+
                     @forelse($community->events as $event)
                         @php
                             $eventDate = \Carbon\Carbon::parse($event->event_date);
@@ -613,9 +818,11 @@
                             </div>
                         </div>
                     @empty
-                        <div class="sm:col-span-2 p-8 text-center bg-slate-50/70 rounded-2xl border border-slate-200/60">
-                            <p class="text-xs text-slate-500 font-medium">Belum ada agenda atau event yang dijadwalkan saat ini.</p>
-                        </div>
+                        @if(!isset($community->schedules) || $community->schedules->isEmpty())
+                            <div class="sm:col-span-2 p-8 text-center bg-slate-50/70 rounded-2xl border border-slate-200/60">
+                                <p class="text-xs text-slate-500 font-medium">Belum ada agenda atau event yang dijadwalkan saat ini.</p>
+                            </div>
+                        @endif
                     @endforelse
                 </div>
             </div>
@@ -887,6 +1094,124 @@
 
         </div>
 
+    </div>
+
+    {{-- MODAL DETAIL JADWAL --}}
+    <div x-show="scheduleModalOpen"
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+         @keydown.escape.window="scheduleModalOpen = false">
+        <template x-if="modalSchedule">
+            <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 relative space-y-5"
+                 @click.away="scheduleModalOpen = false">
+                
+                {{-- Close button --}}
+                <button type="button" @click="scheduleModalOpen = false" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+
+                {{-- Badges --}}
+                <div class="flex items-center gap-2 flex-wrap pr-8">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border"
+                          :class="modalSchedule.levelBadgeClass"
+                          x-text="modalSchedule.levelLabel"></span>
+                    
+                    <template x-if="modalSchedule.seriesId">
+                        <span class="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold">
+                            🔗 Seri Rutin
+                        </span>
+                    </template>
+
+                    <template x-if="modalSchedule.streakEnabled">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
+                            🔥 Streak Aktif
+                        </span>
+                    </template>
+                </div>
+
+                {{-- Judul & Deskripsi --}}
+                <div>
+                    <h3 class="text-xl font-extrabold text-slate-900 leading-snug" x-text="modalSchedule.title"></h3>
+                    <p class="text-xs text-slate-500 mt-1" x-text="modalSchedule.description || 'Latihan bersama rekan komunitas olahraga.'"></p>
+                </div>
+
+                {{-- Detail Box --}}
+                <div class="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 space-y-3 text-xs">
+                    <div class="flex items-start gap-2.5">
+                        <span class="text-base shrink-0">📅</span>
+                        <div>
+                            <span class="block font-bold text-slate-900" x-text="modalSchedule.dateFull"></span>
+                            <span class="text-slate-500 font-medium" x-text="modalSchedule.time"></span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-2.5">
+                        <span class="text-base shrink-0">📍</span>
+                        <div class="space-y-1">
+                            <span class="block font-bold text-slate-900" x-text="modalSchedule.location"></span>
+                            <template x-if="modalSchedule.mapsUrl">
+                                <a :href="modalSchedule.mapsUrl" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-blue-600 hover:underline font-bold">
+                                    <span>Buka di Google Maps</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-2.5">
+                        <span class="text-base shrink-0">👥</span>
+                        <div>
+                            <span class="block font-bold text-slate-900">Kapasitas Slot</span>
+                            <span class="text-slate-600" x-text="modalSchedule.capacity ? `${modalSchedule.registeredCount} peserta terdaftar · Sisa ${modalSchedule.remaining !== null ? modalSchedule.remaining : (modalSchedule.capacity - modalSchedule.registeredCount)} dari ${modalSchedule.capacity} slot` : `${modalSchedule.registeredCount} peserta terdaftar · Tanpa batas slot`"></span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Action Footer --}}
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+                    <button type="button" @click="scheduleModalOpen = false" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition">
+                        Tutup
+                    </button>
+
+                    <div>
+                        {{-- Jika sudah terdaftar --}}
+                        <template x-if="modalSchedule.isJoined">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                                    ✓ Terdaftar
+                                </span>
+                                <form method="POST" action="{{ route('user.participation.cancel') }}" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan keikutsertaan dalam jadwal ini?')">
+                                    @csrf
+                                    <input type="hidden" name="type" value="schedule">
+                                    <input type="hidden" name="id" :value="modalSchedule.id">
+                                    <button type="submit" class="px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">
+                                        Batalkan Pendaftaran
+                                    </button>
+                                </form>
+                            </div>
+                        </template>
+
+                        {{-- Jika belum terdaftar --}}
+                        <template x-if="!modalSchedule.isJoined">
+                            <form method="POST" :action="modalSchedule.joinUrl">
+                                @csrf
+                                <button type="submit"
+                                        :disabled="modalSchedule.isFull"
+                                        :class="modalSchedule.isFull ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'btn-primary'"
+                                        class="px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-xs"
+                                        x-text="modalSchedule.isFull ? 'Kuota Penuh' : 'Ikuti Sesi Ini →'">
+                                </button>
+                            </form>
+                        </template>
+                    </div>
+                </div>
+
+            </div>
+        </template>
     </div>
 
 </div>

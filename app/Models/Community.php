@@ -95,6 +95,17 @@ class Community extends Model
         return $this->hasMany(Schedule::class);
     }
 
+    public function blocks()
+    {
+        return $this->hasMany(CommunityBlock::class);
+    }
+
+    public function isUserBlocked(int|User $user): bool
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+        return $this->blocks()->where('user_id', $userId)->exists();
+    }
+
     public function scopeVerified($query)
     {
         return $query->where('verification_status', 'verified');

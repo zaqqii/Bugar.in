@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Community;
 use App\Models\CommunityMember;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class CommunityController extends Controller
 {
@@ -16,10 +17,27 @@ class CommunityController extends Controller
     {
         $community = Community::where('id', $id)
             ->orWhere('slug', $id)
-            ->with(['owner', 'events' => function ($q) {
-                $q->where('is_active', true)->orderBy('event_date', 'asc');
+            ->with(['owner', 'schedules' => function ($q) {
+                $today = Carbon::now(config('app.timezone', 'Asia/Jakarta'))->toDateString();
+                $q->where('is_active', true)
+                  ->whereNull('cancelled_at')
+                  ->whereNotIn('status', ['cancelled', 'completed'])
+                  ->whereDate('date', '>=', $today)
+                  ->orderBy('date', 'asc')
+                  ->orderBy('start_time', 'asc');
+            }, 'events' => function ($q) {
+                $q->where('is_active', true)
+                  ->whereIn('status', ['published', 'registration_closed', 'ongoing'])
+                  ->orderBy('event_date', 'asc');
             }, 'members.user'])
-            ->withCount(['members', 'followers', 'events'])
+            ->withCount([
+                'members',
+                'followers',
+                'events' => function ($q) {
+                    $q->where('is_active', true)
+                      ->whereIn('status', ['published', 'registration_closed', 'ongoing']);
+                }
+            ])
             ->firstOrFail();
 
         $isMember = auth()->check()
@@ -46,7 +64,15 @@ class CommunityController extends Controller
                 ->get();
         }
 
-        return view('user.community-detail', compact('community', 'isMember', 'isFollower', 'similarCommunities'));
+        $joinedScheduleIds = auth()->check()
+            ? \App\Models\Participant::where('user_id', auth()->id())
+                ->where('participatable_type', \App\Models\Schedule::class)
+                ->whereIn('status', ['registered', 'attended'])
+                ->pluck('participatable_id')
+                ->all()
+            : [];
+
+        return view('user.community-detail', compact('community', 'isMember', 'isFollower', 'similarCommunities', 'joinedScheduleIds'));
     }
 
     public function join($id)
