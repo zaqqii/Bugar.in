@@ -66,6 +66,7 @@ Route::prefix('auth/user')->name('auth.user.')->group(function () {
 use App\Http\Controllers\User\ProfileController;
 use App\Http\Controllers\PenyediaKomunitas\EventController as PenyediaEventController;
 use App\Http\Controllers\PenyediaKomunitas\AkunController as PenyediaAkunController;
+use App\Http\Controllers\PenyediaKomunitas\JadwalController as PenyediaJadwalController;
 
 // ============================================================
 // USER DASHBOARD & PROFILE ROUTES
@@ -77,21 +78,31 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::get('/explore', function () {
+        $today = \Carbon\Carbon::now(config('app.timezone', 'Asia/Jakarta'))->toDateString();
+        $joinedScheduleIds = auth()->check()
+            ? \App\Models\Participant::where('user_id', auth()->id())
+                ->where('participatable_type', \App\Models\Schedule::class)
+                ->whereIn('status', ['registered', 'attended'])
+                ->pluck('participatable_id')
+                ->all()
+            : [];
         return view('user.explore', [
-            'communities' => Community::with('schedules')->where('is_active', true)->paginate(6),
+            'communities' => Community::with(['schedules' => fn($q) => $q->where('is_active', true)->whereNull('cancelled_at')->whereNotIn('status', ['cancelled', 'completed'])->whereDate('date', '>=', $today)->orderBy('date')->orderBy('start_time')])->where('is_active', true)->paginate(6),
             'sportCategories' => Community::where('is_active', true)
                                 ->pluck('sport_category')
                                 ->map(fn($item) => trim($item))
                                 ->unique(fn($item) => strtolower($item))
                                 ->values(),
             'cities' => Community::distinct()->pluck('city'),
-            'totalActiveSessions' => Schedule::count(),
+            'totalActiveSessions' => Schedule::where('is_active', true)->whereNull('cancelled_at')->whereNotIn('status', ['cancelled', 'completed'])->whereDate('date', '>=', $today)->count(),
+            'joinedScheduleIds' => $joinedScheduleIds,
         ]);
     })->name('explore');
     Route::get('/communities/{id}', [CommunityController::class, 'show'])->name('communities.show');
     Route::post('/communities/{community}/follow', [DashboardController::class, 'followCommunity'])->name('communities.follow');
     Route::delete('/communities/{community}/unfollow', [DashboardController::class, 'unfollowCommunity'])->name('communities.unfollow');
     Route::post('/communities/{id}/join', [CommunityController::class, 'join'])->name('communities.join');
+    Route::get('/schedules/{schedule}/availability', [DashboardController::class, 'scheduleAvailability'])->name('schedules.availability');
     Route::post('/schedules/{schedule}/join', [DashboardController::class, 'joinSchedule'])->name('schedules.join');
     Route::post('/events/{event}/join', [DashboardController::class, 'joinEvent'])->name('events.join');
     Route::post('/participation/cancel', [DashboardController::class, 'cancelParticipation'])->name('participation.cancel');
@@ -121,7 +132,21 @@ Route::prefix('auth/penyedia-komunitas')->name('auth.penyedia-komunitas.')->grou
 Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware(['auth', 'community_owner'])->group(function () {
     Route::get('/dashboard', [PenyediaDashboardController::class, 'index'])->name('dashboard');
     Route::view('/komunitas', 'penyedia-komunitas.komunitas.index')->name('komunitas.index');
-    Route::view('/jadwal', 'penyedia-komunitas.jadwal.index')->name('jadwal.index');
+    Route::get('/jadwal', [PenyediaJadwalController::class, 'index'])->name('jadwal.index');
+    Route::get('/jadwal/create', [PenyediaJadwalController::class, 'create'])->name('jadwal.create');
+    Route::post('/jadwal', [PenyediaJadwalController::class, 'store'])->name('jadwal.store');
+    Route::get('/jadwal/blokir', [PenyediaJadwalController::class, 'blocksIndex'])->name('jadwal.blocks');
+    Route::delete('/jadwal/blokir/{block}', [PenyediaJadwalController::class, 'unblock'])->name('jadwal.unblock');
+    Route::get('/jadwal/{schedule}', [PenyediaJadwalController::class, 'show'])->name('jadwal.show');
+    Route::get('/jadwal/{schedule}/edit', [PenyediaJadwalController::class, 'edit'])->name('jadwal.edit');
+    Route::put('/jadwal/{schedule}', [PenyediaJadwalController::class, 'update'])->name('jadwal.update');
+    Route::delete('/jadwal/{schedule}', [PenyediaJadwalController::class, 'destroy'])->name('jadwal.destroy');
+    Route::patch('/jadwal/{schedule}/toggle-active', [PenyediaJadwalController::class, 'toggleActive'])->name('jadwal.toggle-active');
+    Route::patch('/jadwal/{schedule}/toggle-streak', [PenyediaJadwalController::class, 'toggleStreak'])->name('jadwal.toggle-streak');
+    Route::patch('/jadwal/{schedule}/cancel', [PenyediaJadwalController::class, 'cancel'])->name('jadwal.cancel');
+    Route::patch('/jadwal/{schedule}/cancel-series', [PenyediaJadwalController::class, 'cancelSeries'])->name('jadwal.cancel-series');
+    Route::delete('/jadwal/{schedule}/participants/{participant}', [PenyediaJadwalController::class, 'removeParticipant'])->name('jadwal.participants.remove');
+    Route::post('/jadwal/{schedule}/participants/{participant}/block', [PenyediaJadwalController::class, 'blockParticipant'])->name('jadwal.participants.block');
     Route::get('/events', [PenyediaEventController::class, 'index'])->name('events.index');
     Route::get('/events/create', [PenyediaEventController::class, 'create'])->name('events.create');
     Route::post('/events', [PenyediaEventController::class, 'store'])->name('events.store');

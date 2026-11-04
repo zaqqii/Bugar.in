@@ -9,6 +9,28 @@
         searchQuery: '',
         komunitasSubTab: 'komunitas', // 'komunitas' | 'jadwal'
         agendaItems: @js($agendaItems),
+        joinedScheduleIds: @js($joinedScheduleIds),
+        scheduleDetailModalOpen: false,
+        modalScheduleItem: null,
+        openScheduleDetail(item) {
+            if (!item) return;
+            this.modalScheduleItem = { ...item };
+            this.scheduleDetailModalOpen = true;
+            if (item.kind === 'schedule') {
+                const sId = item.raw_id || item.id.replace('schedule-', '');
+                fetch(`/user/schedules/${sId}/availability`)
+                    .then(res => res.json())
+                    .then(res => {
+                        if (this.modalScheduleItem) {
+                            this.modalScheduleItem.filled = res.registered_count;
+                            this.modalScheduleItem.remaining = res.remaining;
+                            this.modalScheduleItem.capacity = res.capacity;
+                            this.modalScheduleItem.is_full = res.is_full;
+                        }
+                    })
+                    .catch(() => {});
+            }
+        },
         agendaView: 'calendar',
         agendaTypeFilter: 'all',
         agendaCommunityFilter: 'all',
@@ -35,11 +57,7 @@
             if (this.agendaTypeFilter !== 'all' && item.type !== this.agendaTypeFilter) return false;
             if (this.agendaCommunityFilter !== 'all' && item.community !== this.agendaCommunityFilter) return false;
             if (this.agendaScheduleFilter === 'mine') {
-                // Hanya tampilkan item yang sudah diikuti user
-                const typePrefix = item.kind === 'event' ? 'App\\\\Models\\\\Event' : 'App\\\\Models\\\\Schedule';
-                const realId = item.id.replace('event-', '').replace('schedule-', '');
-                const key = `${typePrefix}-${realId}`;
-                return this.userParticipantKeys.includes(key);
+                return this.isJoinedItem(item);
             }
             if (this.agendaScheduleFilter === 'popular') {
                 return (item.capacity > 0 && (item.filled / item.capacity) >= 0.5) || item.filled >= 5;
@@ -48,8 +66,7 @@
         },
         agendaForDate(date) {
             const key = this.agendaDateKey(date);
-            return this.agendaItems.filter(item => this.agendaMatchesFilters(item) &&
-                (item.date === key || (item.kind === 'schedule' && item.day === date.getDay())));
+            return this.agendaItems.filter(item => this.agendaMatchesFilters(item) && item.date === key);
         },
         get agendaSelectedItem() {
             return this.agendaItems.find(item => item.id === this.agendaSelectedId && this.agendaMatchesFilters(item)) ||
@@ -78,9 +95,13 @@
             return upcoming;
         },
         isJoinedItem(item) {
-            const typePrefix = item.kind === 'event' ? 'App\\\\Models\\\\Event' : 'App\\\\Models\\\\Schedule';
-            const realId = item.id.replace('event-', '').replace('schedule-', '');
-            return this.userParticipantKeys.includes(`${typePrefix}-${realId}`);
+            if (!item) return false;
+            if (item.kind === 'schedule') {
+                const sId = parseInt(item.raw_id || item.id.replace('schedule-', ''));
+                return this.joinedScheduleIds.includes(sId);
+            }
+            const realId = item.id.replace('event-', '');
+            return this.userParticipantKeys.includes(`App\\Models\\Event-${realId}`);
         },
         leaderboardMetric: 'points',
         leaderboardUsers: @js($leaderboardUsers->map(fn($rankedUser) => [
@@ -157,6 +178,12 @@
     }" class="space-y-8 w-full max-w-7xl">
 
         {{-- Flash messages --}}
+        @if(session('error'))
+            <div role="status" class="flex items-start gap-3 rounded-2xl bg-rose-50 border border-rose-200 p-4 text-sm font-semibold text-rose-800 shadow-xs">
+                <span class="flex-shrink-0 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs font-bold">!</span>
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
         @if(session('success'))
             <div role="status" class="flex items-start gap-3 rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-sm font-semibold text-emerald-800 shadow-xs">
                 <span class="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">✓</span>
@@ -172,6 +199,18 @@
         @if(session('status') || session('streak_error') || session('participation_error'))
             <div role="status" class="rounded-xl {{ session('streak_error') || session('participation_error') ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-700' }} p-4 text-sm font-semibold">
                 {{ session('status') ?? session('streak_error') ?? session('participation_error') }}
+            </div>
+        @endif
+
+        @if(Auth::user()->isJoinBlocked())
+            <div role="alert" class="flex items-start gap-3 rounded-2xl bg-amber-50 border border-amber-200 p-4 sm:p-5 text-sm font-semibold text-amber-900 shadow-xs">
+                <span class="flex-shrink-0 text-2xl">⚠️</span>
+                <div>
+                    <h4 class="font-bold text-sm sm:text-base text-amber-950">Pendaftaran Jadwal Sedang Dibatasi</h4>
+                    <p class="mt-0.5 text-xs text-amber-800">
+                        Akun Anda terkena sanksi pembatasan pendaftaran jadwal hingga <strong>{{ Auth::user()->join_blocked_until->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d F Y, H:i') }} WIB</strong> karena akumulasi ketidakhadiran (no-show).
+                    </p>
+                </div>
             </div>
         @endif
 
@@ -306,7 +345,12 @@
                                 <span class="text-xs" x-text="date.getDate()"></span>
                                 <div class="mt-1 space-y-1">
                                     <template x-for="item in agendaForDate(date).slice(0, 2)" :key="item.id">
-                                        <span :class="item.type === 'latihan_rutin' ? 'bg-blue-100/90 text-blue-800' : (item.type === 'fun_match' ? 'bg-cyan-100/90 text-cyan-800' : 'bg-amber-100/90 text-amber-800')" class="block truncate rounded-md px-1 py-0.5 text-[9px] font-semibold" x-text="`${item.start} ${item.title}`"></span>
+                                        <button type="button"
+                                                @click.stop="agendaSelectDate(date); agendaSelectedId = item.id; openScheduleDetail(item)"
+                                                :class="item.type === 'latihan_rutin' ? 'bg-blue-100/90 text-blue-800 hover:bg-blue-200' : (item.type === 'fun_match' ? 'bg-cyan-100/90 text-cyan-800 hover:bg-cyan-200' : 'bg-amber-100/90 text-amber-800 hover:bg-amber-200')"
+                                                class="block w-full text-left truncate rounded-md px-1 py-0.5 text-[9px] font-semibold cursor-pointer transition"
+                                                x-text="`${item.start} ${item.title}`">
+                                        </button>
                                     </template>
                                     <span x-show="agendaForDate(date).length > 2" class="block text-[9px] text-slate-500" x-text="`+${agendaForDate(date).length - 2} agenda`"></span>
                                 </div>
@@ -321,7 +365,7 @@
                     <div x-show="agendaUpcoming.length === 0" class="rounded-xl bg-blue-50/50 border border-blue-100 p-6 text-center text-sm text-slate-500">Belum ada agenda olahraga yang sesuai filter.</div>
                     <div class="max-h-[680px] space-y-3 overflow-y-auto pr-1">
                         <template x-for="item in agendaUpcoming" :key="`${item.id}-${item.occurrenceDate}`">
-                            <button type="button" @click="agendaSelectedDate = item.occurrenceDate; agendaSelectedId = item.id; agendaMonth = new Date(`${item.occurrenceDate}T00:00:00`); agendaView = 'calendar'" class="w-full rounded-xl border border-slate-100 bg-white/90 p-4 text-left transition hover:border-blue-300 hover:shadow-xs">
+                            <button type="button" @click="agendaSelectedDate = item.occurrenceDate; agendaSelectedId = item.id; agendaMonth = new Date(`${item.occurrenceDate}T00:00:00`); openScheduleDetail(item)" class="w-full rounded-xl border border-slate-100 bg-white/90 p-4 text-left transition hover:border-blue-300 hover:shadow-xs">
                                 <span class="text-[11px] font-bold uppercase text-blue-600" x-text="new Date(`${item.occurrenceDate}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })"></span>
                                 <span class="mt-1 block font-bold text-slate-900" x-text="item.title"></span>
                                 <span class="mt-1 block text-xs text-slate-500" x-text="`${item.start} WIB · ${item.community}`"></span>
@@ -335,31 +379,51 @@
                         <template x-if="agendaSelectedItem">
                             <div>
                                 <div class="mb-4 flex items-start justify-between gap-3">
-                                    <span :class="agendaSelectedItem.type === 'latihan_rutin' ? 'bg-blue-100 text-blue-700' : 'bg-cyan-100 text-cyan-700'" class="rounded-full px-3 py-1 text-[10px] font-bold" x-text="agendaSelectedItem.type === 'latihan_rutin' ? 'Latihan Rutin' : agendaSelectedItem.type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')"></span>
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span :class="agendaSelectedItem.type === 'latihan_rutin' ? 'bg-blue-100 text-blue-700' : 'bg-cyan-100 text-cyan-700'" class="rounded-full px-3 py-1 text-[10px] font-bold" x-text="agendaSelectedItem.type === 'latihan_rutin' ? 'Latihan Rutin' : agendaSelectedItem.type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')"></span>
+                                        <span x-show="agendaSelectedItem.level_label" :class="agendaSelectedItem.level_badge_class || 'bg-slate-100 text-slate-700 border-slate-200'" class="rounded-full px-2.5 py-0.5 text-[10px] font-bold border" x-text="agendaSelectedItem.level_label"></span>
+                                        <span x-show="agendaSelectedItem.is_recurring" class="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700">🔗 Seri</span>
+                                        <span x-show="agendaSelectedItem.streak_enabled" class="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">🔥 Streak Aktif</span>
+                                    </div>
                                     <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-600" x-text="agendaSelectedItem.sport"></span>
                                 </div>
                                 <h4 class="text-2xl font-extrabold leading-tight text-slate-900" x-text="agendaSelectedItem.title"></h4>
                                 <p class="mt-2 text-sm text-slate-500" x-text="agendaSelectedItem.description || `Kegiatan olahraga bersama ${agendaSelectedItem.community}.`"></p>
                                 <div class="mt-5 space-y-4 rounded-xl bg-blue-50/70 border border-blue-100 p-4">
-                                    <div><span class="block text-[10px] font-bold uppercase text-slate-400">Waktu &amp; Tanggal</span><strong class="mt-1 block text-sm text-slate-800" x-text="agendaSelectedItem.kind === 'event' ? new Date(`${agendaSelectedItem.date}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : `${['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][agendaSelectedItem.day]}, ${agendaSelectedItem.start} WIB`"></strong><span class="text-xs text-slate-500" x-text="`${agendaSelectedItem.start}${agendaSelectedItem.end ? ` – ${agendaSelectedItem.end}` : ''} WIB`"></span></div>
+                                    <div><span class="block text-[10px] font-bold uppercase text-slate-400">Waktu &amp; Tanggal</span><strong class="mt-1 block text-sm text-slate-800" x-text="agendaSelectedItem.date ? new Date(`${agendaSelectedItem.date}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : `${agendaSelectedItem.start} WIB`"></strong><span class="text-xs text-slate-500" x-text="`${agendaSelectedItem.start}${agendaSelectedItem.end ? ` – ${agendaSelectedItem.end}` : ''} WIB`"></span></div>
                                     <div><span class="block text-[10px] font-bold uppercase text-slate-400">Titik Kumpul</span><strong class="mt-1 block text-sm text-slate-800" x-text="agendaSelectedItem.location || 'Lokasi belum ditentukan'"></strong><span class="text-xs text-slate-500" x-text="agendaSelectedItem.community"></span></div>
-                                    <div><span class="block text-[10px] font-bold uppercase text-slate-400">Kapasitas Slot</span><strong class="mt-1 block text-sm text-slate-800" x-text="agendaSelectedItem.capacity ? `${agendaSelectedItem.filled}/${agendaSelectedItem.capacity} Peserta` : 'Tanpa batas peserta'"></strong></div>
+                                    <div><span class="block text-[10px] font-bold uppercase text-slate-400">Kapasitas Slot</span><strong class="mt-1 block text-sm text-slate-800" x-text="agendaSelectedItem.capacity ? `${agendaSelectedItem.filled}/${agendaSelectedItem.capacity} Peserta (Sisa: ${agendaSelectedItem.remaining !== null ? agendaSelectedItem.remaining : (agendaSelectedItem.capacity - agendaSelectedItem.filled)})` : `${agendaSelectedItem.filled} Peserta (Tanpa batas slot)`"></strong></div>
                                 </div>
                                 <a x-show="agendaSelectedItem.maps_url" :href="agendaSelectedItem.maps_url" target="_blank" rel="noopener noreferrer" class="mt-5 block w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 px-4 py-3 text-center text-sm font-bold text-white shadow-md shadow-blue-500/20 transition-all">Buka Peta Lokasi <span aria-hidden="true">→</span></a>
 
                                 {{-- Status join / tombol join berdasarkan item yang dipilih --}}
-                                <div class="mt-3" x-show="agendaSelectedItem">
+                                <div class="mt-3 space-y-2" x-show="agendaSelectedItem">
                                     <div x-show="isJoinedItem(agendaSelectedItem)"
-                                         class="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-800">
-                                        <span class="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
-                                        Kamu sudah mendaftar kegiatan ini
+                                         class="flex items-center justify-between gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                                        <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
+                                            <span class="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
+                                            <span x-text="agendaSelectedItem.is_finished ? 'Terdaftar (Selesai)' : 'Terdaftar'"></span>
+                                        </div>
+                                        <template x-if="agendaSelectedItem && agendaSelectedItem.kind === 'schedule' && !agendaSelectedItem.is_finished">
+                                            <form method="POST" action="{{ route('user.participation.cancel') }}" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan keikutsertaan dalam jadwal ini?')">
+                                                @csrf
+                                                <input type="hidden" name="type" value="schedule">
+                                                <input type="hidden" name="id" :value="agendaSelectedItem.raw_id || agendaSelectedItem.id.replace('schedule-','')">
+                                                <button type="submit" class="px-2.5 py-1 rounded-lg border border-rose-200 bg-white hover:bg-rose-50 text-rose-700 text-xs font-bold transition">
+                                                    Batalkan
+                                                </button>
+                                            </form>
+                                        </template>
                                     </div>
                                     <div x-show="!isJoinedItem(agendaSelectedItem)" class="space-y-2">
                                         <template x-if="agendaSelectedItem && agendaSelectedItem.kind === 'schedule'">
-                                            <form method="POST" :action="`/user/schedules/${agendaSelectedItem.id.replace('schedule-','')}/join`">
+                                            <form method="POST" :action="`/user/schedules/${agendaSelectedItem.raw_id || agendaSelectedItem.id.replace('schedule-','')}/join`">
                                                 @csrf
-                                                <button type="submit" class="w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:brightness-105 px-4 py-3 text-center text-sm font-bold text-white shadow-xs transition-all">
-                                                    Ikuti Sesi Latihan Ini →
+                                                <button type="submit"
+                                                        :disabled="(agendaSelectedItem.capacity && agendaSelectedItem.filled >= agendaSelectedItem.capacity) || agendaSelectedItem.is_finished"
+                                                        :class="((agendaSelectedItem.capacity && agendaSelectedItem.filled >= agendaSelectedItem.capacity) || agendaSelectedItem.is_finished) ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:brightness-105 text-white'"
+                                                        class="w-full rounded-xl px-4 py-3 text-center text-sm font-bold shadow-xs transition-all"
+                                                        x-text="agendaSelectedItem.is_finished ? 'Sesi Telah Selesai' : ((agendaSelectedItem.capacity && agendaSelectedItem.filled >= agendaSelectedItem.capacity) ? 'Kuota Peserta Penuh' : 'Ikuti Sesi Latihan Ini →')">
                                                 </button>
                                             </form>
                                         </template>
@@ -372,6 +436,11 @@
                                             </form>
                                         </template>
                                     </div>
+
+                                    <button type="button" @click="openScheduleDetail(agendaSelectedItem)" class="w-full py-2 px-3 rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-700 text-xs font-bold transition flex items-center justify-center gap-1.5">
+                                        <span>Buka Modal Detail</span>
+                                        <span>&rarr;</span>
+                                    </button>
                                 </div>
                             </div>
                         </template>
@@ -386,6 +455,129 @@
                         <div class="mt-3 flex flex-wrap gap-2 text-xs"><span class="rounded-full bg-blue-50 border border-blue-100 px-3 py-1.5 text-blue-700 font-semibold">{{ $schedules->count() }} latihan rutin</span><span class="rounded-full bg-cyan-50 border border-cyan-100 px-3 py-1.5 text-cyan-700 font-semibold">{{ $events->count() }} event</span></div>
                     </div>
                 </aside>
+            </div>
+
+            {{-- MODAL DETAIL JADWAL / AGENDA --}}
+            <div x-show="scheduleDetailModalOpen"
+                 x-cloak
+                 class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+                 @keydown.escape.window="scheduleDetailModalOpen = false">
+                <template x-if="modalScheduleItem">
+                    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 relative space-y-5"
+                         @click.away="scheduleDetailModalOpen = false">
+                        
+                        {{-- Close button --}}
+                        <button type="button" @click="scheduleDetailModalOpen = false" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+
+                        {{-- Badges --}}
+                        <div class="flex items-center gap-2 flex-wrap pr-8">
+                            <span :class="modalScheduleItem.type === 'latihan_rutin' ? 'bg-blue-100 text-blue-700' : 'bg-cyan-100 text-cyan-700'" class="rounded-full px-2.5 py-0.5 text-[10px] font-bold" x-text="modalScheduleItem.type === 'latihan_rutin' ? 'Latihan Rutin' : modalScheduleItem.type"></span>
+                            <span x-show="modalScheduleItem.level_label" :class="modalScheduleItem.level_badge_class || 'bg-slate-100 text-slate-700 border-slate-200'" class="rounded-full px-2.5 py-0.5 text-[10px] font-bold border" x-text="modalScheduleItem.level_label"></span>
+                            <span x-show="modalScheduleItem.is_recurring" class="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700">🔗 Seri</span>
+                            <span x-show="modalScheduleItem.streak_enabled" class="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">🔥 Streak Aktif</span>
+                            <span x-show="modalScheduleItem.is_finished" class="rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">✓ Selesai</span>
+                        </div>
+
+                        {{-- Judul & Deskripsi --}}
+                        <div>
+                            <h3 class="text-xl font-extrabold text-slate-900 leading-snug" x-text="modalScheduleItem.title"></h3>
+                            <p class="text-xs text-slate-500 mt-1" x-text="modalScheduleItem.description || `Kegiatan olahraga bersama ${modalScheduleItem.community}.`"></p>
+                        </div>
+
+                        {{-- Detail Box --}}
+                        <div class="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 space-y-3 text-xs">
+                            <div class="flex items-start gap-2.5">
+                                <span class="text-base shrink-0">📅</span>
+                                <div>
+                                    <span class="block font-bold text-slate-900" x-text="modalScheduleItem.date_formatted || (modalScheduleItem.date ? new Date(`${modalScheduleItem.date}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : `${modalScheduleItem.start} WIB`)"></span>
+                                    <span class="text-slate-500 font-medium" x-text="`${modalScheduleItem.start}${modalScheduleItem.end ? ` – ${modalScheduleItem.end}` : ''} WIB`"></span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-2.5">
+                                <span class="text-base shrink-0">📍</span>
+                                <div class="space-y-1">
+                                    <span class="block font-bold text-slate-900" x-text="modalScheduleItem.location || 'Lokasi belum ditentukan'"></span>
+                                    <span class="text-slate-500 block" x-text="modalScheduleItem.community"></span>
+                                    <template x-if="modalScheduleItem.maps_url">
+                                        <a :href="modalScheduleItem.maps_url" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-blue-600 hover:underline font-bold">
+                                            <span>Buka di Google Maps</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                        </a>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-2.5">
+                                <span class="text-base shrink-0">👥</span>
+                                <div>
+                                    <span class="block font-bold text-slate-900">Kapasitas Slot</span>
+                                    <span class="text-slate-600" x-text="modalScheduleItem.capacity ? `${modalScheduleItem.filled} peserta terdaftar · Sisa ${modalScheduleItem.remaining !== null ? modalScheduleItem.remaining : (modalScheduleItem.capacity - modalScheduleItem.filled)} dari ${modalScheduleItem.capacity} slot` : `${modalScheduleItem.filled} peserta terdaftar · Tanpa batas slot`"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Action Footer --}}
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+                            <button type="button" @click="scheduleDetailModalOpen = false" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition">
+                                Tutup
+                            </button>
+
+                            <div>
+                                {{-- Jika sudah terdaftar --}}
+                                <template x-if="isJoinedItem(modalScheduleItem)">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                                            ✓ Terdaftar
+                                        </span>
+                                        <template x-if="modalScheduleItem.kind === 'schedule' && !modalScheduleItem.is_finished">
+                                            <form method="POST" action="{{ route('user.participation.cancel') }}" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan keikutsertaan dalam jadwal ini?')">
+                                                @csrf
+                                                <input type="hidden" name="type" value="schedule">
+                                                <input type="hidden" name="id" :value="modalScheduleItem.raw_id || modalScheduleItem.id.replace('schedule-','')">
+                                                <button type="submit" class="px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">
+                                                    Batalkan
+                                                </button>
+                                            </form>
+                                        </template>
+                                    </div>
+                                </template>
+
+                                {{-- Jika belum terdaftar --}}
+                                <template x-if="!isJoinedItem(modalScheduleItem)">
+                                    <div class="space-y-2">
+                                        <template x-if="modalScheduleItem.kind === 'schedule'">
+                                            <form method="POST" :action="`/user/schedules/${modalScheduleItem.raw_id || modalScheduleItem.id.replace('schedule-','')}/join`">
+                                                @csrf
+                                                <button type="submit"
+                                                        :disabled="(modalScheduleItem.capacity && modalScheduleItem.filled >= modalScheduleItem.capacity) || modalScheduleItem.is_finished"
+                                                        :class="((modalScheduleItem.capacity && modalScheduleItem.filled >= modalScheduleItem.capacity) || modalScheduleItem.is_finished) ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'btn-primary'"
+                                                        class="px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-xs"
+                                                        x-text="modalScheduleItem.is_finished ? 'Sesi Telah Selesai' : ((modalScheduleItem.capacity && modalScheduleItem.filled >= modalScheduleItem.capacity) ? 'Kuota Penuh' : 'Ikuti Sesi Ini →')">
+                                                </button>
+                                            </form>
+                                        </template>
+                                        <template x-if="modalScheduleItem.kind === 'event'">
+                                            <form method="POST" :action="`/user/events/${modalScheduleItem.id.replace('event-','')}/join`">
+                                                @csrf
+                                                <button type="submit" class="btn-primary px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-xs">
+                                                    Daftar Event Ini →
+                                                </button>
+                                            </form>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                    </div>
+                </template>
             </div>
         </section>
 
@@ -740,12 +932,29 @@
                                     @php
                                         $schKey = \App\Models\Schedule::class . '-' . $sch->id;
                                         $schParticipant = $userParticipants[$schKey] ?? null;
+                                        $schDateFormatted = $sch->date ? $sch->date->locale('id')->isoFormat('ddd, D MMM') : $sch->dayLabel();
+                                        $isFull = $sch->capacity !== null && $sch->activeParticipantsCount() >= $sch->capacity;
                                     @endphp
                                     <div class="p-3.5 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-white hover:border-blue-200 transition-all flex items-center justify-between gap-3">
                                         <div class="min-w-0">
-                                            <span class="text-[10px] font-bold text-cyan-600 uppercase tracking-wider block">
-                                                {{ $sch->dayLabel() }} &bull; {{ substr($sch->start_time, 0, 5) }}–{{ substr($sch->end_time, 0, 5) }} WIB
-                                            </span>
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="text-[10px] font-bold text-cyan-600 uppercase tracking-wider">
+                                                    {{ $schDateFormatted }} &bull; {{ substr($sch->start_time, 0, 5) }}–{{ substr($sch->end_time, 0, 5) }} WIB
+                                                </span>
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold border {{ $sch->levelBadgeClass() }}">
+                                                    {{ $sch->levelLabel() }}
+                                                </span>
+                                                @if($sch->series_id)
+                                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[9px] font-bold">
+                                                        🔗 Seri
+                                                    </span>
+                                                @endif
+                                                @if($sch->streak_enabled)
+                                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold">
+                                                        🔥 Streak
+                                                    </span>
+                                                @endif
+                                            </div>
                                             <h4 class="text-xs font-bold text-slate-900 truncate mt-0.5">{{ $sch->title }}</h4>
                                             <p class="text-[11px] text-slate-500 truncate mt-0.5">
                                                 {{ $sch->community?->name ?? 'Komunitas' }} &bull; {{ $sch->location ?? 'Lokasi belum ditentukan' }}
@@ -754,6 +963,10 @@
                                         @if($schParticipant)
                                             <span class="flex-shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold {{ $schParticipant->status === 'waiting_list' ? 'text-amber-700 bg-amber-50' : 'text-emerald-700 bg-emerald-50' }} rounded-lg px-2.5 py-1.5 border {{ $schParticipant->status === 'waiting_list' ? 'border-amber-100' : 'border-emerald-100' }}">
                                                 {{ $schParticipant->status === 'waiting_list' ? '⏳ Menunggu' : '✓ Terdaftar' }}
+                                            </span>
+                                        @elseif($isFull)
+                                            <span class="flex-shrink-0 inline-flex items-center text-[10px] font-bold text-slate-500 bg-slate-100 rounded-lg px-2.5 py-1.5 border border-slate-200">
+                                                Penuh
                                             </span>
                                         @else
                                             <form method="POST" action="{{ route('user.schedules.join', $sch) }}" class="flex-shrink-0">
