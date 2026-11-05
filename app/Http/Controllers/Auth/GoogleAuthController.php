@@ -236,8 +236,8 @@ class GoogleAuthController extends Controller
         Auth::login($user, remember: true);
         $request->session()->regenerate();
 
-        return redirect()->route('user.dashboard')
-            ->with('success', 'Akun berhasil dibuat! Selamat datang di Bugar.in, ' . $user->name . '.');
+        return redirect()->route('user.onboarding.sports')
+            ->with('success', 'Akun berhasil dibuat! Silakan tentukan cabang olahraga minatmu.');
     }
 
     /**
@@ -339,8 +339,8 @@ class GoogleAuthController extends Controller
                 'city'                => $request->kota,
                 'contact_email'       => $googleData['email'],
                 'contact_phone'       => $request->whatsapp,
-                'verification_status' => 'verified',
-                'verified_at'         => now(),
+                'verification_status' => 'pending',
+                'verified_at'         => null,
                 'is_active'           => true,
                 'is_public'           => true,
             ]);

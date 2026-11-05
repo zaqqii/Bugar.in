@@ -156,6 +156,29 @@ Load dari Google Fonts. Selalu gunakan Plus Jakarta Sans untuk semua halaman use
 - Hari ini: Royal Blue background
 - Streak flame 🔥 hanya jika streak > 3 hari
 
+### 4.6 Gerak Poin
+
+- Tampilkan perolehan poin pada feedback sukses setelah pengguna mengajukan ikut jadwal.
+- Tampilkan bonus login harian sebagai status singkat yang mudah dibedakan dari saldo poin.
+- Gunakan aksen Lime Energy (`#84CC16`) untuk angka bonus; pertahankan teks utama Dark Slate agar terbaca.
+
+### 4.7 Level Pengguna
+
+- Level dihitung dari saldo Gerak Poin ditambah bonus progres berdasarkan rekor streak terpanjang.
+- Setiap 7 hari rekor streak memberi 20 skor level; setiap 300 skor menaikkan level.
+- Tampilkan level, kontribusi poin dan streak, serta progress bar menuju level berikutnya pada dashboard dan profil.
+- Bonus streak adalah skor progres saja, tidak mengubah saldo Gerak Poin.
+- Benefit level belum ditampilkan sampai aturan benefit ditentukan.
+- Gunakan Royal Blue/Cyan untuk identitas level dan Lime Energy untuk aksen progres atau bonus.
+
+### 4.8 Pengumuman & Pengingat Kegiatan
+
+- Letakkan pengumuman pengingat pada bagian atas halaman dashboard user.
+- Ingatkan user tentang event atau jadwal rutin dengan pendaftaran aktif (`registered` atau `waiting_list`), sekitar 24 jam sebelum waktu kegiatan.
+- Tampilkan judul kegiatan, waktu, komunitas/lokasi bila tersedia, status sudah dibaca, dan aksi tandai dibaca.
+- Gunakan aksen Cyan untuk pengingat event dan Royal Blue untuk jadwal rutin.
+- Job dijalankan setiap hari pukul 08.00 WIB; scheduler Laravel dan queue worker harus berjalan agar pengingat dibuat otomatis.
+
 ---
 
 ## 5. Spacing & Layout

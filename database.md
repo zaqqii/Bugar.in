@@ -158,6 +158,10 @@ users 1─N bmi_records
 | average_rating | numeric(3,2) | wajib, default 0 (counter) |
 | ratings_count | integer | wajib, default 0 (counter) |
 | verification_status | varchar(255) | wajib, default `pending` |
+| verification_type | varchar(255) | opsional (`paid`, `free_followers`) |
+| verification_fee | numeric(10,2) | opsional, biaya verifikasi jika berbayar |
+| verification_payment_method | varchar(255) | opsional, metode pembayaran verifikasi |
+| verification_requested_at | timestamp | opsional |
 | rejection_reason | text | opsional |
 | verified_at | timestamp | opsional |
 | is_active | boolean | wajib, default true |
@@ -325,6 +329,8 @@ Unik: (`user_id`, `sport_category`).
 
 Tabel ini custom, bukan format bawaan Laravel Notifications (channel `database` memakai `id` uuid dan skema berbeda). Jangan memakai `$user->notify()` ke channel database tanpa menyesuaikan.
 
+Pengingat event dan jadwal disimpan dengan `type` `event_reminder` / `schedule_reminder`, `user_id` sebagai penerima, serta polymorphic `notifiable_*` sebagai event/jadwal sumber. `data.occurrence_date` menjadi kunci deduplikasi per pendaftar dan per kejadian. Peserta berstatus `registered` atau `waiting_list` menerima pengingat; `waiting_payment`, `cancelled`, `attended`, dan `no_show` tidak. Job harian membersihkan pengingat lebih dari 30 hari; tabel `jobs` sudah disediakan oleh migration dasar.
+
 ### audit_logs
 | Kolom | Tipe | Catatan |
 |---|---|---|
@@ -404,6 +410,8 @@ CASCADE hanya berjalan pada hard delete. Soft delete (`deleted_at`) tidak memicu
 6. **Komunitas baru berstatus `pending`** sampai admin memverifikasi. Tampilan dan fitur penyedia sebaiknya menyesuaikan status ini.
 7. `events.registration_fee` ada di schema, tetapi sistem pembayaran di luar scope proyek. Perlakukan sebagai informasi tampilan, default 0.
 8. `community_ratings.rating` tidak dibatasi di DB, validasi 1–5 dilakukan di aplikasi.
+9. **Gerak Poin pengguna:** login harian memberi 2 poin satu kali per tanggal Asia/Jakarta; permintaan ikut jadwal memberi 15 poin jika komunitas `verified`, selain itu 10 poin. Poin jadwal hanya diberikan sekali per pengguna per jadwal, termasuk setelah batal dan daftar ulang. Simpan ledger dengan `points_histories.source = other` dan deskripsi yang menjelaskan aktivitas; update `users.total_points` dan ledger dalam transaksi yang sama. Jadwal berulang belum memberi poin kehadiran per sesi sampai sesi bertanggal tersedia di schema.
+10. **Level pengguna:** level dihitung saat halaman dimuat, tanpa tabel atau migration tambahan. Skor level = `users.total_points` + 20 skor untuk setiap 7 hari dari `MAX(streaks.longest_streak)` lintas kategori olahraga. Setiap 300 skor menaikkan level. Bonus streak hanya untuk progres level, tidak ditambahkan ke saldo Gerak Poin/ledger. Gunakan rekor terpanjang agar level tidak turun saat streak aktif terputus. Benefit level belum ditetapkan.
 
 ## Cara mengubah schema
 

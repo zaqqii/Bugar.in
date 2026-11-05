@@ -59,7 +59,22 @@ return [
             'throw' => false,
             'report' => false,
             'http' => [
-                'verify' => env('AWS_VERIFY_SSL', file_exists('C:\xampp\perl\vendor\lib\Mozilla\CA\cacert.pem') ? 'C:\xampp\perl\vendor\lib\Mozilla\CA\cacert.pem' : true),
+                'verify' => (function () {
+                    $envVerify = env('AWS_VERIFY_SSL');
+                    if ($envVerify !== null) {
+                        return filter_var($envVerify, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $envVerify;
+                    }
+                    if (($ca = ini_get('curl.cainfo')) && file_exists($ca)) return $ca;
+                    if (($ca = ini_get('openssl.cafile')) && file_exists($ca)) return $ca;
+                    foreach ([
+                        'C:\xampp\apache\bin\curl-ca-bundle.crt',
+                        'C:\xampp\perl\vendor\lib\Mozilla\CA\cacert.pem',
+                        'C:\laragon\etc\ssl\cacert.pem',
+                    ] as $path) {
+                        if (file_exists($path)) return $path;
+                    }
+                    return PHP_OS_FAMILY === 'Windows' ? false : true;
+                })(),
             ],
         ],
 
@@ -74,7 +89,22 @@ return [
             'throw' => false,
             'report' => false,
             'http' => [
-                'verify' => env('AWS_VERIFY_SSL', file_exists('C:\xampp\perl\vendor\lib\Mozilla\CA\cacert.pem') ? 'C:\xampp\perl\vendor\lib\Mozilla\CA\cacert.pem' : true),
+                'verify' => (function () {
+                    $envVerify = env('AWS_VERIFY_SSL');
+                    if ($envVerify !== null) {
+                        return filter_var($envVerify, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $envVerify;
+                    }
+                    if (($ca = ini_get('curl.cainfo')) && file_exists($ca)) return $ca;
+                    if (($ca = ini_get('openssl.cafile')) && file_exists($ca)) return $ca;
+                    foreach ([
+                        'C:\xampp\apache\bin\curl-ca-bundle.crt',
+                        'C:\xampp\perl\vendor\lib\Mozilla\CA\cacert.pem',
+                        'C:\laragon\etc\ssl\cacert.pem',
+                    ] as $path) {
+                        if (file_exists($path)) return $path;
+                    }
+                    return PHP_OS_FAMILY === 'Windows' ? false : true;
+                })(),
             ],
         ],
 

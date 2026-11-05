@@ -19,7 +19,7 @@ class Participant extends Model
 
     protected $casts = [
         'registered_at' => 'datetime',
-        'cancelled_at' => 'datetime',
+        'cancelled_at'  => 'datetime',
     ];
 
     public function user()
@@ -34,6 +34,37 @@ class Participant extends Model
 
     public function scopeActive($query)
     {
-        return $query->whereIn('status', ['registered', 'attended']);
+        return $query->whereIn('status', ['registered', 'attended', 'waiting_list', 'waiting_payment']);
+    }
+
+    public function scopeWaitingConfirmation($query)
+    {
+        return $query->whereIn('status', ['waiting_list', 'waiting_payment']);
+    }
+
+    public function statusLabel(): string
+    {
+        return match ($this->status) {
+            'registered'      => 'Terdaftar',
+            'waiting_list'    => 'Menunggu Konfirmasi',
+            'waiting_payment' => 'Menunggu Pembayaran',
+            'cancelled'       => 'Dibatalkan',
+            'attended'        => 'Hadir',
+            'no_show'         => 'Tidak Hadir',
+            default           => ucfirst($this->status),
+        };
+    }
+
+    public function statusColor(): string
+    {
+        return match ($this->status) {
+            'registered'      => 'blue',
+            'waiting_list'    => 'amber',
+            'waiting_payment' => 'orange',
+            'cancelled'       => 'slate',
+            'attended'        => 'emerald',
+            'no_show'         => 'red',
+            default           => 'slate',
+        };
     }
 }

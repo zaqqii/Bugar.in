@@ -3,19 +3,81 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\Streak;
 use App\Models\User;
+use App\Services\UserLevelService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
     /**
+     * Tampilkan formulir pemilihan cabang olahraga setelah registrasi akun baru.
+     */
+    public function showOnboardingSports(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if (!$user || $user->role !== 'user') {
+            return redirect()->route('landing');
+        }
+
+        $availableSports = User::availableSports();
+        $userSports = $user->sports ?? [];
+
+        return view('user.onboarding-sports', compact('user', 'availableSports', 'userSports'));
+    }
+
+    /**
+     * Simpan preferensi cabang olahraga dari halaman onboarding.
+     */
+    public function saveOnboardingSports(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if (!$user || $user->role !== 'user') {
+            return redirect()->route('landing');
+        }
+
+        $validated = $request->validate([
+            'sports' => 'nullable|array',
+            'sports.*' => 'string|max:50',
+            'fitness_level' => 'nullable|string|in:beginner,intermediate,advanced,elite',
+            'weekly_target' => 'nullable|string|in:1-2,3-4,5-6,7',
+        ]);
+
+        $selectedSports = $validated['sports'] ?? [];
+
+        $user->update([
+            'sports' => $selectedSports,
+            'fitness_level' => $validated['fitness_level'] ?? $user->fitness_level ?? 'intermediate',
+            'weekly_target' => $validated['weekly_target'] ?? $user->weekly_target ?? '3-4',
+        ]);
+
+        // Inisialisasi streak awal untuk cabang olahraga yang dipilih
+        if (!empty($selectedSports)) {
+            foreach ($selectedSports as $sport) {
+                if (is_string($sport) && !empty($sport)) {
+                    Streak::firstOrCreate(
+                        ['user_id' => $user->id, 'sport_category' => $sport],
+                        ['current_streak' => 0, 'longest_streak' => 0]
+                    );
+                }
+            }
+        }
+
+        return redirect()->route('user.dashboard')
+            ->with('success', 'Preferensi olahraga kamu berhasil disimpan! Selamat datang di Bugar.in, ' . $user->name . '.');
+    }
+
+    /**
      * Tampilkan halaman Edit Profil pengguna yang sedang login.
      */
-    public function edit(Request $request)
+    public function edit(Request $request, UserLevelService $levelService)
     {
         /** @var User $user */
         $user = Auth::user();
@@ -48,12 +110,17 @@ class ProfileController extends Controller
             $consistencyTrend = '+18%';
         }
 
+        $availableSports = User::availableSports();
+        $levelProgress = $levelService->progress($user);
+
         return view('user.edit_profile', compact(
             'user',
             'currentStreak',
             'streakPoints',
             'consistencyRate',
-            'consistencyTrend'
+            'consistencyTrend',
+            'availableSports',
+            'levelProgress'
         ));
     }
 
@@ -88,6 +155,8 @@ class ProfileController extends Controller
             $validated['avatar'] = $avatarPath;
         }
 
+        $newSports = $request->has('preferences_submitted') ? $request->input('sports', []) : ($user->sports ?? []);
+
         $user->update([
             'name' => $validated['name'],
             'username' => $validated['username'] ?? null,
@@ -95,11 +164,23 @@ class ProfileController extends Controller
             'phone' => $validated['phone'] ?? null,
             'bio' => $validated['bio'] ?? null,
             'avatar' => $validated['avatar'] ?? $user->avatar,
-            'sports' => $request->has('preferences_submitted') ? $request->input('sports', []) : ($user->sports ?? []),
+            'sports' => $newSports,
             'fitness_level' => $validated['fitness_level'] ?? $user->fitness_level ?? 'intermediate',
             'weekly_target' => $validated['weekly_target'] ?? $user->weekly_target ?? '3-4',
             'sparring_open' => $request->has('preferences_submitted') ? $request->boolean('sparring_open') : ($user->sparring_open ?? true),
         ]);
+
+        // Buat streak record untuk cabor baru yang dipilih
+        if ($request->has('preferences_submitted') && is_array($newSports)) {
+            foreach ($newSports as $sport) {
+                if (is_string($sport) && !empty($sport)) {
+                    Streak::firstOrCreate(
+                        ['user_id' => $user->id, 'sport_category' => $sport],
+                        ['current_streak' => 0, 'longest_streak' => 0]
+                    );
+                }
+            }
+        }
 
         return redirect()->route('user.profile.edit')->with('success', 'Profil berhasil diperbarui!');
     }

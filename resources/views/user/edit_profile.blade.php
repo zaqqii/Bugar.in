@@ -255,7 +255,7 @@
                                         </svg>
                                     </div>
                                     <span class="font-extrabold text-sm text-cyan-800">
-                                        Level {{ max(1, floor(($user->total_points ?? 0) / 300) + 1) }} • {{ $user->total_points ?? 0 }} Poin
+                                        Level {{ $levelProgress['level'] }} • {{ number_format($levelProgress['score'], 0, ',', '.') }} Skor
                                     </span>
                                 </div>
                                 <div class="w-7 h-7 rounded-lg bg-white text-cyan-500 flex items-center justify-center shadow-xs border border-cyan-100">
@@ -445,22 +445,70 @@
                             <input type="hidden" name="weekly_target" :value="form.weekly_target">
                             <input type="hidden" name="sparring_open" :value="form.sparring_open ? 1 : 0">
 
-                            <!-- 1. Cabang Olahraga Favorit (Multi-Select Pills) -->
+                            <!-- 1. Cabang Olahraga Favorit (Multi-Select Pills dengan Pilihan Lengkap) -->
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-3">
-                                    Cabang Olahraga Favorit (Pilih yang sering Anda ikuti)
-                                </label>
-                                <div class="flex flex-wrap gap-2.5">
-                                    <template x-for="sport in sportsList" :key="sport.id">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700">
+                                            Cabang Olahraga Favorit <span class="text-slate-400 font-normal">(Bisa pilih lebih dari satu)</span>
+                                        </label>
+                                        <p class="text-[11px] text-slate-500 mt-0.5">Mempengaruhi rekomendasi komunitas dan jadwal latihan di dashboard Anda</p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700"
+                                              x-text="`${form.sports.length} cabor dipilih`">
+                                        </span>
+                                        <button type="button"
+                                                x-show="form.sports.length > 0"
+                                                @click="form.sports = []"
+                                                class="text-xs text-rose-500 hover:text-rose-700 font-semibold cursor-pointer">
+                                            Reset
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Filter Kategori & Pencarian Toolbar -->
+                                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-3.5">
+                                    <!-- Search Input -->
+                                    <div class="relative flex-1">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
+                                        </div>
+                                        <input type="text"
+                                               x-model="searchSport"
+                                               placeholder="Cari cabang olahraga..."
+                                               class="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200 text-xs font-semibold text-slate-700 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 outline-none transition-all">
+                                    </div>
+
+                                    <!-- Category Tabs -->
+                                    <div class="flex items-center gap-1 overflow-x-auto pb-1 max-w-full no-scrollbar">
+                                        <template x-for="cat in sportCategories" :key="cat">
+                                            <button type="button"
+                                                    @click="selectedSportCategory = cat"
+                                                    :class="selectedSportCategory === cat
+                                                        ? 'bg-blue-600 text-white font-bold'
+                                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium'"
+                                                    class="px-2.5 py-1 rounded-full text-[11px] whitespace-nowrap transition-colors cursor-pointer">
+                                                <span x-text="cat"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- Sport Pills Grid -->
+                                <div class="flex flex-wrap gap-2 max-h-64 overflow-y-auto p-1 border border-slate-100 rounded-2xl bg-slate-50/40">
+                                    <template x-for="sport in filteredSports" :key="sport.id">
                                         <button type="button"
                                                 @click="toggleSport(sport.id)"
                                                 :class="form.sports.includes(sport.id)
                                                     ? 'bg-blue-600 text-white border-blue-600 shadow-xs shadow-blue-300 font-bold'
-                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600 font-semibold'"
-                                                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border text-xs transition-all duration-150 cursor-pointer select-none active:scale-95">
+                                                    : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 font-semibold'"
+                                                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs transition-all duration-150 cursor-pointer select-none active:scale-95">
                                             <span x-text="sport.icon"></span>
                                             <span x-text="sport.label"></span>
-                                            <span x-show="form.sports.includes(sport.id)" class="text-xs font-extrabold">✓</span>
+                                            <span x-show="form.sports.includes(sport.id)" class="text-xs font-extrabold ml-0.5">✓</span>
                                         </button>
                                     </template>
                                 </div>
@@ -577,8 +625,9 @@
                             <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
                                 <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status</span>
                                 <div class="flex items-baseline gap-0.5">
-                                    <span class="text-xl sm:text-2xl font-extrabold text-cyan-600 tracking-tight">Level {{ max(1, floor(($user->total_points ?? 0) / 300) + 1) }}</span>
+                                    <span class="text-xl sm:text-2xl font-extrabold text-cyan-600 tracking-tight">Level {{ $levelProgress['level'] }}</span>
                                 </div>
+                                <p class="mt-1 text-[10px] text-slate-500">{{ number_format($levelProgress['progress_points'], 0, ',', '.') }} / 300 skor level</p>
                             </div>
                         </div>
 
@@ -651,6 +700,29 @@
          ============================================================== -->
     <script>
         function editProfileApp() {
+            const rawSports = @json($availableSports ?? \App\Models\User::availableSports());
+            const initialSports = @json(old('sports', $user->sports ?? []));
+
+            const aliasMap = {
+                'running': 'lari',
+                'cycling': 'sepeda',
+                'swimming': 'renang',
+                'strength': 'gym',
+                'fitness': 'gym',
+                'basketball': 'basket',
+                'trail': 'hiking',
+                'outdoor': 'hiking',
+                'martial': 'bela_diri',
+                'martial_arts': 'bela_diri',
+                'tennis': 'tenis',
+                'table_tennis': 'tenis_meja',
+                'football': 'sepakbola',
+                'soccer': 'sepakbola',
+                'volleyball': 'voli',
+            };
+
+            const normalizedSports = initialSports.map(s => aliasMap[s] || s);
+
             return {
                 avatarPreview: @json($avatarExists ? asset('storage/' . $user->avatar) : null),
 
@@ -660,22 +732,33 @@
                     email: @json(old('email', $user->email ?? '')),
                     phone: @json(old('phone', $user->phone ?? '')),
                     bio: @json(old('bio', $user->bio ?? '')),
-                    sports: @json(old('sports', $user->sports ?? [])),
+                    sports: normalizedSports,
                     fitness_level: @json(old('fitness_level', $user->fitness_level ?? 'intermediate')),
                     weekly_target: @json(old('weekly_target', $user->weekly_target ?? '3-4')),
                     sparring_open: @json((bool) old('sparring_open', $user->sparring_open ?? true))
                 },
 
-                // Daftar Cabor Favorit
-                sportsList: [
-                    { id: 'running', label: 'Lari / Road Running', icon: '🏃' },
-                    { id: 'padel', label: 'Padel Tennis', icon: '🎾' },
-                    { id: 'cycling', label: 'Sepeda / Cycling', icon: '🚴' },
-                    { id: 'strength', label: 'Strength Training', icon: '🏋️' },
-                    { id: 'swimming', label: 'Renang', icon: '🏊' },
-                    { id: 'basketball', label: 'Basket', icon: '🏀' },
-                    { id: 'trail', label: 'Trail Run / Hiking', icon: '🧗' },
-                ],
+                // Daftar Cabor Favorit Lengkap
+                rawSports: rawSports,
+                searchSport: '',
+                selectedSportCategory: 'Semua',
+                sportCategories: ['Semua', 'Cardio', 'Raket', 'Tim', 'Strength & Fitness', 'Outdoor & Combat', 'Akurasi & Lainnya'],
+
+                get sportsList() {
+                    return this.rawSports;
+                },
+
+                get filteredSports() {
+                    return this.rawSports.filter(sport => {
+                        const matchesCat = this.selectedSportCategory === 'Semua' || sport.category === this.selectedSportCategory;
+                        const query = this.searchSport.toLowerCase().trim();
+                        const matchesQuery = !query ||
+                            sport.label.toLowerCase().includes(query) ||
+                            sport.id.toLowerCase().includes(query) ||
+                            (sport.aliases && sport.aliases.some(a => a.toLowerCase().includes(query)));
+                        return matchesCat && matchesQuery;
+                    });
+                },
 
                 get bioCount() {
                     return (this.form.bio || '').length;
