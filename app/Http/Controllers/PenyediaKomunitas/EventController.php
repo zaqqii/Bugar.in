@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Models\UserAnnouncement;
 use App\Support\NotificationType;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -54,13 +55,11 @@ class EventController extends Controller
 
         $query = $community->events();
 
-        // Filter status
         $selectedStatus = $request->query('status', 'all');
         if ($selectedStatus && $selectedStatus !== 'all') {
             $query->where('status', $selectedStatus);
         }
 
-        // Search title & location
         $search = trim($request->query('q', ''));
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
@@ -75,19 +74,13 @@ class EventController extends Controller
                         ->withQueryString();
 
         return view('penyedia-komunitas.events.index', compact(
-            'community',
-            'events',
-            'counts',
-            'selectedStatus',
-            'search'
+            'community', 'events', 'counts', 'selectedStatus', 'search'
         ));
     }
 
     public function create()
     {
-        $user = Auth::user();
-        $community = Community::where('owner_id', $user->id)->first();
-
+        $community = Community::where('owner_id', Auth::id())->first();
         return view('penyedia-komunitas.events.create_event', compact('community'));
     }
 
@@ -104,18 +97,20 @@ class EventController extends Controller
             'type' => 'required|string|in:fun_match,tournament,gathering,workshop,other',
             'description' => 'required|string',
             'rundown' => 'nullable|string',
-            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'event_date' => 'required|date',
-            'registration_close_at' => 'required|date',
-            'timezone' => 'nullable|string|in:WIB,WITA,WIT',
-            'start_time' => 'required',
+            'cover_image' => $cover . '|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'qris_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'event_date' => $r . '|date',
+            'registration_close_at' => $r . '|date',
+            'timezone' => 'nullable|in:WIB,WITA,WIT',
+            'start_time' => $r,
             'end_time' => 'nullable',
-            'location' => 'required|string|max:255',
+            'location' => $r . '|string|max:255',
             'maps_url' => 'nullable|url|max:500',
-            'capacity_type' => 'nullable|string|in:limited,unlimited',
+            'capacity_type' => 'nullable|in:limited,unlimited',
             'capacity' => 'nullable|integer|min:1',
-            'is_paid' => 'nullable|string|in:0,1',
+            'is_paid' => 'nullable|in:0,1',
             'registration_fee' => 'nullable|numeric|min:0',
+            'payment_category' => 'nullable|in:bank,qris,ewallet,cash',
             'payment_method' => 'nullable|string|max:100',
             'payment_account' => 'nullable|string|max:255',
             'requirements' => 'nullable|string',
@@ -531,5 +526,107 @@ class EventController extends Controller
             'payment_account' => $paymentAccount,
             'organizer_contact' => $organizerContact,
         ];
+    }
+
+    private function extraErrors(Request $r, ?Event $event): array
+    {
+        $e = [];
+
+        if ($r->event_date && $r->registration_close_at
+            && Carbon::parse($r->registration_close_at)->toDateString() > Carbon::parse($r->event_date)->toDateString()) {
+            $e['registration_close_at'] = 'Batas pendaftaran tidak boleh melewati tanggal acara.';
+        }
+
+        if ($r->capacity_type !== 'unlimited' && !$r->capacity) {
+            $e['capacity'] = 'Kuota peserta wajib diisi minimal 1.';
+        }
+
+        if ($r->is_paid === '1') {
+            if ((float) $r->registration_fee <= 0) {
+                $e['registration_fee'] = 'Nominal biaya pendaftaran wajib diisi.';
+            }
+            $cat = $r->payment_category;
+            if ($cat === 'qris') {
+                if (!$r->hasFile('qris_image') && !$event?->qris_image) {
+                    $e['qris_image'] = 'Foto barcode QRIS wajib diunggah.';
+                }
+            } elseif (in_array($cat, ['bank', 'ewallet']) && !filled($r->payment_account)) {
+                $e['payment_account'] = 'Nomor rekening / tujuan pembayaran wajib diisi.';
+            }
+        }
+
+        return $e;
+    }
+
+    private function payload(Request $r, array $v): array
+    {
+        $paid = ($v['is_paid'] ?? '0') === '1';
+        $cat = $paid ? ($v['payment_category'] ?? null) : null;
+        $type = $v['type'] ?? 'other';
+
+        return [
+            'title' => $v['title'],
+            'description' => $v['description'] ?? null,
+            'rundown' => $v['rundown'] ?? null,
+            'type' => $type === 'conference' ? 'workshop' : $type,
+            'sport_category' => $v['sport_category'] ?? null,
+            'location' => $v['location'] ?? null,
+            'maps_url' => $v['maps_url'] ?? null,
+            'event_date' => $v['event_date'] ?? null,
+            'start_time' => $v['start_time'] ?? null,
+            'end_time' => $v['end_time'] ?? null,
+            'timezone' => $v['timezone'] ?? 'WIB',
+            'registration_close_at' => $v['registration_close_at'] ?? null,
+            'capacity' => $r->capacity_type === 'unlimited' ? null : ($v['capacity'] ?? null),
+            'registration_fee' => $paid ? ($v['registration_fee'] ?? 0) : 0,
+            'payment_category' => $cat,
+            'payment_method' => $cat ? ($v['payment_method'] ?? null) : null,
+            'payment_account' => in_array($cat, ['bank', 'ewallet']) ? ($v['payment_account'] ?? null) : null,
+            'requirements' => $v['requirements'] ?? null,
+            'organizer_contact' => $v['organizer_contact'] ?? null,
+        ];
+    }
+
+    private function handleFiles(Request $r, ?Event $event, array &$data): void
+    {
+        $disk = config('filesystems.default');
+
+        if ($r->hasFile('cover_image')) {
+            if ($event?->cover_image) {
+                Storage::disk($disk)->delete($event->cover_image);
+            }
+            $data['cover_image'] = $r->file('cover_image')->store('events/covers', $disk);
+        }
+
+        $usesQris = ($data['payment_category'] ?? null) === 'qris';
+        if ($usesQris && $r->hasFile('qris_image')) {
+            if ($event?->qris_image) {
+                Storage::disk($disk)->delete($event->qris_image);
+            }
+            $data['qris_image'] = $r->file('qris_image')->store('events/qris', $disk);
+        } elseif (!$usesQris && $event?->qris_image) {
+            Storage::disk($disk)->delete($event->qris_image);
+            $data['qris_image'] = null;
+        }
+    }
+
+    public function show(Event $event)
+    {
+        $event = $this->own($event);
+
+        return view(
+            'penyedia-komunitas.events.show_event',
+            compact('event')
+        );
+    }
+
+    public function manage(Event $event)
+    {
+        $event = $this->own($event);
+
+        return view(
+            'penyedia-komunitas.events.show_event',
+            compact('event')
+        );
     }
 }

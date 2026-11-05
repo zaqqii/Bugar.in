@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\PenyediaKomunitas\DashboardController as PenyediaDashboardController;
 use App\Http\Controllers\User\CommunityController;
+use App\Http\Controllers\PenyediaKomunitas\EventController;
 use App\Models\Community;
 use App\Models\Schedule;
 
