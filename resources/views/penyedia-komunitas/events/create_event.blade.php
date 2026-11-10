@@ -132,7 +132,7 @@
                             :class="step >= 2 ? 'text-blue-600' : 'text-slate-400'">
                             Jadwal & Lokasi
                         </h4>
-                        <p class="text-xs text-slate-400 hidden md:block mt-0.5">Waktu, tempat & batas RSVP</p>
+                        <p class="text-xs text-slate-400 hidden md:block mt-0.5">Waktu & tempat event</p>
                     </div>
                 </div>
 
@@ -884,6 +884,17 @@ function eventWizard() {
                 this.formattedFee = Number(this.form.registration_fee).toLocaleString('id-ID');
             }
         },
+        setPaymentCategory(value) {
+            this.form.payment_category = value;
+            // Reset related fields
+            this.form.payment_method = '';
+            this.form.payment_provider = '';
+            this.form.payment_account = '';
+            this.form.qris_image = null;
+            this.qrisPreviewUrl = null;
+            this.errors.payment_account = null;
+            this.errors.qris_image = null;
+        },
         handleFeeInput(e) {
             const raw = e.target.value.replace(/[^0-9]/g, '');
             this.form.registration_fee = raw;
@@ -981,6 +992,43 @@ function eventWizard() {
             this.form.cover_image = null;
             this.$refs.coverFileInput.value = '';
         },
+        handleQrisFileSelect(event) {
+            const file = event.target.files[0];
+            this.processQrisFile(file);
+        },
+        handleQrisDrop(event) {
+            this.isQrisDragging = false;
+            const file = event.dataTransfer.files[0];
+            if (file) {
+                this.$refs.qrisFileInput.files = event.dataTransfer.files;
+                this.processQrisFile(file);
+            }
+        },
+        processQrisFile(file) {
+            if (!file) return;
+            if (!file.type.match('image.*')) {
+                this.errors.qris_image = 'File harus berupa gambar (JPG, PNG, atau WEBP).';
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                this.errors.qris_image = 'Ukuran barcode QRIS maksimal 2MB.';
+                return;
+            }
+            this.errors.qris_image = null;
+            this.form.qris_image = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.qrisPreviewUrl = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        },
+        removeQrisImage() {
+            this.qrisPreviewUrl = null;
+            this.form.qris_image = null;
+            if (this.$refs.qrisFileInput) {
+                this.$refs.qrisFileInput.value = '';
+            }
+        },
         insertRundownTemplate() {
             this.form.rundown = "06.00 - 06.30 : Registrasi Ulang & Pemanasan\n06.30 - 08.00 : Sesi Olahraga / Pertandingan\n08.00 - 08.30 : Cooling Down & Sesi Foto Bersama\n08.30 - 09.00 : Ramah Tamah & Penutupan";
         },
@@ -1058,8 +1106,14 @@ function eventWizard() {
                 if (!this.form.registration_fee || Number(this.form.registration_fee) <= 0) {
                     this.errors.registration_fee = 'Nominal biaya pendaftaran wajib diisi.';
                 }
-                if (!this.form.payment_account || !this.form.payment_account.trim()) {
-                    this.errors.payment_account = 'Nomor rekening / tujuan pembayaran wajib diisi.';
+                if (this.form.payment_method === 'QRIS') {
+                    if (!this.qrisPreviewUrl && !this.form.qris_image) {
+                        this.errors.qris_image = 'Foto barcode QRIS wajib diunggah.';
+                    }
+                } else {
+                    if (!this.form.payment_account || !this.form.payment_account.trim()) {
+                        this.errors.payment_account = 'Nomor rekening / tujuan pembayaran wajib diisi.';
+                    }
                 }
             }
             if (!this.form.organizer_contact || !this.form.organizer_contact.trim()) {
