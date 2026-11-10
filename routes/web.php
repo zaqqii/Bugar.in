@@ -106,6 +106,8 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::post('/schedules/{schedule}/join', [DashboardController::class, 'joinSchedule'])->name('schedules.join');
     Route::post('/events/{event}/join', [DashboardController::class, 'joinEvent'])->name('events.join');
     Route::post('/participation/cancel', [DashboardController::class, 'cancelParticipation'])->name('participation.cancel');
+    Route::post('/schedules/{schedule}/checkin-token', [DashboardController::class, 'getCheckinToken'])->middleware('throttle:30,1')->name('schedules.checkin-token');
+    Route::get('/schedules/{schedule}/checkin-status', [DashboardController::class, 'getCheckinStatus'])->middleware('throttle:60,1')->name('schedules.checkin-status');
     Route::post('/rewards/{reward}/redeem', [DashboardController::class, 'redeemReward'])->name('rewards.redeem');
     Route::post('/streak/check-in', [DashboardController::class, 'streakCheckIn'])->name('streak.check-in');
     Route::post('/announcements/{announcement}/read', [DashboardController::class, 'readAnnouncement'])->name('announcements.read');
@@ -138,6 +140,10 @@ Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware(['a
     Route::get('/jadwal/blokir', [PenyediaJadwalController::class, 'blocksIndex'])->name('jadwal.blocks');
     Route::delete('/jadwal/blokir/{block}', [PenyediaJadwalController::class, 'unblock'])->name('jadwal.unblock');
     Route::get('/jadwal/{schedule}', [PenyediaJadwalController::class, 'show'])->name('jadwal.show');
+    Route::get('/jadwal/{schedule}/checkin', [PenyediaJadwalController::class, 'checkinView'])->name('jadwal.checkin');
+    Route::get('/jadwal/{schedule}/checkin/participants', [PenyediaJadwalController::class, 'checkinParticipantsJson'])->name('jadwal.checkin.participants');
+    Route::post('/jadwal/{schedule}/checkin/scan', [PenyediaJadwalController::class, 'checkinScan'])->middleware('throttle:60,1')->name('jadwal.checkin.scan');
+    Route::post('/jadwal/{schedule}/checkin/manual/{participant}', [PenyediaJadwalController::class, 'checkinManual'])->middleware('throttle:60,1')->name('jadwal.checkin.manual');
     Route::get('/jadwal/{schedule}/edit', [PenyediaJadwalController::class, 'edit'])->name('jadwal.edit');
     Route::put('/jadwal/{schedule}', [PenyediaJadwalController::class, 'update'])->name('jadwal.update');
     Route::delete('/jadwal/{schedule}', [PenyediaJadwalController::class, 'destroy'])->name('jadwal.destroy');

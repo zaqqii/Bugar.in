@@ -25,6 +25,25 @@
         </a>
 
         <div class="flex items-center gap-2 flex-wrap">
+            {{-- Tombol Buka Check-in QR --}}
+            @php
+                $tz = config('app.timezone', 'Asia/Jakarta');
+                $isScheduleToday = $schedule->date && \Carbon\Carbon::parse($schedule->date, $tz)->isToday();
+            @endphp
+            @if($isScheduleToday && !$schedule->isCancelled())
+                <a href="{{ route('penyedia-komunitas.jadwal.checkin', $schedule) }}"
+                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition">
+                    <span>📷 Buka Scanner Check-in</span>
+                </a>
+            @else
+                <button type="button"
+                        disabled
+                        title="{{ $schedule->isCancelled() ? 'Sesi dibatalkan' : ($schedule->isFinished() ? 'Sesi telah selesai' : 'Check-in hanya aktif pada hari sesi berlangsung') }}"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold cursor-not-allowed">
+                    <span>📷 Check-in (Nonaktif)</span>
+                </button>
+            @endif
+
             @if(!$schedule->isCancelled() && !$schedule->isFinished())
                 <a href="{{ route('penyedia-komunitas.jadwal.edit', $schedule) }}"
                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition">

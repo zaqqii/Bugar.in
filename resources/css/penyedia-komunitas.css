@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Alpine.js cloak */
+[x-cloak] { display: none !important; }
+
 /* Tambahan custom CSS khusus yang sulit menggunakan utility */
 @layer base {
     :root {

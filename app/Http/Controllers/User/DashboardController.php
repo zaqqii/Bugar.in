@@ -13,6 +13,7 @@ use App\Models\Schedule;
 use App\Models\Streak;
 use App\Models\User;
 use App\Models\UserAnnouncement;
+use App\Services\CheckinTokenService;
 use App\Services\UserLevelService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -362,137 +363,152 @@ class DashboardController extends Controller
 
     public function streakCheckIn(Request $request)
     {
+        return back()->with('info', 'Check-in sekarang dilakukan lewat QR yang dipindai penyedia komunitas.');
+    }
+
+    /**
+     * Dapatkan token QR check-in untuk sesi jadwal hari ini.
+     * Hanya berlaku bagi peserta terdaftar dalam jendela waktu check-in.
+     */
+    public function getCheckinToken(Request $request, Schedule $schedule, CheckinTokenService $tokenService)
+    {
         $user = Auth::user();
-
-        if (! $user) {
-            abort(403);
+        if (!$user) {
+            return response()->json(['error' => 'unauthorized', 'message' => 'Silakan login terlebih dahulu.'], 401);
         }
 
-        if (! $user instanceof User) {
-            $user = User::find(Auth::id());
+        $participant = Participant::where('user_id', $user->id)
+            ->where('participatable_type', Schedule::class)
+            ->where('participatable_id', $schedule->id)
+            ->first();
+
+        if (!$participant) {
+            return response()->json([
+                'error' => 'not_registered',
+                'message' => 'Anda belum terdaftar pada sesi jadwal ini.'
+            ], 403);
         }
 
-        // Cek apakah user sudah check-in hari ini
-        $today = now()->toDateString();
-        $alreadyCheckedIn = $user->pointsHistories()
-            ->whereDate('created_at', $today)
-            ->where('source', 'attendance')
-            ->exists();
-
-        if ($alreadyCheckedIn) {
-            return back()->with('info', 'Anda sudah melakukan check-in untuk hari ini.');
+        if ($participant->status === 'attended') {
+            return response()->json([
+                'error' => 'already_checked_in',
+                'message' => 'Anda sudah melakukan check-in untuk sesi ini.'
+            ], 400);
         }
 
-        return DB::transaction(function () use ($user, $today) {
-            $todayName = strtolower(now()->englishDayOfWeek);
+        if ($participant->status !== 'registered') {
+            return response()->json([
+                'error' => 'not_registered',
+                'message' => "Status pendaftaran Anda adalah '{$participant->statusLabel()}'. Hanya peserta terdaftar yang dapat check-in."
+            ], 400);
+        }
 
-            // Filter komunitas yang eligible (terverifikasi atau followers >= 10)
-            $eligibleCommunity = fn($query) => $query->where('verification_status', 'verified')
-                ->orWhere('followers_count', '>=', 10);
+        if ($schedule->isCancelled() || !$schedule->is_active) {
+            return response()->json([
+                'error' => 'session_cancelled',
+                'message' => 'Sesi jadwal ini telah dibatalkan atau tidak aktif.'
+            ], 400);
+        }
 
-            // 1. Cari sesi yang diikuti user (Event atau Schedule dari komunitas eligible)
-            $participant = Participant::where('user_id', $user->id)
-                ->whereHasMorph('participatable', [Event::class, Schedule::class], function ($query) use ($eligibleCommunity) {
-                    $query->whereHas('community', $eligibleCommunity);
-                })
-                ->latest()
+        $tz = config('app.timezone', 'Asia/Jakarta');
+        $now = Carbon::now($tz);
+        $scheduleDateStr = $schedule->date instanceof Carbon ? $schedule->date->format('Y-m-d') : (string) $schedule->date;
+
+        if ($scheduleDateStr !== $now->toDateString()) {
+            return response()->json([
+                'error' => 'outside_window',
+                'message' => 'QR Check-in hanya dapat dibuat pada hari sesi berlangsung.'
+            ], 400);
+        }
+
+        $windowBeforeMinutes = (int) config('schedules.checkin_window_before_minutes', 30);
+        $windowStart = $schedule->startsAt()->subMinutes($windowBeforeMinutes);
+        $windowEnd = $schedule->endsAt();
+
+        if ($now->lt($windowStart)) {
+            $openTime = $windowStart->format('H:i');
+            return response()->json([
+                'error' => 'outside_window',
+                'message' => "QR Check-in dibuka mulai pukul {$openTime} WIB (30 menit sebelum sesi).",
+                'opens_at' => $openTime,
+            ], 400);
+        }
+
+        if ($now->gt($windowEnd)) {
+            return response()->json([
+                'error' => 'outside_window',
+                'message' => 'Sesi jadwal telah berakhir. Check-in sudah ditutup.'
+            ], 400);
+        }
+
+        if (Attendance::where('participant_id', $participant->id)->exists()) {
+            return response()->json([
+                'error' => 'already_checked_in',
+                'message' => 'Anda sudah melakukan check-in untuk sesi ini.'
+            ], 400);
+        }
+
+        $tokenData = $tokenService->issue($participant);
+
+        return response()->json($tokenData);
+    }
+
+    /**
+     * Cek status kehadiran check-in peserta pada sesi jadwal.
+     */
+    public function getCheckinStatus(Request $request, Schedule $schedule)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['checked_in' => false, 'error' => 'unauthorized'], 401);
+        }
+
+        $participant = Participant::where('user_id', $user->id)
+            ->where('participatable_type', Schedule::class)
+            ->where('participatable_id', $schedule->id)
+            ->first();
+
+        if (!$participant) {
+            return response()->json(['checked_in' => false, 'error' => 'not_registered'], 404);
+        }
+
+        $attendance = Attendance::where('participant_id', $participant->id)->first();
+        $isCheckedIn = ($attendance !== null) || ($participant->status === 'attended');
+
+        if ($isCheckedIn) {
+            $tz = config('app.timezone', 'Asia/Jakarta');
+            $timeFormatted = $attendance && $attendance->check_in_at
+                ? $attendance->check_in_at->timezone($tz)->format('H:i')
+                : $participant->updated_at->timezone($tz)->format('H:i');
+
+            $pointHistory = PointsHistory::where('user_id', $user->id)
+                ->where('pointable_type', Schedule::class)
+                ->where('pointable_id', $schedule->id)
                 ->first();
 
-            // Jika belum ada participant, coba hubungkan ke jadwal hari ini dari komunitas yang di-follow / eligible
-            if (! $participant) {
-                $followedCommunityIds = $user->followedCommunities()->pluck('communities.id')->all();
-                $todayDate = Carbon::now(config('app.timezone', 'Asia/Jakarta'))->toDateString();
+            $pointsAwarded = ($pointHistory !== null);
+            $pointsAmount = $pointHistory ? (int) $pointHistory->points : 0;
 
-                // Catatan: Pencocokan jadwal manual hari ini adalah tambalan sementara dan akan digantikan oleh check-in QR pada rilis berikutnya.
-                $schedule = Schedule::whereIn('community_id', $followedCommunityIds)
-                    ->where('is_active', true)
-                    ->whereNull('cancelled_at')
-                    ->whereDate('date', $todayDate)
-                    ->first();
+            $streak = $user->streaks()
+                ->where('sport_category', $schedule->community?->sport_category ?? 'Kebugaran')
+                ->first();
+            $currentStreak = $streak ? (int) $streak->current_streak : 0;
 
-                if (! $schedule) {
-                    $schedule = Schedule::whereHas('community', $eligibleCommunity)
-                        ->where('is_active', true)
-                        ->whereNull('cancelled_at')
-                        ->whereDate('date', $todayDate)
-                        ->first();
-                }
-
-                if ($schedule) {
-                    $participant = Participant::firstOrCreate([
-                        'user_id' => $user->id,
-                        'participatable_type' => Schedule::class,
-                        'participatable_id' => $schedule->id,
-                    ], [
-                        'status' => 'attended',
-                        'registered_at' => now(),
-                    ]);
-                }
-            }
-
-            $pointable = null;
-            $sportCategory = 'Kebugaran';
-
-            if ($participant) {
-                $participant->update(['status' => 'attended']);
-
-                $attendance = Attendance::firstOrCreate(
-                    ['participant_id' => $participant->id],
-                    [
-                        'check_in_at' => now(),
-                        'method' => 'manual',
-                    ]
-                );
-                $attendance->update(['check_in_at' => now()]);
-                $pointable = $attendance;
-
-                $activity = $participant->participatable;
-                $sportCategory = $activity?->community?->sport_category ?? $sportCategory;
-            }
-
-            // Update atau buat streak untuk user
-            $streak = Streak::firstOrCreate(
-                ['user_id' => $user->id, 'sport_category' => $sportCategory],
-                [
-                    'current_streak' => 0,
-                    'longest_streak' => 0,
-                    'streak_started_at' => now(),
-                ]
-            );
-
-            $lastDate = $streak->last_activity_date ? \Carbon\Carbon::parse($streak->last_activity_date) : null;
-            if (! $lastDate || $lastDate->lt(now()->startOfDay()->subDay())) {
-                $streak->current_streak = 1;
-            } elseif ($lastDate->isYesterday()) {
-                $streak->current_streak += 1;
-            }
-
-            $streak->longest_streak = max($streak->longest_streak, $streak->current_streak);
-            $streak->last_activity_date = $today;
-            $streak->save();
-
-            if (! $pointable) {
-                $pointable = $streak;
-            }
-
-            // Tambah poin user
-            $newBalance = ($user->total_points ?? 0) + 30;
-            $user->total_points = $newBalance;
-            $user->save();
-
-            // Catat ke riwayat poin dengan polymorphic pointable
-            $pointsHistory = new PointsHistory([
-                'user_id' => $user->id,
-                'points' => 30,
-                'source' => 'attendance',
-                'description' => 'Check-in sesi olahraga harian (+30 Poin)',
-                'balance_after' => $newBalance,
+            return response()->json([
+                'checked_in' => true,
+                'checked_in_at' => $timeFormatted,
+                'points_awarded' => $pointsAwarded,
+                'points_amount' => $pointsAmount,
+                'current_streak' => $currentStreak,
             ]);
-            $pointsHistory->pointable()->associate($pointable);
-            $pointsHistory->save();
+        }
 
-            return back()->with('success', '⚡ Berhasil check-in sesi hari ini! +30 Poin berhasil ditambahkan.');
-        });
+        return response()->json([
+            'checked_in' => false,
+            'checked_in_at' => null,
+            'points_awarded' => false,
+            'current_streak' => 0,
+        ]);
     }
 
     public function index(Request $request, UserLevelService $levelService)
@@ -602,6 +618,7 @@ class DashboardController extends Controller
             'series_id' => $schedule->series_id,
             'is_recurring' => !empty($schedule->series_id),
             'streak_enabled' => (bool) $schedule->streak_enabled,
+            'is_today' => $schedule->date ? $schedule->date->isToday() : false,
         ]))->values();
 
         // Leaderboard overall memakai poin dan aktivitas yang tercatat di database.
@@ -781,11 +798,24 @@ class DashboardController extends Controller
         // Ambil daftar kota unik dari database komunitas asli
         $cities = $communities->pluck('city')->filter()->unique()->values();
 
+        $todayJoinedSchedule = null;
+        if (!empty($joinedScheduleIds)) {
+            $todayJoinedSchedule = Schedule::whereIn('id', $joinedScheduleIds)
+                ->whereDate('date', $todayStr)
+                ->where('is_active', true)
+                ->whereNull('cancelled_at')
+                ->whereNotIn('status', ['cancelled'])
+                ->with('community')
+                ->orderBy('start_time', 'asc')
+                ->first();
+        }
+
         return view('user.dashboard', compact(
             'user',
             'communities',
             'events',
             'schedules',
+            'todayJoinedSchedule',
             'agendaItems',
             'leaderboardUsers',
             'leaderboardStats',
