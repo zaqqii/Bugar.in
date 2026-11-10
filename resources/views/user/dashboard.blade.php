@@ -174,6 +174,131 @@
         },
         streakShiftMonth(amount) {
             this.streakMonth = new Date(this.streakMonth.getFullYear(), this.streakMonth.getMonth() + amount, 1);
+        },
+
+        // --- QR Check-in Modal state ---
+        qrOpen: false,
+        qrScheduleId: null,
+        qrScheduleTitle: '',
+        qrToken: null,
+        qrExpiresIn: 0,
+        qrRotateIn: 0,
+        qrCheckedIn: false,
+        qrCheckedAt: '',
+        qrPointsAwarded: 0,
+        qrCurrentStreak: 0,
+        qrLoading: false,
+        qrError: '',
+        _qrTimerRef: null,
+        _qrPollRef: null,
+        _qrRotateRef: null,
+
+        qrOpenModal(scheduleId, scheduleTitle) {
+            this.qrScheduleId = scheduleId;
+            this.qrScheduleTitle = scheduleTitle;
+            this.qrToken = null;
+            this.qrExpiresIn = 0;
+            this.qrRotateIn = 0;
+            this.qrCheckedIn = false;
+            this.qrCheckedAt = '';
+            this.qrPointsAwarded = 0;
+            this.qrCurrentStreak = 0;
+            this.qrLoading = true;
+            this.qrError = '';
+            this.qrOpen = true;
+            this._qrFetchToken();
+        },
+
+        qrCloseModal() {
+            this.qrOpen = false;
+            this._qrStopAll();
+        },
+
+        _qrStopAll() {
+            if (this._qrTimerRef) { clearInterval(this._qrTimerRef); this._qrTimerRef = null; }
+            if (this._qrPollRef) { clearInterval(this._qrPollRef); this._qrPollRef = null; }
+            if (this._qrRotateRef) { clearTimeout(this._qrRotateRef); this._qrRotateRef = null; }
+        },
+
+        async _qrFetchToken() {
+            this.qrLoading = true;
+            this.qrError = '';
+            const csrfMeta = document.querySelector('meta[name=csrf-token]');
+            const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+            try {
+                const resp = await fetch(`/user/schedules/${this.qrScheduleId}/checkin-token`, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'Content-Type': 'application/json' }
+                });
+                const data = await resp.json();
+                if (!resp.ok) {
+                    this.qrError = data.message || 'Gagal memuat token QR.';
+                    this.qrLoading = false;
+                    return;
+                }
+                this.qrToken = data.token;
+                this.qrExpiresIn = data.expires_in;
+                this.qrRotateIn = data.rotate_in;
+                this.qrLoading = false;
+                this.$nextTick(function() { this._qrRender(); }.bind(this));
+                this._qrStartCountdown();
+                this._qrScheduleRotate();
+                if (!this._qrPollRef) this._qrStartPolling();
+            } catch (e) {
+                this.qrError = 'Koneksi gagal. Periksa internet Anda.';
+                this.qrLoading = false;
+            }
+        },
+
+        _qrRender() {
+            const el = document.getElementById('qr-canvas-container');
+            if (!el || !this.qrToken) return;
+            if (typeof QRCode === 'undefined') {
+                setTimeout(function() { this._qrRender(); }.bind(this), 250);
+                return;
+            }
+            el.innerHTML = '';
+            new QRCode(el, {
+                text: this.qrToken,
+                width: 200,
+                height: 200,
+                colorDark: '#1d4ed8',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        },
+
+        _qrStartCountdown() {
+            if (this._qrTimerRef) clearInterval(this._qrTimerRef);
+            this._qrTimerRef = setInterval(() => {
+                if (this.qrExpiresIn > 0) this.qrExpiresIn--;
+                if (this.qrRotateIn > 0) this.qrRotateIn--;
+            }, 1000);
+        },
+
+        _qrScheduleRotate() {
+            if (this._qrRotateRef) clearTimeout(this._qrRotateRef);
+            const delay = (this.qrRotateIn > 0 ? this.qrRotateIn : 45) * 1000;
+            this._qrRotateRef = setTimeout(() => {
+                if (this.qrOpen && !this.qrCheckedIn) this._qrFetchToken();
+            }, delay);
+        },
+
+        _qrStartPolling() {
+            this._qrPollRef = setInterval(async () => {
+                if (!this.qrOpen || this.qrCheckedIn) { clearInterval(this._qrPollRef); this._qrPollRef = null; return; }
+                try {
+                    const resp = await fetch(`/user/schedules/${this.qrScheduleId}/checkin-status`, { headers: { 'Accept': 'application/json' } });
+                    const data = await resp.json();
+                    if (data.checked_in) {
+                        this.qrCheckedIn = true;
+                        this.qrCheckedAt = data.checked_in_at || '';
+                        this.qrPointsAwarded = data.points_awarded || 0;
+                        this.qrCurrentStreak = data.current_streak || 0;
+                        this._qrStopAll();
+                    }
+                } catch (e) {}
+            }, 3500);
         }
     }" class="space-y-8 w-full max-w-7xl">
 
@@ -226,9 +351,63 @@
                 @endif
             </div>
 
-            @if($announcements->isEmpty())
+            @if($todayJoinedSchedule)
+                @php
+                    $tjsItemPayload = [
+                        'id' => 'schedule-' . $todayJoinedSchedule->id,
+                        'raw_id' => $todayJoinedSchedule->id,
+                        'kind' => 'schedule',
+                        'type' => 'latihan_rutin',
+                        'title' => $todayJoinedSchedule->title,
+                        'level' => $todayJoinedSchedule->level,
+                        'level_label' => $todayJoinedSchedule->levelLabel(),
+                        'level_badge_class' => $todayJoinedSchedule->levelBadgeClass(),
+                        'description' => $todayJoinedSchedule->description,
+                        'community' => $todayJoinedSchedule->community?->name ?? 'Komunitas',
+                        'sport' => $todayJoinedSchedule->community?->sport_category ?? 'olahraga',
+                        'location' => $todayJoinedSchedule->location,
+                        'maps_url' => $todayJoinedSchedule->maps_url,
+                        'date' => $todayJoinedSchedule->date ? $todayJoinedSchedule->date->format('Y-m-d') : null,
+                        'date_formatted' => $todayJoinedSchedule->date ? $todayJoinedSchedule->date->locale('id')->isoFormat('dddd, D MMMM Y') : $todayJoinedSchedule->dayLabel(),
+                        'start' => substr($todayJoinedSchedule->start_time, 0, 5),
+                        'end' => substr($todayJoinedSchedule->end_time, 0, 5),
+                        'capacity' => $todayJoinedSchedule->capacity,
+                        'filled' => $todayJoinedSchedule->activeParticipantsCount(),
+                        'remaining' => $todayJoinedSchedule->remainingSlots(),
+                        'status' => $todayJoinedSchedule->status,
+                        'is_finished' => $todayJoinedSchedule->isFinished(),
+                        'is_cancelled' => $todayJoinedSchedule->isCancelled(),
+                        'streak_enabled' => (bool) $todayJoinedSchedule->streak_enabled,
+                        'is_today' => true,
+                    ];
+                @endphp
+                <article class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50/90 via-white to-cyan-50/80 p-4 sm:p-5 shadow-xs">
+                    <div class="flex min-w-0 flex-1 items-start gap-3.5">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white font-bold text-lg shadow-xs" aria-hidden="true">⚡</span>
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="rounded-full bg-blue-600 text-white px-2 py-0.5 text-[10px] font-bold">Hari Ini</span>
+                                <span class="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">Terdaftar</span>
+                                <h3 class="text-sm sm:text-base font-extrabold text-slate-900 truncate">{{ $todayJoinedSchedule->title }}</h3>
+                            </div>
+                            <p class="mt-1 text-xs text-slate-600 flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <span>⏰ {{ substr($todayJoinedSchedule->start_time, 0, 5) }} - {{ substr($todayJoinedSchedule->end_time, 0, 5) }} WIB</span>
+                                <span>📍 {{ $todayJoinedSchedule->location }}</span>
+                                <span>👥 {{ $todayJoinedSchedule->community?->name }}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            @click="openScheduleDetail(@js($tjsItemPayload))"
+                            class="rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 text-xs font-bold transition shadow-xs flex items-center gap-1.5 shrink-0">
+                        <span>Lihat Detail Sesi &rarr;</span>
+                    </button>
+                </article>
+            @endif
+
+            @if($announcements->isEmpty() && !$todayJoinedSchedule)
                 <p class="mt-4 rounded-xl border border-blue-100 bg-white/80 p-4 text-sm text-slate-600">Belum ada pengingat kegiatan. Setelah pendaftaran event atau jadwal aktif, pengingat akan tampil sekitar 24 jam sebelum kegiatan.</p>
-            @else
+            @elseif($announcements->isNotEmpty())
                 <div class="mt-4 space-y-3">
                     @foreach($announcements as $announcement)
                         <article class="flex flex-wrap items-start justify-between gap-3 rounded-xl border {{ $announcement->read_at ? 'border-slate-100 bg-white/70' : 'border-cyan-100 bg-white' }} p-4">
@@ -532,10 +711,17 @@
                             <div>
                                 {{-- Jika sudah terdaftar --}}
                                 <template x-if="isJoinedItem(modalScheduleItem)">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
                                         <span class="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
                                             ✓ Terdaftar
                                         </span>
+                                        <template x-if="modalScheduleItem && modalScheduleItem.kind === 'schedule' && (modalScheduleItem.is_today || modalScheduleItem.date === (new Date().toLocaleDateString('sv-SE')) || modalScheduleItem.date === agendaDateKey(new Date())) && !modalScheduleItem.is_finished">
+                                            <button type="button"
+                                                    @click="scheduleDetailModalOpen = false; qrOpenModal(parseInt(modalScheduleItem.raw_id || modalScheduleItem.id.replace('schedule-','')), modalScheduleItem.title)"
+                                                    class="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:brightness-105 text-white text-xs font-black shadow-sm transition flex items-center gap-1.5">
+                                                📷 Tampilkan QR Check-in
+                                            </button>
+                                        </template>
                                         <template x-if="modalScheduleItem.kind === 'schedule' && !modalScheduleItem.is_finished">
                                             <form method="POST" action="{{ route('user.participation.cancel') }}" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan keikutsertaan dalam jadwal ini?')">
                                                 @csrf
@@ -1263,7 +1449,7 @@
                         <span class="inline-flex rounded-full bg-cyan-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-cyan-800">Program Konsistensi Olahraga</span>
                         <h3 class="mt-3 text-3xl font-extrabold tracking-tight text-blue-700 sm:text-4xl">Streak &amp; Poin Olahraga</h3>
                         <p class="mt-2 max-w-3xl text-sm text-blue-700">Pantau rutinitas olahraga, kehadiran komunitas, dan Gerak Poin dari sesi yang tercatat.</p>
-                        <p class="mt-2 text-xs font-semibold text-slate-500">Check-in hanya dapat dilakukan pada sesi terdaftar dari komunitas terverifikasi atau yang memiliki minimal 10 pengikut.</p>
+                        <p class="mt-2 text-xs font-semibold text-slate-500">Check-in dilakukan lewat QR yang dipindai penyedia komunitas. Daftarkan diri ke jadwal hari ini untuk mendapatkan QR check-in.</p>
                     </div>
                     <div class="min-w-52 rounded-2xl bg-white/90 p-4 shadow-sm">
                         <span class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Status Akun</span>
@@ -1297,7 +1483,16 @@
             <div class="glass-card rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <div><h4 class="text-lg font-extrabold text-blue-700">Ritme Olahraga Pekan Ini</h4><p class="mt-1 text-xs text-slate-500">{{ $streakStats['active_days_this_week'] }} dari 5 hari target berdasarkan kehadiran komunitas</p></div>
-                    <form method="POST" action="{{ route('user.streak.check-in') }}">@csrf<button type="submit" class="rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-3 text-sm font-bold text-white shadow-sm hover:brightness-105">⚡ Check-in sesi hari ini · +30 Poin</button></form>
+                    @if($todayJoinedSchedule)
+                        @php $tjsId = $todayJoinedSchedule->id; $tjsTitle = $todayJoinedSchedule->title; @endphp
+                        <button type="button"
+                            @click="qrOpenModal({{ $tjsId }}, '{{ addslashes($tjsTitle) }}')"
+                            class="rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-3 text-sm font-bold text-white shadow-sm hover:brightness-105">
+                            📷 Tampilkan QR Check-in Sesi Hari Ini
+                        </button>
+                    @else
+                        <p class="text-sm text-slate-500 font-semibold py-2">Tidak ada sesi terdaftar hari ini. Daftarkan diri ke jadwal untuk mendapatkan QR check-in.</p>
+                    @endif
                 </div>
                 <div class="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-7 sm:gap-3">
                     @foreach($weeklyStreakDays as $day)
@@ -1582,5 +1777,128 @@
             @endif
         </section>
 
+        {{-- ============================================================
+             QR CHECK-IN MODAL (User side) — Berada di dalam x-data
+             ============================================================ --}}
+        <div
+            x-show="qrOpen"
+            x-cloak
+            @keydown.escape.window="qrCloseModal()"
+            class="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6"
+            role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+
+            {{-- Backdrop --}}
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="qrCloseModal()"></div>
+
+            {{-- Panel --}}
+            <div class="relative z-10 w-full max-w-sm sm:max-w-md rounded-3xl bg-white shadow-2xl ring-1 ring-blue-100 overflow-hidden transform transition-all my-auto max-h-[90vh] flex flex-col">
+
+                {{-- Header --}}
+                <div class="flex items-center justify-between bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-4 text-white shrink-0">
+                    <div class="min-w-0 pr-2">
+                        <h2 id="qr-modal-title" class="text-base font-extrabold text-white flex items-center gap-2">
+                            <span>📷 QR Code Check-in</span>
+                        </h2>
+                        <p class="mt-0.5 text-xs text-blue-100 font-semibold truncate" x-text="qrScheduleTitle"></p>
+                    </div>
+                    <button type="button" @click="qrCloseModal()" class="rounded-xl p-1.5 text-white/80 hover:bg-white/20 hover:text-white transition shrink-0" aria-label="Tutup">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                {{-- Body (Scrollable on small mobile screens) --}}
+                <div class="p-5 sm:p-6 text-center overflow-y-auto space-y-4">
+
+                    {{-- Loading --}}
+                    <div x-show="qrLoading" class="flex flex-col items-center justify-center gap-3 py-10">
+                        <div class="h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+                        <p class="text-xs text-slate-500 font-bold">Membuat QR Check-in Anda...</p>
+                    </div>
+
+                    {{-- Error --}}
+                    <div x-show="!qrLoading && qrError" class="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs sm:text-sm text-rose-700 font-semibold" x-text="qrError"></div>
+
+                    {{-- Success (checked in) --}}
+                    <div x-show="!qrLoading && qrCheckedIn" class="flex flex-col items-center gap-4 py-3">
+                        <div class="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl shadow-xs">
+                            ✅
+                        </div>
+                        <div>
+                            <span class="inline-block text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 tracking-wider mb-1">
+                                Kehadiran Terverifikasi
+                            </span>
+                            <h3 class="text-xl font-black text-slate-900">Check-in Berhasil!</h3>
+                            <p class="mt-1 text-xs text-slate-500" x-text="qrScheduleTitle"></p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 w-full">
+                            <div class="rounded-2xl bg-blue-50 border border-blue-100 p-3 text-center">
+                                <p class="text-[10px] text-blue-500 font-bold uppercase tracking-wider">Gerak Poin</p>
+                                <p class="text-2xl font-black text-blue-700 mt-0.5" x-text="'+' + qrPointsAwarded"></p>
+                            </div>
+                            <div class="rounded-2xl bg-cyan-50 border border-cyan-100 p-3 text-center">
+                                <p class="text-[10px] text-cyan-600 font-bold uppercase tracking-wider">Streak Konsisten</p>
+                                <p class="text-2xl font-black text-cyan-700 mt-0.5" x-text="qrCurrentStreak + ' Pekan'"></p>
+                            </div>
+                        </div>
+
+                        <p class="text-[11px] text-slate-400">
+                            Check-in pada pukul <span class="font-bold text-slate-700" x-text="qrCheckedAt"></span> WIB oleh penyedia komunitas.
+                        </p>
+
+                        <button type="button" @click="qrCloseModal(); window.location.reload();"
+                                class="w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 py-3 text-xs font-bold text-white shadow-md hover:brightness-105 transition">
+                            Selesai
+                        </button>
+                    </div>
+
+                    {{-- QR Display --}}
+                    <div x-show="!qrLoading && !qrError && !qrCheckedIn" class="flex flex-col items-center gap-3">
+                        {{-- QR canvas wrapper (with pulse glow and clean border) --}}
+                        <div class="p-3 rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 shadow-inner inline-flex items-center justify-center">
+                            <div id="qr-canvas-container" class="bg-white p-2 rounded-xl shadow-xs"></div>
+                        </div>
+
+                        {{-- User ID & Name --}}
+                        <div class="text-center">
+                            <p class="text-sm font-black text-slate-900">{{ $user->name }}</p>
+                            <p class="text-xs text-blue-600 font-bold tracking-wide">ID Peserta: #{{ $user->id }}</p>
+                        </div>
+
+                        {{-- Countdown & Rotasi --}}
+                        <div class="flex items-center justify-center gap-4 text-xs font-semibold text-slate-600 bg-slate-50 py-2 px-4 rounded-xl border border-slate-200 w-full">
+                            <span>Masa Berlaku: <strong class="text-blue-700" x-text="qrExpiresIn + ' dtk'"></strong></span>
+                            <span class="text-slate-300">|</span>
+                            <span>Rotasi Otomatis: <strong class="text-cyan-700" x-text="qrRotateIn + ' dtk'"></strong></span>
+                        </div>
+
+                        {{-- Warning Box --}}
+                        <div class="rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2.5 text-[11px] text-amber-900 font-medium text-left leading-relaxed w-full">
+                            ⚠️ <strong>Penting:</strong> Tunjukkan layar ini secara langsung ke kamera penyedia. Jangan membagikan tangkapan layar (*screenshot*) karena kode QR berputar otomatis demi keamanan.
+                        </div>
+
+                        {{-- Polling status indicator --}}
+                        <div class="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+                            </span>
+                            <span>Menunggu penyedia memindai QR...</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
     </div>
+
+@push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+    if (typeof QRCode === 'undefined') {
+        document.write('<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>');
+    }
+</script>
+@endpush
 @endsection

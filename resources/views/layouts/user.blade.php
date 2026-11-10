@@ -7,6 +7,10 @@
     <meta name="description" content="Dashboard Pengguna Bugar.in — Platform komunitas olahraga lokal Indonesia">
     <title>@yield('title', 'Dashboard - Bugar.in')</title>
     @vite(['resources/css/app.css', 'resources/css/user-dashboard.css', 'resources/js/app.js'])
+    {{-- Alpine.js cloak --}}
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
     @stack('head')
 </head>
 <body x-data="{
