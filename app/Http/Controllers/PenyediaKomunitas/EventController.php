@@ -92,37 +92,41 @@ class EventController extends Controller
         $user = Auth::user();
         $community = Community::where('owner_id', $user->id)->firstOrFail();
 
-        $validated = $request->validate([
-            'title' => 'required|string|max:80',
-            'type' => 'required|string|in:fun_match,tournament,gathering,workshop,other',
-            'description' => 'required|string',
-            'rundown' => 'nullable|string',
-            'cover_image' => $cover . '|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'qris_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'event_date' => $r . '|date',
-            'registration_close_at' => $r . '|date',
-            'timezone' => 'nullable|in:WIB,WITA,WIT',
-            'start_time' => $r,
-            'end_time' => 'nullable',
-            'location' => $r . '|string|max:255',
-            'maps_url' => 'nullable|url|max:500',
-            'capacity_type' => 'nullable|in:limited,unlimited',
-            'capacity' => 'nullable|integer|min:1',
-            'is_paid' => 'nullable|in:0,1',
-            'registration_fee' => 'nullable|numeric|min:0',
-            'payment_category' => 'nullable|in:bank,qris,ewallet,cash',
-            'payment_method' => 'nullable|string|max:100',
-            'payment_account' => 'nullable|string|max:255',
-            'requirements' => 'nullable|string',
-            'organizer_contact' => 'nullable|string|max:255',
-            'action' => 'nullable|string|in:draft,publish',
-            'status' => 'nullable|string|in:draft,published',
-        ], [
-            'title.max' => 'Nama event tidak boleh lebih dari 80 karakter agar tampilan tetap rapi.',
-        ]);
+        $isDraft = ($request->input('action') === 'draft')
+    || ($request->input('status') === 'draft');
 
-        $isDraft = ($request->input('action') === 'draft') || ($request->input('status') === 'draft');
-        $initialStatus = $isDraft ? 'draft' : 'published';
+    $rules = [
+        'title' => 'required|string|max:80',
+        'type' => $isDraft ? 'nullable|string|in:fun_match,tournament,gathering,workshop,other' : 'required|string|in:fun_match,tournament,gathering,workshop,other',
+        'description' => $isDraft ? 'nullable|string' : 'required|string',
+        'rundown' => 'nullable|string',
+        'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+        'qris_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+        'event_date' => $isDraft ? 'nullable|date' : 'required|date',
+        'registration_close_at' => $isDraft ? 'nullable|date' : 'required|date',
+        'timezone' => 'nullable|in:WIB,WITA,WIT',
+        'start_time' => $isDraft ? 'nullable' : 'required',
+        'end_time' => 'nullable',
+        'location' => $isDraft ? 'nullable|string|max:255' : 'required|string|max:255',
+        'maps_url' => 'nullable|url|max:500',
+        'capacity_type' => 'nullable|in:limited,unlimited',
+        'capacity' => 'nullable|integer|min:1',
+        'is_paid' => 'nullable|in:0,1',
+        'registration_fee' => 'nullable|numeric|min:0',
+        'payment_category' => 'nullable|in:bank,qris,ewallet,cash',
+        'payment_method' => 'nullable|string|max:100',
+        'payment_account' => 'nullable|string|max:255',
+        'requirements' => 'nullable|string',
+        'organizer_contact' => 'nullable|string|max:255',
+        'action' => 'nullable|string|in:draft,publish',
+        'status' => 'nullable|string|in:draft,published',
+    ];
+
+    $validated = $request->validate($rules, [
+        'title.max' => 'Nama event tidak boleh lebih dari 80 karakter agar tampilan tetap rapi.',
+    ]);
+
+    $initialStatus = $isDraft ? 'draft' : 'published';
 
         // Verifikasi Komunitas: Hanya jika mempublikasikan event berbayar
         $isPaidEvent = ($request->is_paid === '1') || ((float) ($validated['registration_fee'] ?? 0) > 0);
