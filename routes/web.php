@@ -5,6 +5,7 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\Auth\PenyediaKomunitasAuthController;
 use App\Http\Controllers\Auth\AdminAuthController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\PenyediaKomunitas\DashboardController as PenyediaDashboardController;
@@ -39,7 +40,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
 
     Route::middleware('admin')->group(function () {
-        Route::view('/dashboard', 'admin.dashboard')->name('dashboard');
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::post('/communities/{id}/verify', [AdminDashboardController::class, 'approveVerification'])->name('communities.verify');
+        Route::post('/communities/{id}/reject', [AdminDashboardController::class, 'rejectVerification'])->name('communities.reject');
+        Route::post('/communities/{id}/toggle-status', [AdminDashboardController::class, 'toggleCommunityStatus'])->name('communities.toggle-status');
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     });
 });
