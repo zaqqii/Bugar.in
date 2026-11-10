@@ -361,7 +361,11 @@ class DashboardController extends Controller
         return back()->with('info', 'Fitur penukaran reward sedang dalam tahap pengembangan.');
     }
 
-    public function streakCheckIn(Request $request)
+    /**
+     * Dapatkan token QR check-in untuk sesi jadwal hari ini.
+     * Hanya berlaku bagi peserta terdaftar dalam jendela waktu check-in.
+     */
+    public function getCheckinToken(Request $request, Schedule $schedule, CheckinTokenService $tokenService)
     {
         return back()->with('info', 'Check-in sekarang dilakukan lewat QR yang dipindai penyedia komunitas.');
     }
