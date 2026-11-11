@@ -6,7 +6,9 @@
         "build": "vite build",
         "dev": "vite",
         "cy:open": "cypress open",
-        "cy:run": "cypress run"
+        "cy:run": "cypress run",
+        "cy:daily-login": "cypress run --spec cypress/e2e/daily-login-points.cy.js",
+        "cy:streak": "cypress run --spec cypress/e2e/streak-user.cy.js"
     },
     "dependencies": {
         "alpinejs": "^3.14.9"
