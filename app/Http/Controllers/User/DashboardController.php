@@ -11,6 +11,7 @@ use App\Models\Participant;
 use App\Models\PointsHistory;
 use App\Models\Schedule;
 use App\Models\Streak;
+
 use App\Models\User;
 use App\Models\UserAnnouncement;
 use App\Services\CheckinTokenService;
@@ -362,12 +363,64 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dapatkan token QR check-in untuk sesi jadwal hari ini.
-     * Hanya berlaku bagi peserta terdaftar dalam jendela waktu check-in.
+     * Catat check-in harian user (streak login harian) untuk poin gerak.
+     * Berbeda dengan QR check-in penyedia — ini reward kehadiran aktif tiap hari.
+     * Menggunakan tabel `streaks` (sport_category='daily') dan `total_points` di users.
      */
-    public function getCheckinToken(Request $request, Schedule $schedule, CheckinTokenService $tokenService)
+    public function streakCheckIn(Request $request)
     {
-        return back()->with('info', 'Check-in sekarang dilakukan lewat QR yang dipindai penyedia komunitas.');
+        $user = Auth::user();
+
+        $tz = config('app.timezone', 'Asia/Jakarta');
+        $today = Carbon::today($tz);
+
+        // Ambil atau buat streak harian user
+        $streak = Streak::firstOrNew([
+            'user_id'        => $user->id,
+            'sport_category' => 'daily',
+        ]);
+
+        // Sudah check-in hari ini?
+        if ($streak->last_activity_date && $streak->last_activity_date->toDateString() === $today->toDateString()) {
+            return back()->with('info', 'Kamu sudah check-in hari ini. Kembali besok untuk melanjutkan streak! 🔥');
+        }
+
+        $yesterday = Carbon::yesterday($tz);
+        $isConsecutive = $streak->last_activity_date
+            && $streak->last_activity_date->toDateString() === $yesterday->toDateString();
+
+        if ($isConsecutive) {
+            $streak->current_streak += 1;
+        } else {
+            // Streak terputus atau baru mulai
+            $streak->current_streak    = 1;
+            $streak->streak_started_at = $today;
+        }
+
+        if ($streak->current_streak > ($streak->longest_streak ?? 0)) {
+            $streak->longest_streak = $streak->current_streak;
+        }
+
+        $streak->last_activity_date = $today;
+        $streak->save();
+
+        // Tambah poin ke user
+        $poinBonus = 10;
+        $user->total_points = ($user->total_points ?? 0) + $poinBonus;
+        $user->save();
+
+        // Catat ke riwayat poin
+        PointsHistory::create([
+            'user_id'        => $user->id,
+            'points'         => $poinBonus,
+            'source'         => 'other',
+            'pointable_id'   => $streak->id,
+            'pointable_type' => Streak::class,
+            'description'    => "Check-in harian hari ke-{$streak->current_streak}",
+            'balance_after'  => $user->total_points,
+        ]);
+
+        return back()->with('success', "Streak hari ke-{$streak->current_streak}! +{$poinBonus} poin gerak 🔥");
     }
 
     /**
