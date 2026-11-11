@@ -176,6 +176,9 @@
                     <div x-show="scannerLoading" x-cloak class="absolute inset-0 flex flex-col items-center justify-center gap-3">
                         <div class="h-10 w-10 animate-spin rounded-full border-4 border-slate-600 border-t-blue-400"></div>
                         <p class="text-xs text-slate-400 font-semibold">Meminta izin kamera...</p>
+                        <p class="text-[11px] text-slate-500 text-center max-w-[240px]">
+                            Jika dialog izin muncul, klik <strong class="text-slate-300">Izinkan / Allow</strong>
+                        </p>
                     </div>
 
                     {{-- Placeholder Saat Kamera Belum Menyala --}}
@@ -185,6 +188,9 @@
                         </div>
                         <p class="text-xs text-slate-300 max-w-xs mx-auto">
                             Klik tombol di bawah untuk menyalakan kamera dan memindai QR Code peserta secara otomatis.
+                        </p>
+                        <p class="text-[11px] text-slate-500 max-w-xs mx-auto leading-relaxed">
+                            💡 Saat dialog izin kamera muncul di browser, pilih <strong class="text-slate-400">Izinkan / Allow</strong>
                         </p>
                         <button type="button"
                                 @click="startScanner()"
@@ -539,6 +545,13 @@ function checkinScanner(config) {
 
             if (this.scannerRunning || this.scannerLoading) return;
 
+            // Cek secure context lebih awal dan beri pesan jelas
+            if (!window.isSecureContext) {
+                this.cameraError = true;
+                this.cameraErrorMessage = 'Kamera memerlukan koneksi aman (HTTPS). Hubungi admin untuk mengakses via HTTPS.';
+                return;
+            }
+
             this.cameraError = false;
             this.cameraErrorMessage = '';
             this.scannerLoading = true;
@@ -547,20 +560,41 @@ function checkinScanner(config) {
                 fps: 10,
                 qrbox: { width: 220, height: 220 },
                 aspectRatio: 1.0,
-                verbose: false
+                verbose: false,
+                // Eksplisit minta kamera agar browser tidak dismiss dialog izin
+                videoConstraints: {
+                    facingMode: { ideal: 'environment' }
+                }
             };
 
             const onScan = (decodedText) => this.onScanSuccess(decodedText);
-            const onErr = () => { /* abaikan error per frame saat mencari QR */ };
+            const onErr  = () => { /* abaikan error per-frame */ };
 
             try {
                 if (this.html5QrCode) {
+                    try { await this.html5QrCode.stop(); } catch(e) {}
                     try { this.html5QrCode.clear(); } catch(e) {}
                     this.html5QrCode = null;
                 }
-                this.html5QrCode = new Html5Qrcode('reader');
 
-                // 1. Ambil daftar kamera perangkat via getCameras()
+                this.html5QrCode = new Html5Qrcode('reader', { verbose: false });
+
+                // Langsung minta getUserMedia dulu — ini memastikan browser sudah
+                // menampilkan dialog izin kamera sebelum getCameras() dipanggil.
+                // Tanpa ini, Chrome 125+ kadang dismiss dialog jika belum ada izin aktif.
+                let preStream = null;
+                try {
+                    preStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                } catch (permErr) {
+                    this.handleCameraError(permErr);
+                    return;
+                }
+                // Hentikan stream sementara — Html5Qrcode akan membuka stream sendiri
+                if (preStream) {
+                    preStream.getTracks().forEach(t => t.stop());
+                }
+
+                // Ambil daftar kamera setelah izin diperoleh
                 let cameras = [];
                 try {
                     cameras = await Html5Qrcode.getCameras();
@@ -569,34 +603,28 @@ function checkinScanner(config) {
                 }
 
                 if (cameras && cameras.length > 0) {
-                    // Cari kamera belakang jika ada (untuk smartphone/tablet)
+                    // Prioritaskan kamera belakang (environment) untuk smartphone
                     let selectedId = cameras[0].id;
                     for (const cam of cameras) {
                         const label = (cam.label || '').toLowerCase();
-                        if (label.includes('back') || label.includes('rear') || label.includes('belakang') || label.includes('environment')) {
+                        if (label.includes('back') || label.includes('rear') ||
+                            label.includes('belakang') || label.includes('environment')) {
                             selectedId = cam.id;
                             break;
                         }
                     }
                     await this.html5QrCode.start(selectedId, qrConfig, onScan, onErr);
-                    this.scannerLoading = false;
-                    this.scannerRunning = true;
-                    return;
+                } else {
+                    // Fallback: pakai facingMode object (lebih stabil dari string di Chrome)
+                    await this.html5QrCode.start(
+                        { facingMode: { ideal: 'environment' } },
+                        qrConfig, onScan, onErr
+                    );
                 }
 
-                // 2. Jika getCameras kosong, coba constraint facingMode string "environment"
-                try {
-                    await this.html5QrCode.start({ facingMode: "environment" }, qrConfig, onScan, onErr);
-                    this.scannerLoading = false;
-                    this.scannerRunning = true;
-                    return;
-                } catch (errEnv) {
-                    // 3. Fallback ke facingMode string "user" (webcam laptop)
-                    await this.html5QrCode.start({ facingMode: "user" }, qrConfig, onScan, onErr);
-                    this.scannerLoading = false;
-                    this.scannerRunning = true;
-                    return;
-                }
+                this.scannerLoading = false;
+                this.scannerRunning = true;
+
             } catch (err) {
                 this.handleCameraError(err);
             }
@@ -606,25 +634,25 @@ function checkinScanner(config) {
             this.scannerLoading = false;
             this.scannerRunning = false;
             if (this.html5QrCode) {
+                try { this.html5QrCode.stop(); } catch(e) {}
                 try { this.html5QrCode.clear(); } catch(e) {}
                 this.html5QrCode = null;
             }
             this.cameraError = true;
 
-            if (typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                this.cameraErrorMessage = 'Kamera memerlukan koneksi aman (HTTPS atau localhost). Akses website melalui http://localhost atau gunakan HTTPS.';
-                return;
-            }
+            const name = (err?.name || '').toLowerCase();
+            const msg  = (err?.message || err || '').toString().toLowerCase();
 
-            const msg = (err?.message || err || '').toString().toLowerCase();
-            if (msg.includes('permission') || msg.includes('denied') || msg.includes('notallowed')) {
-                this.cameraErrorMessage = 'Izin kamera ditolak. Silakan klik ikon gembok/kamera di address bar browser untuk mengizinkan akses kamera, lalu coba lagi.';
-            } else if (msg.includes('notfound') || msg.includes('devicesnotfound') || msg.includes('devicenotfound') || msg.includes('no camera')) {
-                this.cameraErrorMessage = 'Tidak ada perangkat kamera yang terdeteksi di laptop/perangkat ini.';
-            } else if (msg.includes('in use') || msg.includes('busy') || msg.includes('notreadable') || msg.includes('could not start video source')) {
-                this.cameraErrorMessage = 'Kamera sedang digunakan oleh aplikasi lain (misal Zoom, browser lain, dsb). Tutup aplikasi tersebut lalu coba lagi.';
+            if (name === 'notallowederror' || msg.includes('permission') || msg.includes('denied') || msg.includes('notallowed')) {
+                this.cameraErrorMessage = 'Izin kamera ditolak. Klik ikon 🔒 di address bar browser → "Izinkan" kamera, lalu klik tombol "Coba Akses Lagi" di bawah.';
+            } else if (name === 'notfounderror' || msg.includes('notfound') || msg.includes('devicesnotfound') || msg.includes('no camera')) {
+                this.cameraErrorMessage = 'Tidak ada kamera yang terdeteksi. Pastikan kamera sudah terhubung dan tidak diblokir sistem.';
+            } else if (name === 'notreadableerror' || msg.includes('in use') || msg.includes('busy') || msg.includes('notreadable') || msg.includes('could not start')) {
+                this.cameraErrorMessage = 'Kamera sedang digunakan aplikasi lain (Zoom, Teams, tab browser lain, dsb). Tutup aplikasi tersebut lalu coba lagi.';
+            } else if (name === 'overconstrainederror') {
+                this.cameraErrorMessage = 'Kamera tidak mendukung konfigurasi yang diminta. Silakan coba lagi atau gunakan Check-in Manual.';
             } else {
-                this.cameraErrorMessage = (err?.message || 'Kamera tidak dapat diakses. Silakan gunakan tombol Check-in Manual di tabel sebelah kanan.');
+                this.cameraErrorMessage = err?.message || 'Kamera tidak dapat diakses. Gunakan tombol Check-in Manual di tabel sebelah kanan.';
             }
         },
 
