@@ -843,12 +843,12 @@ class JadwalController extends Controller
     ) {
         $this->authorizeScheduleOwnership($schedule);
 
-        $token = (string) $request->input('token');
-        if (empty($token)) {
+        $token = trim((string) $request->input('token'));
+        if (empty($token) || strlen($token) !== 40 || !ctype_xdigit($token)) {
             return response()->json([
                 'success' => false,
                 'error_code' => 'token_invalid',
-                'message' => 'Token QR tidak ditemukan dalam request.',
+                'message' => 'QR Code tidak valid atau bukan QR resmi Bugar.in.',
             ], 400);
         }
 
@@ -856,8 +856,8 @@ class JadwalController extends Controller
         if (!$payload) {
             return response()->json([
                 'success' => false,
-                'error_code' => 'token_invalid',
-                'message' => CheckinException::defaultMessage('token_invalid'),
+                'error_code' => 'token_expired',
+                'message' => 'QR Code sudah kedaluwarsa atau belum terdaftar. Silakan minta peserta memperbarui QR di layarnya.',
             ], 400);
         }
 
@@ -865,16 +865,16 @@ class JadwalController extends Controller
             return response()->json([
                 'success' => false,
                 'error_code' => 'wrong_session',
-                'message' => CheckinException::defaultMessage('wrong_session'),
+                'message' => 'QR Code ini milik sesi/jadwal yang berbeda, bukan untuk jadwal ini.',
             ], 400);
         }
 
         $participant = Participant::find($payload['participant_id']);
-        if (!$participant || (int) $participant->user_id !== (int) $payload['user_id']) {
+        if (!$participant || (int) $participant->user_id !== (int) $payload['user_id'] || (int) $participant->participatable_id !== (int) $schedule->id) {
             return response()->json([
                 'success' => false,
                 'error_code' => 'not_registered',
-                'message' => CheckinException::defaultMessage('not_registered'),
+                'message' => 'Peserta dengan QR ini tidak terdaftar pada sesi jadwal ini.',
             ], 400);
         }
 

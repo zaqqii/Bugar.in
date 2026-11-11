@@ -49,12 +49,12 @@
 
 @section('content')
 <div class="space-y-6"
-     x-data="checkinScanner({
+     x-data='checkinScanner({
          scheduleId: {{ $schedule->id }},
-         scanEndpoint: '{{ route('penyedia-komunitas.jadwal.checkin.scan', $schedule) }}',
-         participantsEndpoint: '{{ route('penyedia-komunitas.jadwal.checkin.participants', $schedule) }}',
-         manualCheckinBase: '{{ url('/penyedia-komunitas/jadwal/' . $schedule->id . '/checkin/manual') }}',
-         csrfToken: '{{ csrf_token() }}',
+         scanEndpoint: "{{ route('penyedia-komunitas.jadwal.checkin.scan', $schedule) }}",
+         participantsEndpoint: "{{ route('penyedia-komunitas.jadwal.checkin.participants', $schedule) }}",
+         manualCheckinBase: "{{ url('/penyedia-komunitas/jadwal/' . $schedule->id . '/checkin/manual') }}",
+         csrfToken: "{{ csrf_token() }}",
          initialParticipants: @json($initialParticipantsData),
          initialCounts: {
              total: {{ $totalCount }},
@@ -63,7 +63,7 @@
          },
          isToday: {{ $isToday ? 'true' : 'false' }},
          isWindowOpen: {{ $isWindowOpen ? 'true' : 'false' }}
-     })"
+     })'
      x-init="initScanner()">
 
     {{-- Breadcrumb & Header --}}
@@ -169,15 +169,18 @@
                 </div>
 
                 {{-- Area Kamera Viewport --}}
-                <div class="p-4 bg-slate-950 flex flex-col items-center justify-center min-h-[300px] relative">
-                    <div id="reader" class="w-full max-w-[360px] mx-auto rounded-xl overflow-hidden"></div>
+                <div class="p-4 bg-slate-950 flex flex-col items-center justify-center min-h-[320px] relative">
+                    {{-- Container Reader untuk html5-qrcode --}}
+                    <div id="reader"
+                         x-show="scannerRunning"
+                         class="w-full max-w-[360px] mx-auto rounded-xl overflow-hidden min-h-[260px]"></div>
 
                     {{-- Loading spinner saat kamera sedang diinisialisasi --}}
-                    <div x-show="scannerLoading" x-cloak class="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                    <div x-show="scannerLoading" x-cloak class="py-12 flex flex-col items-center justify-center gap-3">
                         <div class="h-10 w-10 animate-spin rounded-full border-4 border-slate-600 border-t-blue-400"></div>
-                        <p class="text-xs text-slate-400 font-semibold">Meminta izin kamera...</p>
-                        <p class="text-[11px] text-slate-500 text-center max-w-[240px]">
-                            Jika dialog izin muncul, klik <strong class="text-slate-300">Izinkan / Allow</strong>
+                        <p class="text-xs text-slate-300 font-semibold">Menghubungkan ke kamera...</p>
+                        <p class="text-[11px] text-slate-400 text-center max-w-[240px]">
+                            Jika browser meminta izin kamera, klik <strong class="text-white">Izinkan / Allow</strong>
                         </p>
                     </div>
 
@@ -188,9 +191,6 @@
                         </div>
                         <p class="text-xs text-slate-300 max-w-xs mx-auto">
                             Klik tombol di bawah untuk menyalakan kamera dan memindai QR Code peserta secara otomatis.
-                        </p>
-                        <p class="text-[11px] text-slate-500 max-w-xs mx-auto leading-relaxed">
-                            💡 Saat dialog izin kamera muncul di browser, pilih <strong class="text-slate-400">Izinkan / Allow</strong>
                         </p>
                         <button type="button"
                                 @click="startScanner()"
@@ -205,13 +205,13 @@
                             ⚠️
                         </div>
                         <strong class="text-xs font-bold text-rose-300 block">Kamera Tidak Dapat Diakses</strong>
-                        <p class="text-[11px] text-slate-400 max-w-xs mx-auto" x-text="cameraErrorMessage"></p>
+                        <p class="text-[11px] text-slate-300 max-w-xs mx-auto" x-text="cameraErrorMessage"></p>
                         <p class="text-[11px] text-slate-400">
                             Gunakan tombol <strong>Check-in Manual</strong> pada tabel di samping untuk mencatat kehadiran peserta secara langsung.
                         </p>
                         <button type="button"
                                 @click="startScanner()"
-                                class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">
+                                class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition">
                             Coba Akses Lagi
                         </button>
                     </div>
@@ -545,10 +545,10 @@ function checkinScanner(config) {
 
             if (this.scannerRunning || this.scannerLoading) return;
 
-            // Cek secure context lebih awal dan beri pesan jelas
-            if (!window.isSecureContext) {
+            // Cek navigator mediaDevices
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 this.cameraError = true;
-                this.cameraErrorMessage = 'Kamera memerlukan koneksi aman (HTTPS). Hubungi admin untuk mengakses via HTTPS.';
+                this.cameraErrorMessage = 'Browser Anda tidak mendukung akses kamera atau halaman tidak berjalan di koneksi aman (HTTPS / localhost).';
                 return;
             }
 
@@ -560,15 +560,11 @@ function checkinScanner(config) {
                 fps: 10,
                 qrbox: { width: 220, height: 220 },
                 aspectRatio: 1.0,
-                verbose: false,
-                // Eksplisit minta kamera agar browser tidak dismiss dialog izin
-                videoConstraints: {
-                    facingMode: { ideal: 'environment' }
-                }
+                verbose: false
             };
 
             const onScan = (decodedText) => this.onScanSuccess(decodedText);
-            const onErr  = () => { /* abaikan error per-frame */ };
+            const onErr  = () => { /* abaikan frame tanpa QR */ };
 
             try {
                 if (this.html5QrCode) {
@@ -577,55 +573,49 @@ function checkinScanner(config) {
                     this.html5QrCode = null;
                 }
 
-                this.html5QrCode = new Html5Qrcode('reader', { verbose: false });
-
-                // Langsung minta getUserMedia dulu — ini memastikan browser sudah
-                // menampilkan dialog izin kamera sebelum getCameras() dipanggil.
-                // Tanpa ini, Chrome 125+ kadang dismiss dialog jika belum ada izin aktif.
-                let preStream = null;
-                try {
-                    preStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                } catch (permErr) {
-                    this.handleCameraError(permErr);
-                    return;
-                }
-                // Hentikan stream sementara — Html5Qrcode akan membuka stream sendiri
-                if (preStream) {
-                    preStream.getTracks().forEach(t => t.stop());
-                }
-
-                // Ambil daftar kamera setelah izin diperoleh
+                // Cek apakah ada kamera yang terdeteksi via getCameras
                 let cameras = [];
                 try {
                     cameras = await Html5Qrcode.getCameras();
-                } catch (e) {
-                    cameras = [];
+                } catch(e) {
+                    console.warn('getCameras error:', e);
                 }
 
+                this.html5QrCode = new Html5Qrcode('reader', { verbose: false });
+
                 if (cameras && cameras.length > 0) {
-                    // Prioritaskan kamera belakang (environment) untuk smartphone
-                    let selectedId = cameras[0].id;
+                    // Cari kamera belakang jika ada, jika tidak gunakan kamera pertama (webcam)
+                    let selectedCamId = cameras[0].id;
                     for (const cam of cameras) {
-                        const label = (cam.label || '').toLowerCase();
-                        if (label.includes('back') || label.includes('rear') ||
-                            label.includes('belakang') || label.includes('environment')) {
-                            selectedId = cam.id;
+                        const lbl = (cam.label || '').toLowerCase();
+                        if (lbl.includes('back') || lbl.includes('rear') || lbl.includes('belakang') || lbl.includes('environment')) {
+                            selectedCamId = cam.id;
                             break;
                         }
                     }
-                    await this.html5QrCode.start(selectedId, qrConfig, onScan, onErr);
-                } else {
-                    // Fallback: pakai facingMode object (lebih stabil dari string di Chrome)
+
                     await this.html5QrCode.start(
-                        { facingMode: { ideal: 'environment' } },
-                        qrConfig, onScan, onErr
+                        selectedCamId,
+                        qrConfig,
+                        onScan,
+                        onErr
+                    );
+                } else {
+                    // Fallback jika getCameras belum mengembalikan daftar device
+                    await this.html5QrCode.start(
+                        { facingMode: "user" },
+                        qrConfig,
+                        onScan,
+                        onErr
                     );
                 }
 
                 this.scannerLoading = false;
                 this.scannerRunning = true;
+                return;
 
             } catch (err) {
+                console.error('Error saat menyalakan kamera:', err);
                 this.handleCameraError(err);
             }
         },

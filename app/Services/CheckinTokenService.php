@@ -17,7 +17,7 @@ class CheckinTokenService
     {
         $token = bin2hex(random_bytes(20));
         $cacheKey = $this->cacheKey($token);
-        $ttlSeconds = (int) config('schedules.checkin_token_ttl_seconds', 90);
+        $ttlSeconds = (int) config('schedules.checkin_token_ttl_seconds', 180);
         $rotateSeconds = (int) config('schedules.checkin_token_rotate_seconds', 45);
 
         $payload = [
@@ -27,7 +27,7 @@ class CheckinTokenService
             'created_at' => now()->timestamp,
         ];
 
-        Cache::put($cacheKey, $payload, now()->addSeconds($ttlSeconds));
+        Cache::put($cacheKey, $payload, $ttlSeconds);
 
         return [
             'token' => $token,
@@ -43,11 +43,12 @@ class CheckinTokenService
      */
     public function resolve(string $token): ?array
     {
-        if (empty($token) || strlen($token) !== 40) {
+        $cleanToken = trim($token);
+        if (empty($cleanToken) || strlen($cleanToken) !== 40) {
             return null;
         }
 
-        $cacheKey = $this->cacheKey($token);
+        $cacheKey = $this->cacheKey($cleanToken);
         return Cache::get($cacheKey);
     }
 
