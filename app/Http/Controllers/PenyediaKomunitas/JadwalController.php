@@ -2,17 +2,23 @@
 
 namespace App\Http\Controllers\PenyediaKomunitas;
 
+use App\Exceptions\CheckinException;
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\Community;
 use App\Models\CommunityBlock;
 use App\Models\Participant;
 use App\Models\Schedule;
 use App\Models\UserAnnouncement;
+use App\Services\AttendanceService;
+use App\Services\CheckinTokenService;
 use App\Support\NotificationType;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class JadwalController extends Controller
@@ -717,6 +723,293 @@ class JadwalController extends Controller
 
         return redirect()->route('penyedia-komunitas.jadwal.index')
             ->with('success', "Jadwal \"{$title}\" berhasil dihapus.");
+    }
+
+    /**
+     * Halaman antarmuka check-in sesi jadwal untuk penyedia komunitas.
+     */
+    public function checkinView(Schedule $schedule)
+    {
+        $this->authorizeScheduleOwnership($schedule);
+
+        $community = $schedule->community;
+
+        $participants = $schedule->participants()
+            ->with(['user', 'user.streaks'])
+            ->whereIn('status', ['registered', 'attended'])
+            ->orderByRaw("CASE WHEN status = 'registered' THEN 0 ELSE 1 END")
+            ->orderBy('registered_at', 'asc')
+            ->get();
+
+        $attendances = Attendance::whereIn('participant_id', $participants->pluck('id'))
+            ->get()
+            ->keyBy('participant_id');
+
+        $tz = config('app.timezone', 'Asia/Jakarta');
+        $now = Carbon::now($tz);
+        $todayStr = $now->toDateString();
+        $scheduleDateStr = $schedule->date instanceof Carbon ? $schedule->date->format('Y-m-d') : (string) $schedule->date;
+        $isToday = ($scheduleDateStr === $todayStr);
+
+        $windowBeforeMinutes = (int) config('schedules.checkin_window_before_minutes', 30);
+        $windowStart = $schedule->startsAt()->subMinutes($windowBeforeMinutes);
+        $windowEnd = $schedule->endsAt();
+        $isWindowOpen = $isToday && $now->gte($windowStart) && $now->lte($windowEnd);
+
+        $totalCount = $participants->count();
+        $attendedCount = $participants->where('status', 'attended')->count();
+        $registeredCount = $participants->where('status', 'registered')->count();
+
+        return view('penyedia-komunitas.jadwal.checkin', compact(
+            'schedule',
+            'community',
+            'participants',
+            'attendances',
+            'isToday',
+            'isWindowOpen',
+            'windowStart',
+            'windowEnd',
+            'totalCount',
+            'attendedCount',
+            'registeredCount'
+        ));
+    }
+
+    /**
+     * Endpoint JSON daftar peserta dan status kehadiran terkini untuk auto-refresh halaman scanner.
+     */
+    public function checkinParticipantsJson(Schedule $schedule)
+    {
+        $this->authorizeScheduleOwnership($schedule);
+
+        $participants = $schedule->participants()
+            ->with('user')
+            ->whereIn('status', ['registered', 'attended'])
+            ->orderByRaw("CASE WHEN status = 'registered' THEN 0 ELSE 1 END")
+            ->orderBy('registered_at', 'asc')
+            ->get();
+
+        $attendances = Attendance::whereIn('participant_id', $participants->pluck('id'))
+            ->get()
+            ->keyBy('participant_id');
+
+        $tz = config('app.timezone', 'Asia/Jakarta');
+
+        $data = $participants->map(function ($p) use ($attendances, $tz) {
+            $att = $attendances->get($p->id);
+            $checkInTime = $att && $att->check_in_at
+                ? $att->check_in_at->timezone($tz)->format('H:i')
+                : null;
+
+            $avatarUrl = null;
+            if ($p->user?->avatar) {
+                $avatarUrl = Str::startsWith($p->user->avatar, ['http://', 'https://'])
+                    ? $p->user->avatar
+                    : Storage::url($p->user->avatar);
+            }
+
+            return [
+                'id' => $p->id,
+                'user_id' => $p->user_id,
+                'user_name' => $p->user?->name ?? 'Peserta #' . $p->user_id,
+                'user_email' => $p->user?->email ?? '-',
+                'user_avatar' => $avatarUrl,
+                'status' => $p->status,
+                'status_label' => $p->statusLabel(),
+                'status_color' => $p->statusColor(),
+                'check_in_time' => $checkInTime,
+                'method' => $att?->method,
+            ];
+        });
+
+        return response()->json([
+            'summary' => [
+                'total' => $participants->count(),
+                'attended' => $participants->where('status', 'attended')->count(),
+                'registered' => $participants->where('status', 'registered')->count(),
+            ],
+            'participants' => $data,
+        ]);
+    }
+
+    /**
+     * Memproses token hasil scan QR dari kamera penyedia.
+     */
+    public function checkinScan(
+        Request $request,
+        Schedule $schedule,
+        CheckinTokenService $tokenService,
+        AttendanceService $attendanceService
+    ) {
+        $this->authorizeScheduleOwnership($schedule);
+
+        $token = trim((string) $request->input('token'));
+        if (empty($token) || strlen($token) !== 40 || !ctype_xdigit($token)) {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'token_invalid',
+                'message' => 'QR Code tidak valid atau bukan QR resmi Bugar.in.',
+            ], 400);
+        }
+
+        $payload = $tokenService->resolve($token);
+        if (!$payload) {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'token_expired',
+                'message' => 'QR Code sudah kedaluwarsa atau belum terdaftar. Silakan minta peserta memperbarui QR di layarnya.',
+            ], 400);
+        }
+
+        if ((int) $payload['schedule_id'] !== (int) $schedule->id) {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'wrong_session',
+                'message' => 'QR Code ini milik sesi/jadwal yang berbeda, bukan untuk jadwal ini.',
+            ], 400);
+        }
+
+        $participant = Participant::find($payload['participant_id']);
+        if (!$participant || (int) $participant->user_id !== (int) $payload['user_id'] || (int) $participant->participatable_id !== (int) $schedule->id) {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'not_registered',
+                'message' => 'Peserta dengan QR ini tidak terdaftar pada sesi jadwal ini.',
+            ], 400);
+        }
+
+        // Cache Lock berdasar hash sha256 token untuk mencegah race condition dua scan bersamaan
+        $lockKey = 'scan_lock:' . hash('sha256', $token);
+        $lock = Cache::lock($lockKey, 10);
+
+        if (!$lock->get()) {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'concurrent_scan',
+                'message' => 'Sedang memproses scan ini, mohon tunggu sebentar.',
+            ], 429);
+        }
+
+        try {
+            $result = $attendanceService->checkIn($participant, Auth::user(), 'qr_scan');
+            $tokenService->consume($token);
+
+            $user = $result['user'];
+            $avatarUrl = null;
+            if ($user->avatar) {
+                $avatarUrl = Str::startsWith($user->avatar, ['http://', 'https://'])
+                    ? $user->avatar
+                    : Storage::url($user->avatar);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Check-in QR berhasil diverifikasi!',
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'avatar' => $avatarUrl,
+                ],
+                'check_in_at' => $result['check_in_at_formatted'],
+                'points_awarded' => $result['points_awarded'],
+                'points_amount' => $result['points_amount'],
+                'current_streak' => $result['current_streak'],
+                'total_points' => $result['total_points'],
+            ]);
+        } catch (CheckinException $e) {
+            if ($e->getErrorCode() === 'already_checked_in') {
+                $tokenService->consume($token);
+            }
+            return response()->json([
+                'success' => false,
+                'error_code' => $e->getErrorCode(),
+                'message' => $e->getMessage(),
+            ], 400);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'system_error',
+                'message' => 'Terjadi kesalahan sistem saat memproses check-in: ' . $e->getMessage(),
+            ], 500);
+        } finally {
+            optional($lock)->release();
+        }
+    }
+
+    /**
+     * Memproses check-in manual oleh penyedia (jika kamera bermasalah atau ponsel peserta bermasalah).
+     */
+    public function checkinManual(
+        Request $request,
+        Schedule $schedule,
+        Participant $participant,
+        AttendanceService $attendanceService
+    ) {
+        $this->authorizeScheduleOwnership($schedule);
+
+        if ($participant->participatable_type !== Schedule::class || (int) $participant->participatable_id !== (int) $schedule->id) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'wrong_session',
+                    'message' => 'Peserta tidak terdaftar pada sesi jadwal ini.',
+                ], 400);
+            }
+            return back()->with('error', 'Peserta tidak terdaftar pada sesi jadwal ini.');
+        }
+
+        try {
+            $result = $attendanceService->checkIn($participant, Auth::user(), 'manual');
+
+            $user = $result['user'];
+            $avatarUrl = null;
+            if ($user->avatar) {
+                $avatarUrl = Str::startsWith($user->avatar, ['http://', 'https://'])
+                    ? $user->avatar
+                    : Storage::url($user->avatar);
+            }
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Check-in manual untuk {$user->name} berhasil.",
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'avatar' => $avatarUrl,
+                    ],
+                    'check_in_at' => $result['check_in_at_formatted'],
+                    'points_awarded' => $result['points_awarded'],
+                    'points_amount' => $result['points_amount'],
+                    'current_streak' => $result['current_streak'],
+                    'total_points' => $result['total_points'],
+                ]);
+            }
+
+            $msg = "Check-in manual untuk {$user->name} berhasil dicatat!";
+            if ($result['points_awarded']) {
+                $msg .= " (+{$result['points_amount']} Poin)";
+            }
+            return back()->with('success', $msg);
+        } catch (CheckinException $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => $e->getErrorCode(),
+                    'message' => $e->getMessage(),
+                ], 400);
+            }
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'system_error',
+                    'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage(),
+                ], 500);
+            }
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     /**

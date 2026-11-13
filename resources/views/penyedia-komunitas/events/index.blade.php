@@ -69,7 +69,7 @@
                     <span class="w-2 h-2 rounded-full bg-primary-500"></span>
                     PORTAL HOST &bull; {{ strtoupper($community->sport_category ?? 'Olahraga') }} &bull; {{ strtoupper($community->name) }}
                 </div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                <h1 class="text-xl font-extrabold text-slate-900">
                     Kelola Event Komunitas
                 </h1>
                 <p class="text-slate-500 text-sm mt-1">

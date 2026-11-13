@@ -404,11 +404,29 @@
 
                             {{-- Bottom Actions Toolbar --}}
                             <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap text-xs">
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
                                     <a href="{{ route('penyedia-komunitas.jadwal.show', $schedule) }}"
                                        class="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold transition">
                                         Detail & Peserta
                                     </a>
+
+                                    {{-- Tombol Check-in QR (Hanya aktif untuk sesi hari ini) --}}
+                                    @php
+                                        $tz = config('app.timezone', 'Asia/Jakarta');
+                                        $isTodaySess = $schedule->date && \Carbon\Carbon::parse($schedule->date, $tz)->isToday();
+                                    @endphp
+                                    @if($isTodaySess && !$isCancelled)
+                                        <a href="{{ route('penyedia-komunitas.jadwal.checkin', $schedule) }}"
+                                           class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-1 shadow-xs">
+                                            <span>📷 Check-in</span>
+                                        </a>
+                                    @else
+                                        <span title="{{ $isCancelled ? 'Sesi dibatalkan' : ($isFinished ? 'Sesi telah selesai' : 'Check-in hanya aktif pada hari sesi berlangsung') }}"
+                                              class="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-400 font-medium cursor-not-allowed text-[11px] inline-flex items-center">
+                                            📷 Check-in
+                                        </span>
+                                    @endif
+
                                     @if(!$isCancelled && !$isFinished)
                                         <a href="{{ route('penyedia-komunitas.jadwal.edit', $schedule) }}"
                                            class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold transition">
