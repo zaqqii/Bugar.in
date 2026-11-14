@@ -99,7 +99,7 @@ class DashboardController extends Controller
         $upcomingItems = $upcomingEvents->concat($upcomingSchedules)->take(5);
 
         $pendingMembers = $community->members()
-            ->with('user')
+            ->with(['user' => fn($q) => $q->select('id', 'name', 'avatar', 'username')])
             ->where('status', 'pending')
             ->orderBy('joined_at')
             ->limit(5)

@@ -268,16 +268,24 @@
                                 </td>
                                 <td class="py-3.5 px-5">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">
-                                            {{ strtoupper(substr($participant->user->name ?? 'U', 0, 1)) }}
-                                        </div>
+                                        @if(!empty($participant->user?->avatar))
+                                            <img src="{{ \Illuminate\Support\Str::startsWith($participant->user->avatar, ['http://', 'https://']) ? $participant->user->avatar : \Illuminate\Support\Facades\Storage::url($participant->user->avatar) }}"
+                                                 alt="{{ $participant->user->name ?? 'Peserta' }}"
+                                                 class="w-8 h-8 rounded-full object-cover shrink-0">
+                                        @else
+                                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">
+                                                {{ strtoupper(substr($participant->user->name ?? 'U', 0, 1)) }}
+                                            </div>
+                                        @endif
                                         <div class="min-w-0">
                                             <span class="block font-bold text-slate-900 truncate">
                                                 {{ $participant->user->name ?? 'Pengguna #' . $participant->user_id }}
                                             </span>
-                                            <span class="block text-[11px] text-slate-400 truncate">
-                                                {{ $participant->user->email ?? '-' }}
-                                            </span>
+                                            @if(!empty($participant->user?->username))
+                                                <span class="block text-[11px] text-slate-400 truncate">
+                                                    {{ '@' . $participant->user->username }}
+                                                </span>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>

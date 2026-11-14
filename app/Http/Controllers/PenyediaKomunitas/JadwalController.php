@@ -282,7 +282,7 @@ class JadwalController extends Controller
         $community = $schedule->community;
 
         $participants = $schedule->participants()
-            ->with('user')
+            ->with(['user' => fn($q) => $q->select('id', 'name', 'avatar', 'username')])
             ->orderBy('registered_at', 'desc')
             ->paginate(20);
 
@@ -640,7 +640,10 @@ class JadwalController extends Controller
         $community = Community::where('owner_id', $user->id)->firstOrFail();
 
         $blocks = CommunityBlock::where('community_id', $community->id)
-            ->with(['user', 'blocker'])
+            ->with([
+                'user' => fn($q) => $q->select('id', 'name', 'avatar', 'username'),
+                'blocker' => fn($q) => $q->select('id', 'name'),
+            ])
             ->latest()
             ->paginate(15);
 
@@ -735,7 +738,10 @@ class JadwalController extends Controller
         $community = $schedule->community;
 
         $participants = $schedule->participants()
-            ->with(['user', 'user.streaks'])
+            ->with([
+                'user' => fn($q) => $q->select('id', 'name', 'avatar', 'username'),
+                'user.streaks',
+            ])
             ->whereIn('status', ['registered', 'attended'])
             ->orderByRaw("CASE WHEN status = 'registered' THEN 0 ELSE 1 END")
             ->orderBy('registered_at', 'asc')
@@ -783,7 +789,7 @@ class JadwalController extends Controller
         $this->authorizeScheduleOwnership($schedule);
 
         $participants = $schedule->participants()
-            ->with('user')
+            ->with(['user' => fn($q) => $q->select('id', 'name', 'avatar', 'username')])
             ->whereIn('status', ['registered', 'attended'])
             ->orderByRaw("CASE WHEN status = 'registered' THEN 0 ELSE 1 END")
             ->orderBy('registered_at', 'asc')
@@ -812,7 +818,7 @@ class JadwalController extends Controller
                 'id' => $p->id,
                 'user_id' => $p->user_id,
                 'user_name' => $p->user?->name ?? 'Peserta #' . $p->user_id,
-                'user_email' => $p->user?->email ?? '-',
+                'user_username' => $p->user?->username,
                 'user_avatar' => $avatarUrl,
                 'status' => $p->status,
                 'status_label' => $p->statusLabel(),
