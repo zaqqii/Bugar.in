@@ -89,8 +89,22 @@
                         </svg>
                         Terverifikasi
                     </span>
+                @elseif($community?->verification_status === 'pending')
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-200">
+                        <svg class="w-3.5 h-3.5 text-amber-500 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Menunggu Persetujuan Admin
+                    </span>
+                @elseif($community?->verification_status === 'rejected')
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200">
+                        <svg class="w-3.5 h-3.5 text-rose-500 fill-current" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        Verifikasi Ditolak
+                    </span>
                 @else
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200">
                         Belum Verifikasi
                     </span>
                 @endif
@@ -490,6 +504,75 @@
                     </a>
                 </div>
             </div>
+        @elseif($community?->verification_status === 'pending')
+            <div class="bg-gradient-to-br from-slate-900 via-amber-950/70 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-amber-500/30">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
+                    <div class="space-y-2">
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wide border border-amber-400/30">
+                            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                            Status: Menunggu Persetujuan Admin
+                        </div>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                            Permohonan Verifikasi Sedang Ditinjau
+                        </h2>
+                        <p class="text-amber-100/90 text-sm max-w-xl leading-relaxed">
+                            Permohonan verifikasi komunitas Anda telah diterima dan sedang dalam antrean verifikasi oleh tim Admin Bugar.in. Fitur pembuatan event berbayar dan streak olahraga akan segera aktif setelah disetujui.
+                        </p>
+                        @if($community?->verification_requested_at)
+                            <p class="text-xs text-white/70">
+                                Diajukan pada: {{ $community->verification_requested_at->translatedFormat('d F Y, H:i') }} WIB
+                                @if(!empty($community->verification_type))
+                                    • Jalur: {{ $community->verification_type === 'paid' ? 'Verifikasi Berbayar (Rp ' . number_format($community->verification_fee ?? 99000, 0, ',', '.') . ')' : '15+ Pengikut Komunitas' }}
+                                @endif
+                            </p>
+                        @endif
+                    </div>
+
+                    <div class="px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-xs text-slate-200 space-y-1 shrink-0">
+                        <div class="font-bold text-amber-300 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-amber-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Antrean Admin:
+                        </div>
+                        <div>• Status: <span class="text-amber-300 font-semibold">Sedang Ditinjau</span></div>
+                        <div>• Jadwal Rutin: <span class="text-emerald-400 font-semibold">Tersedia</span></div>
+                        <div>• Event Berbayar: <span class="text-amber-300 font-semibold">Menunggu Verifikasi</span></div>
+                    </div>
+                </div>
+            </div>
+        @elseif($community?->verification_status === 'rejected')
+            <div class="bg-gradient-to-br from-slate-900 via-rose-950/70 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-rose-500/30">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
+                    <div class="space-y-3">
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold uppercase tracking-wide border border-rose-400/30">
+                            <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                            Status: Verifikasi Ditolak
+                        </div>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                            Pengajuan Verifikasi Belum Disetujui
+                        </h2>
+                        <div class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs space-y-1">
+                            <span class="font-bold block text-rose-300">Alasan Penolakan Admin:</span>
+                            <p class="leading-relaxed">{{ $community->rejection_reason ?? 'Informasi profil atau dokumen komunitas belum memenuhi standar regulasi.' }}</p>
+                        </div>
+                        <p class="text-slate-300 text-xs">
+                            Anda dapat memperbaiki data komunitas dan mengajukan permohonan verifikasi ulang melalui opsi di bawah.
+                        </p>
+                    </div>
+
+                    <div class="px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-xs text-slate-200 space-y-1 shrink-0">
+                        <div class="font-bold text-rose-300 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Opsi Pengajuan Ulang:
+                        </div>
+                        <div>• Pengajuan Ulang: <span class="text-emerald-400 font-semibold">Tersedia</span></div>
+                        <div>• Status Saat Ini: <span class="text-rose-300 font-semibold">Ditolak</span></div>
+                    </div>
+                </div>
+            </div>
         @else
             <div class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
@@ -580,7 +663,7 @@
                             <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                             </svg>
-                            <span>Otomatis aktif saat follower mencapai 15 orang</span>
+                            <span>Dapat diajukan saat follower mencapai 15 orang</span>
                         </li>
                     </ul>
                 </div>
@@ -591,6 +674,10 @@
                         <button type="button" disabled class="w-full py-2.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold text-center cursor-not-allowed">
                             Komunitas Sudah Terverifikasi
                         </button>
+                    @elseif($community?->verification_status === 'pending')
+                        <button type="button" disabled class="w-full py-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold text-center cursor-not-allowed">
+                            ⏳ Pengajuan Sedang Ditinjau Admin
+                        </button>
                     @elseif($canClaimFree)
                         <form action="{{ route('penyedia-komunitas.akun.verify') }}" method="POST">
                             @csrf
@@ -600,7 +687,7 @@
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                Klaim Verifikasi Gratis Sekarang
+                                {{ $community?->verification_status === 'rejected' ? 'Ajukan Ulang Verifikasi Gratis' : 'Klaim Verifikasi Gratis Sekarang' }}
                             </button>
                         </form>
                     @else
@@ -617,10 +704,10 @@
                 </div>
             </div>
 
-            {{-- OPSI 2: VERSI BERBAYAR (INSTAN / PREMIUM) --}}
+            {{-- OPSI 2: VERSI BERBAYAR (FAST TRACK / PREMIUM) --}}
             <div class="bg-white rounded-2xl border-2 border-primary-500/80 p-6 sm:p-7 shadow-sm flex flex-col justify-between relative overflow-hidden ring-4 ring-primary-500/5">
                 <div class="absolute top-0 right-0 bg-gradient-to-l from-primary-600 to-cyan-600 text-white text-[11px] font-extrabold uppercase px-3 py-1 rounded-bl-xl tracking-wider shadow-sm">
-                    Instan Langsung Aktif
+                    Verifikasi Berbayar
                 </div>
 
                 <div class="space-y-4">
@@ -634,9 +721,9 @@
                         <div class="inline-flex items-center gap-1 text-xs font-bold text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-full mb-1">
                             Opsi 2 • Fast Track
                         </div>
-                        <h3 class="text-xl font-extrabold text-slate-900">Verifikasi Berbayar (Instan)</h3>
+                        <h3 class="text-xl font-extrabold text-slate-900">Verifikasi Berbayar (Fast Track)</h3>
                         <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-                            Tidak ingin menunggu sampai 15 pengikut? Verifikasi instan membuka seluruh benefit dalam hitungan detik.
+                            Tidak ingin menunggu sampai 15 pengikut? Ajukan verifikasi berbayar untuk ditinjau oleh admin Bugar.in.
                         </p>
                     </div>
 
@@ -648,7 +735,7 @@
                             <span class="text-xs text-slate-500 font-medium">/ selamanya</span>
                         </div>
                         <p class="text-[11px] text-primary-700 font-semibold mt-1">
-                            ✓ Langsung aktif detik ini juga tanpa syarat follower
+                            ✓ Menunggu konfirmasi pembayaran dan persetujuan admin
                         </p>
                     </div>
 
@@ -680,6 +767,10 @@
                         <button type="button" disabled class="w-full py-2.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold text-center cursor-not-allowed">
                             Komunitas Sudah Terverifikasi
                         </button>
+                    @elseif($community?->verification_status === 'pending')
+                        <button type="button" disabled class="w-full py-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold text-center cursor-not-allowed">
+                            ⏳ Pengajuan Sedang Ditinjau Admin
+                        </button>
                     @else
                         <button type="button"
                                 @click="paidModalOpen = true"
@@ -687,7 +778,7 @@
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            Pilih Verifikasi Instan (Rp 99.000)
+                            {{ $community?->verification_status === 'rejected' ? 'Ajukan Ulang Verifikasi Berbayar (Rp 99.000)' : 'Pilih Verifikasi Berbayar (Rp 99.000)' }}
                         </button>
                     @endif
                 </div>
@@ -859,8 +950,8 @@
                     💳
                 </div>
                 <div>
-                    <h3 class="text-lg font-bold text-slate-900">Verifikasi Instan Komunitas</h3>
-                    <p class="text-xs text-slate-500">Konfirmasi aktivasi verifikasi berbayar resmi Bugar.in.</p>
+                    <h3 class="text-lg font-bold text-slate-900">Pengajuan Verifikasi Berbayar</h3>
+                    <p class="text-xs text-slate-500">Konfirmasi pengajuan verifikasi resmi Bugar.in (menunggu pembayaran dan persetujuan admin).</p>
                 </div>
             </div>
 
@@ -876,7 +967,7 @@
                     </div>
                     <div class="flex justify-between text-xs text-slate-600">
                         <span>Paket</span>
-                        <span class="font-bold text-primary-700">Verifikasi Instan Lifetime</span>
+                        <span class="font-bold text-primary-700">Verifikasi Berbayar (Fast Track)</span>
                     </div>
                     <div class="pt-2 border-t border-slate-200 flex justify-between items-baseline">
                         <span class="text-xs font-bold text-slate-700">Total Biaya:</span>
@@ -940,7 +1031,7 @@
                     </button>
                     <button type="submit"
                             class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-700 to-cyan-600 hover:from-blue-800 hover:to-cyan-700 text-white text-xs font-bold shadow-md transition cursor-pointer">
-                        Konfirmasi Pembayaran
+                        Kirim Pengajuan Verifikasi
                     </button>
                 </div>
             </form>

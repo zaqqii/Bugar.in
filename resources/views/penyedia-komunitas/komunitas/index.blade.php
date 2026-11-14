@@ -111,6 +111,22 @@
                             </svg>
                             Terverifikasi Resmi
                         </span>
+                    @elseif($community?->verification_status === 'pending')
+                        <a href="{{ route('penyedia-komunitas.akun.index', ['tab' => 'verifikasi']) }}"
+                           class="px-3 py-1 rounded-full bg-amber-500/90 hover:bg-amber-600 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                            <svg class="w-3.5 h-3.5 text-white animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Menunggu Persetujuan Admin
+                        </a>
+                    @elseif($community?->verification_status === 'rejected')
+                        <a href="{{ route('penyedia-komunitas.akun.index', ['tab' => 'verifikasi']) }}"
+                           class="px-3 py-1 rounded-full bg-rose-600/90 hover:bg-rose-700 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                            <svg class="w-3.5 h-3.5 text-white fill-current" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                            </svg>
+                            Verifikasi Ditolak • Ajukan Ulang
+                        </a>
                     @else
                         <a href="{{ route('penyedia-komunitas.akun.index', ['tab' => 'verifikasi']) }}"
                            class="px-3 py-1 rounded-full bg-amber-500/90 hover:bg-amber-600 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
