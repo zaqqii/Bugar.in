@@ -38,6 +38,9 @@ class GoogleAuthController extends Controller
 
     /**
      * Redirect pengguna ke halaman otorisasi Google.
+     * Menggunakan stateless() agar tidak tergantung session cookie saat OAuth redirect
+     * (menghindari InvalidStateException di localhost akibat SameSite=Lax).
+     * Role dikodekan dalam parameter `state` agar tetap terbawa saat callback.
      */
     public function redirect(Request $request)
     {
@@ -46,10 +49,40 @@ class GoogleAuthController extends Controller
             $role = 'user';
         }
 
-        // Simpan role target di session untuk diproses saat callback
-        session(['google_target_role' => $role]);
+        // Encode role ke dalam state Google agar tersedia di callback tanpa session
+        $state = base64_encode(json_encode(['role' => $role, 'ts' => time()]));
 
-        return Socialite::driver('google')->redirect();
+        $redirectUri = $this->resolveRedirectUri($request);
+
+        $driver = Socialite::driver('google')->stateless()->with(['state' => $state]);
+        if ($redirectUri) {
+            $driver = $driver->redirectUrl($redirectUri);
+        }
+
+        return $driver->redirect();
+    }
+
+    /**
+     * Normalise redirect URI agar cocok antara 127.0.0.1 dan localhost.
+     * Menghindari redirect_uri_mismatch saat Google Console hanya mendaftarkan satu varian.
+     */
+    protected function resolveRedirectUri(Request $request): ?string
+    {
+        $configured = config('services.google.redirect');
+        if (!$configured) {
+            return null;
+        }
+
+        // Jika request masuk dari localhost tapi config pakai 127.0.0.1, normalkan
+        $host = $request->getHost();
+        if ($host === 'localhost' && str_contains($configured, '127.0.0.1')) {
+            return str_replace('127.0.0.1', 'localhost', $configured);
+        }
+        if ($host === '127.0.0.1' && str_contains($configured, 'localhost')) {
+            return str_replace('localhost', '127.0.0.1', $configured);
+        }
+
+        return $configured;
     }
 
     /**
@@ -57,20 +90,33 @@ class GoogleAuthController extends Controller
      */
     public function callback(Request $request)
     {
-        $targetRole = session('google_target_role', 'user');
+        // Ambil role dari state Google (prioritas) atau fallback ke session lama
+        $targetRole = 'user';
+        $rawState = $request->query('state', '');
+        if ($rawState) {
+            $decoded = json_decode(base64_decode($rawState), true);
+            if (is_array($decoded) && isset($decoded['role'])) {
+                $targetRole = in_array($decoded['role'], ['user', 'community_owner'])
+                    ? $decoded['role']
+                    : 'user';
+            }
+        }
+        // Fallback ke session jika state tidak ada / tidak terbaca
+        if ($targetRole === 'user') {
+            $sessionRole = session('google_target_role', 'user');
+            if ($sessionRole === 'community_owner') {
+                $targetRole = 'community_owner';
+            }
+        }
+
+        $redirectUri = $this->resolveRedirectUri($request);
 
         try {
-            $googleUser = Socialite::driver('google')->user();
-        } catch (InvalidStateException $e) {
-            Log::warning('Google OAuth state mismatch (InvalidStateException), mencoba fallback ke stateless: ' . $e->getMessage());
-            try {
-                $googleUser = Socialite::driver('google')->stateless()->user();
-            } catch (\Throwable $ex) {
-                Log::error('Google OAuth Stateless Exception: ' . $ex->getMessage(), [
-                    'trace' => $ex->getTraceAsString(),
-                ]);
-                return $this->redirectOnError($targetRole, 'Gagal mengautentikasi akun Google kamu. Silakan coba kembali.');
+            $driver = Socialite::driver('google')->stateless();
+            if ($redirectUri) {
+                $driver = $driver->redirectUrl($redirectUri);
             }
+            $googleUser = $driver->user();
         } catch (\Throwable $e) {
             Log::error('Google OAuth Callback Exception: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),

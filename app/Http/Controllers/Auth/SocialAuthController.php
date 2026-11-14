@@ -40,6 +40,12 @@ class SocialAuthController extends Controller
                 ->withErrors(['social' => 'Login ' . ucfirst($provider) . ' belum dikonfigurasi. Lengkapi kredensial OAuth di file environment.']);
         }
 
+        // Google: forward ke GoogleAuthController yang menangani stateless + role-aware flow
+        if ($provider === 'google') {
+            $role = self::AUDIENCES[$audience]['role'] ?? 'user';
+            return redirect()->route('auth.google.redirect', ['role' => $role]);
+        }
+
         $driver = Socialite::driver($provider);
 
         if ($provider === 'apple') {
