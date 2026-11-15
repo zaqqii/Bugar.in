@@ -368,6 +368,17 @@
                                 Link Tersalin! ✓
                             </span>
                         </button>
+
+                        {{-- Tombol Laporkan Komunitas (AD-05) --}}
+                        @if(auth()->check() && auth()->id() !== ($community->owner_id ?? 0))
+                            <a href="{{ route('user.reports.community.create', $community->slug ?? $community->id) }}"
+                               title="Laporkan Komunitas Ini"
+                               class="w-9 h-9 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200/80 hover:border-rose-200 flex items-center justify-center transition-all shadow-2xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                </svg>
+                            </a>
+                        @endif
                     </div>
 
                 </div>
