@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\Auth\PenyediaKomunitasAuthController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\PenyediaKomunitas\DashboardController as PenyediaDashboardController;
@@ -44,6 +45,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/communities/{id}/verify', [AdminDashboardController::class, 'approveVerification'])->name('communities.verify');
         Route::post('/communities/{id}/reject', [AdminDashboardController::class, 'rejectVerification'])->name('communities.reject');
         Route::post('/communities/{id}/toggle-status', [AdminDashboardController::class, 'toggleCommunityStatus'])->name('communities.toggle-status');
+
+        // Manajemen Laporan Pengguna (AD-05 Bagian Admin)
+        Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/{id}', [AdminReportController::class, 'show'])->name('reports.show');
+        Route::post('/reports/{id}/status', [AdminReportController::class, 'updateStatus'])->name('reports.update-status');
+        Route::post('/reports/community/{id}/toggle-status', [AdminReportController::class, 'toggleCommunityStatus'])->name('reports.community.toggle-status');
+        Route::post('/reports/user/{id}/toggle-status', [AdminReportController::class, 'toggleUserStatus'])->name('reports.user.toggle-status');
+
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     });
 });
