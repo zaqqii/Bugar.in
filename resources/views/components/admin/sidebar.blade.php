@@ -136,7 +136,18 @@
                     Integritas &amp; Keamanan
                 </span>
                 <div class="space-y-1">
-                    <div class="px-3.5 py-2 rounded-xl bg-slate-950/40 border border-slate-800 text-[11px] text-slate-400 space-y-1.5">
+                    {{-- Navigasi Audit Log --}}
+                    <a href="{{ route('admin.audit-logs.index') }}"
+                       class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold {{ request()->routeIs('admin.audit-logs.*') ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }} transition-all duration-150">
+                        <span class="text-cyan-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </span>
+                        <span class="flex-1">Audit Log Platform</span>
+                    </a>
+
+                    <div class="px-3.5 py-2 rounded-xl bg-slate-950/40 border border-slate-800 text-[11px] text-slate-400 space-y-1.5 mt-2">
                         <div class="flex items-center justify-between text-slate-300 font-semibold">
                             <span>Status Server</span>
                             <span class="text-emerald-400 font-mono">ONLINE</span>

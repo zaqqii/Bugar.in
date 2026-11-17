@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Community;
 use App\Models\Report;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -76,11 +77,15 @@ class ReportController extends Controller
             'admin_notes.max' => 'Catatan admin maksimal 1000 karakter.',
         ]);
 
+        $oldStatus = $report->status;
         $report->status = $request->input('status');
         $report->admin_notes = $request->input('admin_notes');
         $report->handled_by = Auth::id();
         $report->handled_at = now();
         $report->save();
+
+        // Audit Log
+        AuditLogger::record('report.status_updated', $report, ['status' => $oldStatus], ['status' => $report->status, 'notes' => $report->admin_notes]);
 
         return back()->with('success', "Status laporan #{$report->id} berhasil diperbarui menjadi {$report->status}.");
     }
@@ -92,10 +97,14 @@ class ReportController extends Controller
     public function toggleCommunityStatus(Request $request, $communityId)
     {
         $community = Community::findOrFail($communityId);
+        $oldActive = $community->is_active;
 
         // Assignment eksplisit untuk is_active
         $community->is_active = !$community->is_active;
         $community->save();
+
+        $action = $community->is_active ? 'community.activated' : 'community.suspended';
+        AuditLogger::record($action, $community, ['is_active' => $oldActive], ['is_active' => $community->is_active]);
 
         $statusText = $community->is_active ? 'diaktifkan kembali' : 'dinonaktifkan sementara';
         return back()->with('success', "Komunitas '{$community->name}' berhasil {$statusText}.");
@@ -113,9 +122,14 @@ class ReportController extends Controller
             return back()->with('error', 'Akun Administrator tidak dapat dinonaktifkan.');
         }
 
+        $oldActive = $user->is_active;
+
         // Assignment eksplisit untuk is_active
         $user->is_active = !$user->is_active;
         $user->save();
+
+        $action = $user->is_active ? 'user.activated' : 'user.suspended';
+        AuditLogger::record($action, $user, ['is_active' => $oldActive], ['is_active' => $user->is_active]);
 
         $statusText = $user->is_active ? 'diaktifkan kembali' : 'dinonaktifkan sementara';
         return back()->with('success', "Akun '{$user->name}' berhasil {$statusText}.");
