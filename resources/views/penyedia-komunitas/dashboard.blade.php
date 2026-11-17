@@ -313,7 +313,7 @@
                                                         </svg>
                                                         {{ $item['time_label'] }}
                                                         @if($item['type'] === 'schedule')
-                                                            <span class="ml-1 text-xs text-slate-400">(Rutin)</span>
+                                                            <span class="ml-1 text-xs text-slate-400">({{ !empty($item['is_recurring']) ? 'Rutin' : 'Sesi' }})</span>
                                                         @endif
                                                     </span>
                                                 </div>
@@ -356,10 +356,17 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <button class="btn btn--outline btn--sm"
-                                                    style="border-color: var(--color-gray-300); color: var(--color-primary-600);">
-                                                Kelola
-                                            </button>
+                                            @if(!empty($item['action_url']))
+                                                <a href="{{ $item['action_url'] }}" class="btn btn--outline btn--sm"
+                                                   style="border-color: var(--color-gray-300); color: var(--color-primary-600);">
+                                                    Kelola
+                                                </a>
+                                            @else
+                                                <button class="btn btn--outline btn--sm"
+                                                        style="border-color: var(--color-gray-300); color: var(--color-primary-600);">
+                                                    Kelola
+                                                </button>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach

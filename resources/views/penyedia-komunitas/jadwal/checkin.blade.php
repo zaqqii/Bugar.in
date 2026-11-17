@@ -36,7 +36,7 @@
             'id' => $p->id,
             'user_id' => $p->user_id,
             'user_name' => $p->user?->name ?? 'Peserta #' . $p->user_id,
-            'user_email' => $p->user?->email ?? '-',
+            'user_username' => $p->user?->username,
             'user_avatar' => $avatarUrl,
             'status' => $p->status,
             'status_label' => $p->statusLabel(),
@@ -429,7 +429,9 @@
                                             </template>
                                             <div class="min-w-0 max-w-[180px] sm:max-w-[220px]">
                                                 <strong class="block text-slate-900 truncate font-bold" x-text="p.user_name"></strong>
-                                                <span class="block text-[11px] text-slate-400 truncate" x-text="p.user_email"></span>
+                                                <template x-if="p.user_username">
+                                                    <span class="block text-[11px] text-slate-400 truncate" x-text="'@' + p.user_username"></span>
+                                                </template>
                                             </div>
                                         </div>
                                     </td>
@@ -811,8 +813,8 @@ function checkinScanner(config) {
                 if (this.searchQuery.trim() !== '') {
                     const q = this.searchQuery.toLowerCase();
                     const nameMatch = (p.user_name || '').toLowerCase().includes(q);
-                    const emailMatch = (p.user_email || '').toLowerCase().includes(q);
-                    return nameMatch || emailMatch;
+                    const usernameMatch = (p.user_username || '').toLowerCase().includes(q);
+                    return nameMatch || usernameMatch;
                 }
                 return true;
             });
