@@ -32,6 +32,11 @@ class Participant extends Model
         return $this->morphTo();
     }
 
+    public function attendance()
+    {
+        return $this->hasOne(Attendance::class, 'participant_id');
+    }
+
     public function scopeActive($query)
     {
         return $query->whereIn('status', ['registered', 'attended', 'waiting_list', 'waiting_payment']);

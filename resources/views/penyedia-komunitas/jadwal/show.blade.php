@@ -218,29 +218,102 @@
         </div>
     </div>
 
+    {{-- Ringkasan Jumlah Peserta --}}
+    @php
+        $totalAll     = $statusCounts->sum();
+        $cntRegistered = $statusCounts->get('registered', 0);
+        $cntAttended   = $statusCounts->get('attended', 0);
+        $cntNoShow     = $statusCounts->get('no_show', 0);
+        $cntCancelled  = $statusCounts->get('cancelled', 0);
+    @endphp
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {{-- Total --}}
+        <a href="{{ route('penyedia-komunitas.jadwal.show', $schedule) }}"
+           class="group flex flex-col gap-1 p-4 rounded-2xl border {{ $filterStatus === null ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm' }} transition">
+            <span class="text-[11px] font-bold uppercase tracking-wider {{ $filterStatus === null ? 'text-blue-100' : 'text-slate-400' }}">Semua Peserta</span>
+            <span class="text-2xl font-extrabold {{ $filterStatus === null ? 'text-white' : 'text-slate-900' }}">{{ $totalAll }}</span>
+        </a>
+
+        {{-- Terdaftar --}}
+        <a href="{{ route('penyedia-komunitas.jadwal.show', $schedule) }}?status_peserta=registered"
+           class="group flex flex-col gap-1 p-4 rounded-2xl border {{ $filterStatus === 'registered' ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-white border-slate-200 hover:border-emerald-300 hover:shadow-sm' }} transition">
+            <span class="text-[11px] font-bold uppercase tracking-wider {{ $filterStatus === 'registered' ? 'text-emerald-100' : 'text-slate-400' }}">Terdaftar</span>
+            <span class="text-2xl font-extrabold {{ $filterStatus === 'registered' ? 'text-white' : 'text-slate-900' }}">{{ $cntRegistered }}</span>
+        </a>
+
+        {{-- Hadir --}}
+        <a href="{{ route('penyedia-komunitas.jadwal.show', $schedule) }}?status_peserta=attended"
+           class="group flex flex-col gap-1 p-4 rounded-2xl border {{ $filterStatus === 'attended' ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm' }} transition">
+            <span class="text-[11px] font-bold uppercase tracking-wider {{ $filterStatus === 'attended' ? 'text-blue-100' : 'text-slate-400' }}">Hadir</span>
+            <span class="text-2xl font-extrabold {{ $filterStatus === 'attended' ? 'text-white' : 'text-slate-900' }}">{{ $cntAttended }}</span>
+        </a>
+
+        {{-- Tidak Hadir & Dibatalkan (gabungan tile kecil) --}}
+        <div class="flex flex-col gap-2">
+            <a href="{{ route('penyedia-komunitas.jadwal.show', $schedule) }}?status_peserta=no_show"
+               class="flex items-center justify-between px-3 py-2 rounded-xl border {{ $filterStatus === 'no_show' ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-slate-200 hover:border-amber-300' }} transition">
+                <span class="text-[11px] font-bold {{ $filterStatus === 'no_show' ? 'text-amber-100' : 'text-slate-500' }}">Tidak Hadir</span>
+                <span class="font-extrabold text-sm {{ $filterStatus === 'no_show' ? 'text-white' : 'text-slate-800' }}">{{ $cntNoShow }}</span>
+            </a>
+            <a href="{{ route('penyedia-komunitas.jadwal.show', $schedule) }}?status_peserta=cancelled"
+               class="flex items-center justify-between px-3 py-2 rounded-xl border {{ $filterStatus === 'cancelled' ? 'bg-slate-700 border-slate-700 text-white' : 'bg-white border-slate-200 hover:border-slate-400' }} transition">
+                <span class="text-[11px] font-bold {{ $filterStatus === 'cancelled' ? 'text-slate-200' : 'text-slate-500' }}">Dibatalkan</span>
+                <span class="font-extrabold text-sm {{ $filterStatus === 'cancelled' ? 'text-white' : 'text-slate-800' }}">{{ $cntCancelled }}</span>
+            </a>
+        </div>
+    </div>
+
     {{-- Daftar Peserta Table Card --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-                <h2 class="text-base font-extrabold text-slate-900">Daftar Peserta Terdaftar</h2>
-                <p class="text-xs text-slate-500 mt-0.5">Pengguna yang telah mendaftar ke sesi latihan bertanggal ini.</p>
+                <h2 class="text-base font-extrabold text-slate-900">
+                    @if($filterStatus)
+                        Peserta: {{ match($filterStatus) {
+                            'registered' => 'Terdaftar',
+                            'attended'   => 'Hadir',
+                            'no_show'    => 'Tidak Hadir',
+                            'cancelled'  => 'Dibatalkan',
+                            'waiting_list'    => 'Menunggu Konfirmasi',
+                            'waiting_payment' => 'Menunggu Pembayaran',
+                            default => ucfirst($filterStatus),
+                        } }}
+                    @else
+                        Daftar Peserta Terdaftar
+                    @endif
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    @if($filterStatus)
+                        Menampilkan hasil filter. <a href="{{ route('penyedia-komunitas.jadwal.show', $schedule) }}" class="text-blue-600 font-semibold hover:underline">Lihat semua</a>
+                    @else
+                        Pengguna yang telah mendaftar ke sesi latihan ini.
+                    @endif
+                </p>
             </div>
             <span class="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold self-start sm:self-auto">
-                Total: {{ $participants->total() }} Peserta
+                {{ $participants->total() }} Peserta
             </span>
         </div>
 
         @if($participants->isEmpty())
             <div class="p-12 text-center">
-                <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 014.5 0z" />
+                <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                     </svg>
                 </div>
-                <h4 class="text-sm font-bold text-slate-800">Belum Ada Peserta</h4>
-                <p class="text-xs text-slate-400 max-w-xs mx-auto mt-1">
-                    Peserta yang mendaftar ke sesi ini akan muncul secara otomatis di tabel ini.
-                </p>
+                @if($filterStatus)
+                    <h4 class="text-sm font-bold text-slate-800">Tidak Ada Hasil Filter</h4>
+                    <p class="text-xs text-slate-400 max-w-xs mx-auto mt-1">
+                        Tidak ada peserta dengan status ini. Coba pilih filter lain atau
+                        <a href="{{ route('penyedia-komunitas.jadwal.show', $schedule) }}" class="text-blue-600 font-semibold hover:underline">tampilkan semua</a>.
+                    </p>
+                @else
+                    <h4 class="text-sm font-bold text-slate-800">Belum Ada Peserta</h4>
+                    <p class="text-xs text-slate-400 max-w-xs mx-auto mt-1">
+                        Peserta yang mendaftar ke sesi ini akan muncul secara otomatis di tabel ini.
+                    </p>
+                @endif
             </div>
         @else
             <div class="overflow-x-auto">
@@ -250,17 +323,40 @@
                             <th class="py-3 px-5">No</th>
                             <th class="py-3 px-5">Peserta</th>
                             <th class="py-3 px-5">Status Sesi</th>
-                            <th class="py-3 px-5">Riwayat Kehadiran Komunitas</th>
-                            <th class="py-3 px-5">Tanggal Mendaftar</th>
+                            <th class="py-3 px-5">Check-in</th>
+                            <th class="py-3 px-5">Riwayat Komunitas</th>
+                            <th class="py-3 px-5">Mendaftar</th>
                             <th class="py-3 px-5 text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-slate-700">
                         @foreach($participants as $index => $participant)
                             @php
-                                $uStats = $attendanceStats[$participant->user_id] ?? null;
-                                $attended = $uStats->attended_count ?? 0;
-                                $totalEval = $uStats->total_evaluated ?? 0;
+                                $uStats     = $attendanceStats[$participant->user_id] ?? null;
+                                $attended   = $uStats->attended_count ?? 0;
+                                $totalEval  = $uStats->total_evaluated ?? 0;
+                                $att        = $participant->attendance;
+                                $checkInAt  = $att?->check_in_at
+                                    ? $att->check_in_at->timezone(config('app.timezone', 'Asia/Jakarta'))->format('H:i')
+                                    : null;
+
+                                // Avatar URL (tidak ada data sensitif, hanya untuk tampilan)
+                                $avatarUrl = null;
+                                if ($participant->user?->avatar) {
+                                    $avatarUrl = \Illuminate\Support\Str::startsWith($participant->user->avatar, ['http://', 'https://'])
+                                        ? $participant->user->avatar
+                                        : \Illuminate\Support\Facades\Storage::url($participant->user->avatar);
+                                }
+
+                                $colorMap = [
+                                    'registered'      => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                    'cancelled'       => 'bg-slate-100 text-slate-600 border-slate-200',
+                                    'attended'        => 'bg-blue-50 text-blue-700 border-blue-200',
+                                    'no_show'         => 'bg-amber-50 text-amber-700 border-amber-200',
+                                    'waiting_list'    => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                                    'waiting_payment' => 'bg-orange-50 text-orange-700 border-orange-200',
+                                ];
+                                $badgeClass = $colorMap[$participant->status] ?? 'bg-slate-100 text-slate-600 border-slate-200';
                             @endphp
                             <tr class="hover:bg-slate-50/70 transition">
                                 <td class="py-3.5 px-5 font-semibold text-slate-400">
@@ -268,12 +364,13 @@
                                 </td>
                                 <td class="py-3.5 px-5">
                                     <div class="flex items-center gap-3">
-                                        @if(!empty($participant->user?->avatar))
-                                            <img src="{{ \Illuminate\Support\Str::startsWith($participant->user->avatar, ['http://', 'https://']) ? $participant->user->avatar : \Illuminate\Support\Facades\Storage::url($participant->user->avatar) }}"
-                                                 alt="{{ $participant->user->name ?? 'Peserta' }}"
-                                                 class="w-8 h-8 rounded-full object-cover shrink-0">
+                                        {{-- Avatar atau inisial --}}
+                                        @if($avatarUrl)
+                                            <img src="{{ $avatarUrl }}"
+                                                 alt=""
+                                                 class="w-8 h-8 rounded-full object-cover shrink-0 bg-blue-100">
                                         @else
-                                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">
+                                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0 text-sm">
                                                 {{ strtoupper(substr($participant->user->name ?? 'U', 0, 1)) }}
                                             </div>
                                         @endif
@@ -281,32 +378,35 @@
                                             <span class="block font-bold text-slate-900 truncate">
                                                 {{ $participant->user->name ?? 'Pengguna #' . $participant->user_id }}
                                             </span>
-                                            @if(!empty($participant->user?->username))
-                                                <span class="block text-[11px] text-slate-400 truncate">
-                                                    {{ '@' . $participant->user->username }}
-                                                </span>
-                                            @endif
+                                            {{-- TIDAK menampilkan email, BMI, tinggi, berat, atau data sensitif --}}
                                         </div>
                                     </div>
                                 </td>
                                 <td class="py-3.5 px-5">
-                                    @php
-                                        $colorMap = [
-                                            'registered' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                            'cancelled'  => 'bg-rose-50 text-rose-700 border-rose-200',
-                                            'attended'   => 'bg-blue-50 text-blue-700 border-blue-200',
-                                            'no_show'    => 'bg-amber-50 text-amber-700 border-amber-200',
-                                        ];
-                                        $badgeClass = $colorMap[$participant->status] ?? 'bg-slate-100 text-slate-600 border-slate-200';
-                                    @endphp
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border {{ $badgeClass }}">
                                         {{ $participant->statusLabel() }}
                                     </span>
                                 </td>
                                 <td class="py-3.5 px-5">
-                                    <span class="inline-flex items-center gap-1 font-semibold {{ $totalEval > 0 && ($attended / $totalEval) < 0.5 ? 'text-amber-700' : 'text-slate-700' }}">
-                                        <span>hadir {{ $attended }} dari {{ $totalEval }} sesi</span>
-                                    </span>
+                                    @if($checkInAt)
+                                        <span class="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            {{ $checkInAt }} WIB
+                                        </span>
+                                    @else
+                                        <span class="text-slate-300 font-medium">—</span>
+                                    @endif
+                                </td>
+                                <td class="py-3.5 px-5">
+                                    @if($totalEval > 0)
+                                        <span class="inline-flex items-center gap-1 font-semibold {{ ($attended / $totalEval) < 0.5 ? 'text-amber-700' : 'text-slate-700' }}">
+                                            {{ $attended }}/{{ $totalEval }} hadir
+                                        </span>
+                                    @else
+                                        <span class="text-slate-300">—</span>
+                                    @endif
                                 </td>
                                 <td class="py-3.5 px-5 text-slate-500">
                                     {{ $participant->registered_at ? $participant->registered_at->translatedFormat('d M Y, H:i') : '-' }} WIB
@@ -327,12 +427,14 @@
                                         @endif
 
                                         {{-- Tombol Blokir dari Komunitas --}}
-                                        <button type="button"
-                                                @click="confirmBlock('{{ route('penyedia-komunitas.jadwal.participants.block', [$schedule, $participant]) }}', '{{ addslashes($participant->user->name ?? 'Pengguna') }}')"
-                                                title="Blokir dari komunitas ini"
-                                                class="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-[11px] transition">
-                                            Blokir
-                                        </button>
+                                        @if(in_array($participant->status, ['registered', 'waiting_list', 'waiting_payment']))
+                                            <button type="button"
+                                                    @click="confirmBlock('{{ route('penyedia-komunitas.jadwal.participants.block', [$schedule, $participant]) }}', '{{ addslashes($participant->user->name ?? 'Pengguna') }}')"
+                                                    title="Blokir dari komunitas ini"
+                                                    class="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-[11px] transition">
+                                                Blokir
+                                            </button>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
