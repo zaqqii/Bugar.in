@@ -36,7 +36,7 @@
             'id' => $p->id,
             'user_id' => $p->user_id,
             'user_name' => $p->user?->name ?? 'Peserta #' . $p->user_id,
-            'user_email' => $p->user?->email ?? '-',
+            'user_username' => $p->user?->username,
             'user_avatar' => $avatarUrl,
             'status' => $p->status,
             'status_label' => $p->statusLabel(),
@@ -429,7 +429,9 @@
                                             </template>
                                             <div class="min-w-0 max-w-[180px] sm:max-w-[220px]">
                                                 <strong class="block text-slate-900 truncate font-bold" x-text="p.user_name"></strong>
-                                                <span class="block text-[11px] text-slate-400 truncate" x-text="p.user_email"></span>
+                                                <template x-if="p.user_username">
+                                                    <span class="block text-[11px] text-slate-400 truncate" x-text="'@' + p.user_username"></span>
+                                                </template>
                                             </div>
                                         </div>
                                     </td>
@@ -439,9 +441,19 @@
                                                 <span>✓</span> Hadir
                                             </span>
                                         </template>
+                                        <template x-if="p.status === 'no_show'">
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                <span>✗</span> Tidak Hadir
+                                            </span>
+                                        </template>
                                         <template x-if="p.status === 'registered'">
                                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                                                 <span>⏱</span> Belum Hadir
+                                            </span>
+                                        </template>
+                                        <template x-if="p.status === 'cancelled'">
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                <span>✕</span> Dibatalkan
                                             </span>
                                         </template>
                                     </td>
@@ -458,16 +470,32 @@
                                     </td>
                                     <td class="py-3 px-4 text-right whitespace-nowrap">
                                         <template x-if="p.status === 'registered'">
-                                            <button type="button"
-                                                    @click="doManualCheckin(p)"
-                                                    :disabled="p.isProcessing"
-                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-[11px] shadow-xs transition">
-                                                <span x-show="p.isProcessing" class="animate-spin text-[10px]">🔄</span>
-                                                <span x-text="p.isProcessing ? 'Memproses...' : 'Check-in Manual'"></span>
-                                            </button>
+                                            <div class="inline-flex items-center justify-end gap-1.5">
+                                                <button type="button"
+                                                        @click="doManualCheckin(p)"
+                                                        :disabled="p.isProcessing"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-[11px] shadow-xs transition"
+                                                        title="Tandai peserta Hadir">
+                                                    <span x-show="p.isProcessing" class="animate-spin text-[10px]">🔄</span>
+                                                    <span x-text="p.isProcessing ? 'Memproses...' : 'Hadir'"></span>
+                                                </button>
+                                                <button type="button"
+                                                        @click="doMarkNoShow(p)"
+                                                        :disabled="p.isProcessing"
+                                                        class="inline-flex items-center gap-1 px-2 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-50 text-slate-600 font-bold text-[11px] transition"
+                                                        title="Tandai peserta Tidak Hadir (Menunggu dukungan service Rifat)">
+                                                    <span>Tidak Hadir</span>
+                                                </button>
+                                            </div>
                                         </template>
                                         <template x-if="p.status === 'attended'">
-                                            <span class="text-xs font-semibold text-emerald-600">✓ Selesai</span>
+                                            <span class="text-xs font-semibold text-emerald-600">✓ Hadir</span>
+                                        </template>
+                                        <template x-if="p.status === 'no_show'">
+                                            <span class="text-xs font-semibold text-amber-600">✗ Tidak Hadir</span>
+                                        </template>
+                                        <template x-if="p.status === 'cancelled'">
+                                            <span class="text-xs font-semibold text-rose-500">— Dibatalkan</span>
                                         </template>
                                     </td>
                                 </tr>
@@ -738,7 +766,8 @@ function checkinScanner(config) {
         },
 
         doManualCheckin(participant) {
-            if (!confirm(`Konfirmasi check-in manual untuk ${participant.user_name}?`)) return;
+            if (participant.isProcessing) return;
+            if (!confirm(`Konfirmasi tandai HADIR secara manual untuk ${participant.user_name}?`)) return;
 
             participant.isProcessing = true;
             const endpoint = `${this.manualCheckinBase}/${participant.id}`;
@@ -778,6 +807,13 @@ function checkinScanner(config) {
             });
         },
 
+        doMarkNoShow(participant) {
+            if (participant.isProcessing) return;
+            if (!confirm(`Tandai ${participant.user_name} sebagai TIDAK HADIR?`)) return;
+
+            alert('Fitur "Tidak Hadir" belum didukung oleh AttendanceService di backend (Rifat). Status peserta belum diubah.');
+        },
+
         fetchParticipants(isSilent = false) {
             if (!isSilent) this.refreshing = true;
 
@@ -811,8 +847,8 @@ function checkinScanner(config) {
                 if (this.searchQuery.trim() !== '') {
                     const q = this.searchQuery.toLowerCase();
                     const nameMatch = (p.user_name || '').toLowerCase().includes(q);
-                    const emailMatch = (p.user_email || '').toLowerCase().includes(q);
-                    return nameMatch || emailMatch;
+                    const usernameMatch = (p.user_username || '').toLowerCase().includes(q);
+                    return nameMatch || usernameMatch;
                 }
                 return true;
             });

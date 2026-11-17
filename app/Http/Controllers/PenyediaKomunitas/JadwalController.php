@@ -827,6 +827,7 @@ class JadwalController extends Controller
                 'total' => $participants->count(),
                 'attended' => $participants->where('status', 'attended')->count(),
                 'registered' => $participants->where('status', 'registered')->count(),
+                'no_show' => $participants->where('status', 'no_show')->count(),
             ],
             'participants' => $data,
         ]);

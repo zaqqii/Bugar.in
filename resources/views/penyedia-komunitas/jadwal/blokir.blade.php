@@ -80,16 +80,24 @@
                             <tr class="hover:bg-slate-50/70 transition">
                                 <td class="py-3.5 px-5">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full bg-rose-100 text-rose-700 font-bold flex items-center justify-center shrink-0">
-                                            {{ strtoupper(substr($block->user->name ?? 'U', 0, 1)) }}
-                                        </div>
+                                        @if(!empty($block->user?->avatar))
+                                            <img src="{{ \Illuminate\Support\Str::startsWith($block->user->avatar, ['http://', 'https://']) ? $block->user->avatar : \Illuminate\Support\Facades\Storage::url($block->user->avatar) }}"
+                                                 alt="{{ $block->user->name ?? 'Pengguna' }}"
+                                                 class="w-8 h-8 rounded-full object-cover shrink-0">
+                                        @else
+                                            <div class="w-8 h-8 rounded-full bg-rose-100 text-rose-700 font-bold flex items-center justify-center shrink-0">
+                                                {{ strtoupper(substr($block->user->name ?? 'U', 0, 1)) }}
+                                            </div>
+                                        @endif
                                         <div>
                                             <span class="block font-bold text-slate-900">
                                                 {{ $block->user->name ?? 'Pengguna #' . $block->user_id }}
                                             </span>
-                                            <span class="block text-[11px] text-slate-400">
-                                                {{ $block->user->email ?? '-' }}
-                                            </span>
+                                            @if(!empty($block->user?->username))
+                                                <span class="block text-[11px] text-slate-400">
+                                                    {{ '@' . $block->user->username }}
+                                                </span>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>
