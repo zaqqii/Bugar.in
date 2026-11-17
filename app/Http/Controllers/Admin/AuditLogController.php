@@ -39,11 +39,17 @@ class AuditLogController extends Controller
             $query->whereDate('created_at', $request->date);
         }
 
+        // Filter Pelaku (User ID / Admin)
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
         $logs = $query->paginate(20)->withQueryString();
 
         $actions = AuditLog::select('action')->distinct()->pluck('action');
+        $actors = User::whereIn('id', AuditLog::select('user_id')->distinct())->get(['id', 'name', 'email']);
 
-        return view('admin.audit-logs.index', compact('logs', 'actions'));
+        return view('admin.audit-logs.index', compact('logs', 'actions', 'actors'));
     }
 
     /**

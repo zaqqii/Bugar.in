@@ -34,7 +34,7 @@
 
     {{-- Filter Toolbar --}}
     <div class="p-5 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
-        <form method="GET" action="{{ route('admin.audit-logs.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        <form method="GET" action="{{ route('admin.audit-logs.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
             <div>
                 <label for="filter-action" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                     Filter Aksi
@@ -43,6 +43,20 @@
                     <option value="">Semua Aksi</option>
                     @foreach($actions as $act)
                         <option value="{{ $act }}" {{ request('action') === $act ? 'selected' : '' }}>{{ $act }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="filter-actor" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                    Filter Pelaku
+                </label>
+                <select id="filter-actor" name="user_id" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs focus:outline-hidden focus:border-cyan-500">
+                    <option value="">Semua Pelaku</option>
+                    @foreach($actors as $actor)
+                        <option value="{{ $actor->id }}" {{ request('user_id') == $actor->id ? 'selected' : '' }}>
+                            {{ $actor->name }} ({{ $actor->email }})
+                        </option>
                     @endforeach
                 </select>
             </div>
@@ -73,9 +87,9 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <span>Terapkan Filter</span>
+                    <span>Filter</span>
                 </button>
-                @if(request()->hasAny(['action', 'target', 'date']))
+                @if(request()->hasAny(['action', 'user_id', 'target', 'date']))
                     <a href="{{ route('admin.audit-logs.index') }}"
                        class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors">
                         Reset
