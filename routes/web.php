@@ -37,7 +37,7 @@ Route::post('/auth/social/apple/callback', [SocialAuthController::class, 'appleC
 // ============================================================
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:login')->name('login.post');
 
     Route::middleware('admin')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
@@ -62,8 +62,8 @@ Route::prefix('auth/user')->name('auth.user.')->group(function () {
     Route::get('/login', function () {
         return app(UserAuthController::class)->showForm('login');
     })->name('login');
-    Route::post('/register', [UserAuthController::class, 'register'])->name('register.post');
-    Route::post('/login', [UserAuthController::class, 'login'])->name('login.post');
+    Route::post('/register', [UserAuthController::class, 'register'])->middleware('throttle:register')->name('register.post');
+    Route::post('/login', [UserAuthController::class, 'login'])->middleware('throttle:login')->name('login.post');
     Route::get('/google-complete', [GoogleAuthController::class, 'showUserCompleteForm'])->name('google-complete');
     Route::post('/google-complete', [GoogleAuthController::class, 'storeUserComplete'])->name('google-complete.post');
 });
@@ -106,10 +106,10 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::get('/communities/{id}', [CommunityController::class, 'show'])->name('communities.show');
     Route::post('/communities/{community}/follow', [DashboardController::class, 'followCommunity'])->name('communities.follow');
     Route::delete('/communities/{community}/unfollow', [DashboardController::class, 'unfollowCommunity'])->name('communities.unfollow');
-    Route::post('/communities/{id}/join', [CommunityController::class, 'join'])->name('communities.join');
+    Route::post('/communities/{id}/join', [CommunityController::class, 'join'])->middleware('throttle:join')->name('communities.join');
     Route::get('/schedules/{schedule}/availability', [DashboardController::class, 'scheduleAvailability'])->name('schedules.availability');
-    Route::post('/schedules/{schedule}/join', [DashboardController::class, 'joinSchedule'])->name('schedules.join');
-    Route::post('/events/{event}/join', [DashboardController::class, 'joinEvent'])->name('events.join');
+    Route::post('/schedules/{schedule}/join', [DashboardController::class, 'joinSchedule'])->middleware('throttle:join')->name('schedules.join');
+    Route::post('/events/{event}/join', [DashboardController::class, 'joinEvent'])->middleware('throttle:join')->name('events.join');
     Route::post('/participation/cancel', [DashboardController::class, 'cancelParticipation'])->name('participation.cancel');
     Route::post('/schedules/{schedule}/checkin-token', [DashboardController::class, 'getCheckinToken'])->middleware('throttle:30,1')->name('schedules.checkin-token');
     Route::get('/schedules/{schedule}/checkin-status', [DashboardController::class, 'getCheckinStatus'])->middleware('throttle:60,1')->name('schedules.checkin-status');
@@ -127,8 +127,8 @@ Route::prefix('auth/penyedia-komunitas')->name('auth.penyedia-komunitas.')->grou
     Route::get('/login', function () {
         return app(PenyediaKomunitasAuthController::class)->showForm('login');
     })->name('login');
-    Route::post('/register', [PenyediaKomunitasAuthController::class, 'register'])->name('register.post');
-    Route::post('/login', [PenyediaKomunitasAuthController::class, 'login'])->name('login.post');
+    Route::post('/register', [PenyediaKomunitasAuthController::class, 'register'])->middleware('throttle:register')->name('register.post');
+    Route::post('/login', [PenyediaKomunitasAuthController::class, 'login'])->middleware('throttle:login')->name('login.post');
     Route::get('/google-complete', [GoogleAuthController::class, 'showPenyediaCompleteForm'])->name('google-complete');
     Route::post('/google-complete', [GoogleAuthController::class, 'storePenyediaComplete'])->name('google-complete.post');
 });
