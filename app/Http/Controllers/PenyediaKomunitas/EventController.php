@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\PenyediaKomunitas;
 
+use App\Exceptions\CheckinException;
 use App\Http\Controllers\Controller;
 use App\Models\Community;
 use App\Models\Event;
+use App\Models\Participant;
 use App\Models\UserAnnouncement;
+use App\Services\AttendanceService;
 use App\Support\NotificationType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -628,5 +631,174 @@ class EventController extends Controller
             'penyedia-komunitas.events.show_event',
             compact('event')
         );
+    }
+
+    /**
+     * Memproses absensi manual (Hadir) untuk peserta event oleh penyedia komunitas.
+     * Menggunakan AttendanceService untuk mencatat kehadiran dan poin.
+     */
+    public function checkinManual(
+        Request $request,
+        Event $event,
+        Participant $participant,
+        AttendanceService $attendanceService
+    ) {
+        $this->authorizeEventOwnership($event);
+
+        if ($participant->participatable_type !== Event::class || (int) $participant->participatable_id !== (int) $event->id) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'wrong_session',
+                    'message' => 'Peserta tidak terdaftar pada event ini.',
+                ], 400);
+            }
+            return back()->with('error', 'Peserta tidak terdaftar pada event ini.');
+        }
+
+        if ($participant->status !== 'registered') {
+            $label = method_exists($participant, 'statusLabel') ? $participant->statusLabel() : $participant->status;
+            $msg = "Peserta tidak dapat ditandai hadir karena status saat ini adalah '{$label}'.";
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'not_registered',
+                    'message' => $msg,
+                ], 400);
+            }
+            return back()->with('error', $msg);
+        }
+
+        try {
+            $result = $attendanceService->checkIn($participant, Auth::user(), 'manual');
+
+            $user = $result['user'] ?? $participant->user;
+            $avatarUrl = null;
+            if ($user && $user->avatar) {
+                $avatarUrl = Str::startsWith($user->avatar, ['http://', 'https://'])
+                    ? $user->avatar
+                    : Storage::url($user->avatar);
+            }
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Check-in manual untuk {$user->name} berhasil.",
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'avatar' => $avatarUrl,
+                    ],
+                    'check_in_at' => $result['check_in_at_formatted'] ?? null,
+                    'points_awarded' => $result['points_awarded'] ?? false,
+                    'points_amount' => $result['points_amount'] ?? 0,
+                    'total_points' => $result['total_points'] ?? (int) ($user->total_points ?? 0),
+                ]);
+            }
+
+            $msg = "Check-in manual untuk {$user->name} berhasil dicatat!";
+            if (!empty($result['points_awarded'])) {
+                $msg .= " (+{$result['points_amount']} Poin)";
+            }
+            return back()->with('success', $msg);
+        } catch (CheckinException $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => $e->getErrorCode(),
+                    'message' => $e->getMessage(),
+                ], 400);
+            }
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'system_error',
+                    'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage(),
+                ], 500);
+            }
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Memproses penandaan Tidak Hadir (no_show) untuk peserta event oleh penyedia komunitas.
+     * Catatan: Memerlukan method markNoShow pada AttendanceService (ketergantungan Rifat).
+     */
+    public function markNoShow(
+        Request $request,
+        Event $event,
+        Participant $participant,
+        AttendanceService $attendanceService
+    ) {
+        $this->authorizeEventOwnership($event);
+
+        if ($participant->participatable_type !== Event::class || (int) $participant->participatable_id !== (int) $event->id) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'wrong_session',
+                    'message' => 'Peserta tidak terdaftar pada event ini.',
+                ], 400);
+            }
+            return back()->with('error', 'Peserta tidak terdaftar pada event ini.');
+        }
+
+        if ($participant->status !== 'registered') {
+            $label = method_exists($participant, 'statusLabel') ? $participant->statusLabel() : $participant->status;
+            $msg = "Peserta tidak dapat ditandai tidak hadir karena status saat ini adalah '{$label}'.";
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'not_registered',
+                    'message' => $msg,
+                ], 400);
+            }
+            return back()->with('error', $msg);
+        }
+
+        if (!method_exists($attendanceService, 'markNoShow')) {
+            $msg = 'Fitur penandaan Tidak Hadir belum didukung oleh AttendanceService di backend.';
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'not_implemented',
+                    'message' => $msg,
+                ], 501);
+            }
+            return back()->with('error', $msg);
+        }
+
+        try {
+            $result = $attendanceService->markNoShow($participant, Auth::user());
+            $user = $participant->user;
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Peserta {$user->name} berhasil ditandai Tidak Hadir.",
+                ]);
+            }
+            return back()->with('success', "Peserta {$user->name} berhasil ditandai Tidak Hadir.");
+        } catch (CheckinException $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => $e->getErrorCode(),
+                    'message' => $e->getMessage(),
+                ], 400);
+            }
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'system_error',
+                    'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage(),
+                ], 500);
+            }
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 }
