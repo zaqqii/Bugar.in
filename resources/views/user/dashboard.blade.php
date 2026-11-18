@@ -571,7 +571,7 @@
                                 <div class="mt-5 space-y-4 rounded-xl bg-blue-50/70 border border-blue-100 p-4">
                                     <div><span class="block text-[10px] font-bold uppercase text-slate-400">Waktu &amp; Tanggal</span><strong class="mt-1 block text-sm text-slate-800" x-text="agendaSelectedItem.date ? new Date(`${agendaSelectedItem.date}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : `${agendaSelectedItem.start} WIB`"></strong><span class="text-xs text-slate-500" x-text="`${agendaSelectedItem.start}${agendaSelectedItem.end ? ` – ${agendaSelectedItem.end}` : ''} WIB`"></span></div>
                                     <div><span class="block text-[10px] font-bold uppercase text-slate-400">Titik Kumpul</span><strong class="mt-1 block text-sm text-slate-800" x-text="agendaSelectedItem.location || 'Lokasi belum ditentukan'"></strong><span class="text-xs text-slate-500" x-text="agendaSelectedItem.community"></span></div>
-                                    <div><span class="block text-[10px] font-bold uppercase text-slate-400">Kapasitas Slot</span><strong class="mt-1 block text-sm text-slate-800" x-text="agendaSelectedItem.capacity ? `${agendaSelectedItem.filled}/${agendaSelectedItem.capacity} Peserta (Sisa: ${agendaSelectedItem.remaining !== null ? agendaSelectedItem.remaining : (agendaSelectedItem.capacity - agendaSelectedItem.filled)})` : `${agendaSelectedItem.filled} Peserta (Tanpa batas slot)`"></strong></div>
+                                    <div><span class="block text-[10px] font-bold uppercase text-slate-400">Kapasitas Slot</span><strong class="mt-1 block text-sm text-slate-800" x-text="agendaSelectedItem.capacity ? `${agendaSelectedItem.filled || 0}/${agendaSelectedItem.capacity} Peserta` : `${agendaSelectedItem.filled || 0} Peserta (Tanpa batas slot)`"></strong></div>
                                 </div>
                                 <a x-show="agendaSelectedItem.maps_url" :href="agendaSelectedItem.maps_url" target="_blank" rel="noopener noreferrer" class="mt-5 block w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 px-4 py-3 text-center text-sm font-bold text-white shadow-md shadow-blue-500/20 transition-all">Buka Peta Lokasi <span aria-hidden="true">→</span></a>
 
@@ -697,7 +697,7 @@
                                 <span class="text-base shrink-0">👥</span>
                                 <div>
                                     <span class="block font-bold text-slate-900">Kapasitas Slot</span>
-                                    <span class="text-slate-600" x-text="modalScheduleItem.capacity ? `${modalScheduleItem.filled} peserta terdaftar · Sisa ${modalScheduleItem.remaining !== null ? modalScheduleItem.remaining : (modalScheduleItem.capacity - modalScheduleItem.filled)} dari ${modalScheduleItem.capacity} slot` : `${modalScheduleItem.filled} peserta terdaftar · Tanpa batas slot`"></span>
+                                    <span class="text-slate-600" x-text="modalScheduleItem.capacity ? `${modalScheduleItem.filled || 0}/${modalScheduleItem.capacity} peserta terdaftar` : `${modalScheduleItem.filled || 0} peserta terdaftar · Tanpa batas slot`"></span>
                                 </div>
                             </div>
                         </div>
@@ -715,7 +715,7 @@
                                         <span class="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
                                             ✓ Terdaftar
                                         </span>
-                                        <template x-if="modalScheduleItem && modalScheduleItem.kind === 'schedule' && (modalScheduleItem.is_today || modalScheduleItem.date === (new Date().toLocaleDateString('sv-SE')) || modalScheduleItem.date === agendaDateKey(new Date())) && !modalScheduleItem.is_finished">
+                                        <template x-if="modalScheduleItem && modalScheduleItem.kind === 'schedule' && modalScheduleItem.streak_enabled && (modalScheduleItem.is_today || modalScheduleItem.date === (new Date().toLocaleDateString('sv-SE')) || modalScheduleItem.date === agendaDateKey(new Date())) && !modalScheduleItem.is_finished">
                                             <button type="button"
                                                     @click="scheduleDetailModalOpen = false; qrOpenModal(parseInt(modalScheduleItem.raw_id || modalScheduleItem.id.replace('schedule-','')), modalScheduleItem.title)"
                                                     class="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:brightness-105 text-white text-xs font-black shadow-sm transition flex items-center gap-1.5">
@@ -1483,13 +1483,15 @@
             <div class="glass-card rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <div><h4 class="text-lg font-extrabold text-blue-700">Ritme Olahraga Pekan Ini</h4><p class="mt-1 text-xs text-slate-500">{{ $streakStats['active_days_this_week'] }} dari 5 hari target berdasarkan kehadiran komunitas</p></div>
-                    @if($todayJoinedSchedule)
+                    @if($todayJoinedSchedule && $todayJoinedSchedule->streak_enabled)
                         @php $tjsId = $todayJoinedSchedule->id; $tjsTitle = $todayJoinedSchedule->title; @endphp
                         <button type="button"
                             @click="qrOpenModal({{ $tjsId }}, '{{ addslashes($tjsTitle) }}')"
                             class="rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-3 text-sm font-bold text-white shadow-sm hover:brightness-105">
                             📷 Tampilkan QR Check-in Sesi Hari Ini
                         </button>
+                    @elseif($todayJoinedSchedule && !$todayJoinedSchedule->streak_enabled)
+                        <p class="text-sm text-slate-500 font-semibold py-2">Sesi hari ini tidak mengaktifkan fitur streak (presensi QR tidak diperlukan).</p>
                     @else
                         <p class="text-sm text-slate-500 font-semibold py-2">Tidak ada sesi terdaftar hari ini. Daftarkan diri ke jadwal untuk mendapatkan QR check-in.</p>
                     @endif

@@ -95,12 +95,16 @@ class EventController extends Controller
         $user = Auth::user();
         $community = Community::where('owner_id', $user->id)->firstOrFail();
 
+        $isDraft = ($request->input('action') === 'draft') || ($request->input('status') === 'draft');
+        $initialStatus = $isDraft ? 'draft' : 'published';
+        $r = $isDraft ? 'nullable' : 'required';
+
         $validated = $request->validate([
             'title' => 'required|string|max:80',
             'type' => 'required|string|in:fun_match,tournament,gathering,workshop,other',
             'description' => 'required|string',
             'rundown' => 'nullable|string',
-            'cover_image' => $cover . '|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'qris_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'event_date' => $r . '|date',
             'registration_close_at' => $r . '|date',
@@ -124,9 +128,6 @@ class EventController extends Controller
             'title.max' => 'Nama event tidak boleh lebih dari 80 karakter agar tampilan tetap rapi.',
         ]);
 
-        $isDraft = ($request->input('action') === 'draft') || ($request->input('status') === 'draft');
-        $initialStatus = $isDraft ? 'draft' : 'published';
-
         // Verifikasi Komunitas: Hanya jika mempublikasikan event berbayar
         $isPaidEvent = ($request->is_paid === '1') || ((float) ($validated['registration_fee'] ?? 0) > 0);
         if (!$isDraft && $isPaidEvent && !$community->isVerified()) {
@@ -146,6 +147,17 @@ class EventController extends Controller
                 return back()->withInput()->withErrors([
                     'cover_image' => 'Gagal mengunggah gambar sampul karena masalah jaringan ke cloud storage. Silakan coba lagi atau gunakan gambar yang lebih ringkas.',
                 ]);
+            }
+        }
+
+        // Upload QRIS Image
+        $qrisPath = null;
+        if ($request->hasFile('qris_image')) {
+            $disk = config('filesystems.default');
+            try {
+                $qrisPath = $request->file('qris_image')->store('events/qris', $disk);
+            } catch (\Throwable $e) {
+                Log::error('Gagal mengunggah barcode QRIS ke storage: ' . $e->getMessage());
             }
         }
 
@@ -189,6 +201,7 @@ class EventController extends Controller
             'slug' => $slug,
             'description' => $description,
             'cover_image' => $coverPath,
+            'qris_image' => $qrisPath,
             'type' => $validated['type'],
             'location' => $validated['location'],
             'maps_url' => $validated['maps_url'] ?? null,

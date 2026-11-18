@@ -617,7 +617,7 @@
                         <span class="text-base shrink-0">👥</span>
                         <div>
                             <span class="block font-bold text-slate-900">Kapasitas Slot</span>
-                            <span class="text-slate-600" x-text="modalSchedule.capacity ? `${modalSchedule.registeredCount} peserta terdaftar · Sisa ${modalSchedule.remaining !== null ? modalSchedule.remaining : (modalSchedule.capacity - modalSchedule.registeredCount)} dari ${modalSchedule.capacity} slot` : `${modalSchedule.registeredCount} peserta terdaftar · Tanpa batas slot`"></span>
+                            <span class="text-slate-600" x-text="modalSchedule.capacity ? `${modalSchedule.registeredCount || 0}/${modalSchedule.capacity} peserta terdaftar` : `${modalSchedule.registeredCount || 0} peserta terdaftar · Tanpa batas slot`"></span>
                         </div>
                     </div>
                 </div>
