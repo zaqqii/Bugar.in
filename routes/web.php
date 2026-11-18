@@ -13,7 +13,7 @@ use App\Http\Controllers\User\CommunityController;
 use App\Http\Controllers\PenyediaKomunitas\EventController;
 use App\Models\Community;
 use App\Models\Schedule;
-
+use App\Http\Controllers\Admin\CommunityManagementController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 
 // Landing Page
@@ -44,6 +44,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/communities/{id}/verify', [AdminDashboardController::class, 'approveVerification'])->name('communities.verify');
         Route::post('/communities/{id}/reject', [AdminDashboardController::class, 'rejectVerification'])->name('communities.reject');
         Route::post('/communities/{id}/toggle-status', [AdminDashboardController::class, 'toggleCommunityStatus'])->name('communities.toggle-status');
+        Route::get('/communities', [CommunityManagementController::class, 'index'])->name('communities.index');
+        Route::get('/communities/{community}', [CommunityManagementController::class, 'show'])->name('communities.show');
+        Route::patch('/communities/{community}/toggle-active', [CommunityManagementController::class, 'toggleActive'])->name('communities.toggle-active');
+        Route::patch('/communities/{community}/revoke-verification', [CommunityManagementController::class, 'revokeVerification'])->name('communities.revoke-verification');
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     });
 });
