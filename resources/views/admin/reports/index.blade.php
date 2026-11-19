@@ -42,19 +42,19 @@
             </a>
             <a href="{{ route('admin.reports.index', array_filter(['status' => 'pending', 'type' => $type])) }}"
                class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {{ $status === 'pending' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-900 text-amber-400/80 hover:text-amber-300 border border-slate-800' }}">
-                Pending ({{ $counts['pending'] }})
+                Belum Dicek ({{ $counts['pending'] }})
             </a>
             <a href="{{ route('admin.reports.index', array_filter(['status' => 'under_review', 'type' => $type])) }}"
-               class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {{ $status === 'under_review' ? 'bg-cyan-500 text-slate-950 font-bold' : 'bg-slate-900 text-cyan-400/80 hover:text-cyan-300 border border-slate-800' }}">
-                Under Review ({{ $counts['under_review'] }})
+               class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {{ $status === 'under_review' ? 'bg-blue-600 text-white font-bold' : 'bg-slate-900 text-blue-400/80 hover:text-blue-300 border border-slate-800' }}">
+                Sedang Ditinjau ({{ $counts['under_review'] }})
             </a>
             <a href="{{ route('admin.reports.index', array_filter(['status' => 'resolved', 'type' => $type])) }}"
                class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {{ $status === 'resolved' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-900 text-emerald-400/80 hover:text-emerald-300 border border-slate-800' }}">
-                Resolved ({{ $counts['resolved'] }})
+                Selesai ({{ $counts['resolved'] }})
             </a>
             <a href="{{ route('admin.reports.index', array_filter(['status' => 'dismissed', 'type' => $type])) }}"
                class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {{ $status === 'dismissed' ? 'bg-slate-700 text-white font-bold' : 'bg-slate-900 text-slate-400 hover:text-slate-300 border border-slate-800' }}">
-                Dismissed ({{ $counts['dismissed'] }})
+                Ditolak ({{ $counts['dismissed'] }})
             </a>
         </div>
 
@@ -120,12 +120,8 @@
                                 <div class="font-semibold text-white truncate max-w-[140px]">{{ $targetName }}</div>
                             </td>
                             <td class="py-4 px-4">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
-                                    {{ $r->status === 'pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                                       ($r->status === 'under_review' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                                       ($r->status === 'resolved' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                                       'bg-slate-700 text-slate-300 border border-slate-600')) }}">
-                                    {{ str_replace('_', ' ', $r->status) }}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $r->status_badge_class }}">
+                                    {{ $r->status_label }}
                                 </span>
                             </td>
                             <td class="py-4 px-4 text-slate-400 font-mono text-[11px]">
