@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Community;
 use App\Models\Report;
 use App\Models\User;
+use App\Models\UserAnnouncement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -317,7 +318,24 @@ class ReportController extends Controller
         $report->status = 'pending';
         $report->save();
 
+        // Kirimkan notifikasi ke pengelola komunitas bahwa ada aduan anggota di komunitasnya
+        if ($comm && $comm->owner_id) {
+            UserAnnouncement::create([
+                'user_id' => $comm->owner_id,
+                'type' => 'announcement',
+                'title' => 'Aduan anggota: ' . $comm->name,
+                'body' => "Terdapat aduan pelanggaran terhadap anggota '{$user->name}' di komunitas Anda (alasan: {$report->reason}). Silakan tinjau dan teruskan ke admin platform jika memerlukan mitigasi penonaktifan akun.",
+                'data' => [
+                    'report_id' => $report->id,
+                    'community_id' => $comm->id,
+                    'reported_user_id' => $user->id,
+                ],
+                'notifiable_type' => Community::class,
+                'notifiable_id' => $comm->id,
+            ]);
+        }
+
         return redirect()->route('user.reports.index')
-            ->with('success', "Laporan terhadap pengguna '{$user->name}' berhasil dikirim. Tim admin akan meninjaunya.");
+            ->with('success', "Laporan terhadap pengguna '{$user->name}' berhasil dikirim ke pengelola komunitas dan tim admin.");
     }
 }

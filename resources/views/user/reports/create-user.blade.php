@@ -20,7 +20,7 @@
                     Laporkan pengguna
                 </h1>
                 <p class="text-xs text-slate-500 mt-0.5">
-                    Aduan pelanggaran terhadap akun pengguna lain.
+                    Aduan pelanggaran terhadap akun pengguna lain di kegiatan komunitas.
                 </p>
             </div>
             <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center flex-shrink-0">
@@ -28,6 +28,19 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7 0 3.75 3.75 0 017 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                 </svg>
             </div>
+        </div>
+
+        {{-- Penjelasan alur moderasi berjenjang (User -> Penyedia Komunitas -> Admin) --}}
+        <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100/80 text-xs text-blue-900 space-y-1">
+            <div class="flex items-center gap-1.5 font-bold text-blue-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+                <span>Alur penanganan aduan</span>
+            </div>
+            <p class="text-[11px] text-blue-800/90 leading-relaxed">
+                Laporan Anda akan diterima terlebih dahulu oleh pengelola komunitas terkait. Jika terbukti ada pelanggaran, pengelola akan meneruskannya ke admin platform untuk mitigasi penonaktifan akun.
+            </p>
         </div>
 
         {{-- Entitas Terlapor Card --}}
