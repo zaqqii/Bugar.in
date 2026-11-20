@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\Auth\PenyediaKomunitasAuthController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\PenyediaKomunitas\DashboardController as PenyediaDashboardController;
@@ -41,6 +42,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::middleware('admin')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::post('/users/{id}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('users.toggle-status');
         Route::post('/communities/{id}/verify', [AdminDashboardController::class, 'approveVerification'])->name('communities.verify');
         Route::post('/communities/{id}/reject', [AdminDashboardController::class, 'rejectVerification'])->name('communities.reject');
         Route::post('/communities/{id}/toggle-status', [AdminDashboardController::class, 'toggleCommunityStatus'])->name('communities.toggle-status');
