@@ -3,12 +3,14 @@
 @tailwind utilities;
 
 /* Alpine.js cloak */
-[x-cloak] { display: none !important; }
+[x-cloak] {
+    display: none !important;
+}
 
 /* Tambahan custom CSS khusus yang sulit menggunakan utility */
 @layer base {
     :root {
-        --color-primary-50:  #e0fafa;
+        --color-primary-50: #e0fafa;
         --color-primary-100: #b3f3f5;
         --color-primary-200: #7ee9ed;
         --color-primary-300: #45dde6;
@@ -18,9 +20,9 @@
         --color-primary-700: #007a8a;
         --color-primary-800: #005f6b;
         --color-primary-900: #00424b;
-        --color-gray-200:    #e2e8f0;
-        --color-gray-800:    #1e293b;
-        --color-danger-500:  #e53935;
+        --color-gray-200: #e2e8f0;
+        --color-gray-800: #1e293b;
+        --color-danger-500: #e53935;
     }
 
     body {
@@ -40,14 +42,37 @@
     }
 
     @keyframes wave {
-        0% { transform: rotate(0deg); }
-        10% { transform: rotate(14deg); }
-        20% { transform: rotate(-8deg); }
-        30% { transform: rotate(14deg); }
-        40% { transform: rotate(-4deg); }
-        50% { transform: rotate(10deg); }
-        60% { transform: rotate(0deg); }
-        100% { transform: rotate(0deg); }
+        0% {
+            transform: rotate(0deg);
+        }
+
+        10% {
+            transform: rotate(14deg);
+        }
+
+        20% {
+            transform: rotate(-8deg);
+        }
+
+        30% {
+            transform: rotate(14deg);
+        }
+
+        40% {
+            transform: rotate(-4deg);
+        }
+
+        50% {
+            transform: rotate(10deg);
+        }
+
+        60% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(0deg);
+        }
     }
 }
 
@@ -414,7 +439,7 @@
         min-width: 0;
     }
 
-    .admin-card__title-group > div {
+    .admin-card__title-group>div {
         flex-wrap: wrap;
     }
 
@@ -697,4 +722,3 @@
         height: 1.05rem;
     }
 }
-
