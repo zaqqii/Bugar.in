@@ -859,14 +859,21 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
                     {{-- Koordinator / Owner --}}
-                    <div class="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-200/80 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs">
-                            {{ $ownerInitials }}
+                    <div class="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-200/80 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs">
+                                {{ $ownerInitials }}
+                            </div>
+                            <div class="truncate">
+                                <div class="text-xs font-bold text-slate-900 truncate">{{ $owner?->name ?? 'Koordinator Komunitas' }}</div>
+                                <div class="text-[10px] font-bold text-blue-600">Founder &amp; Host</div>
+                            </div>
                         </div>
-                        <div class="truncate">
-                            <div class="text-xs font-bold text-slate-900 truncate">{{ $owner?->name ?? 'Koordinator Komunitas' }}</div>
-                            <div class="text-[10px] font-bold text-blue-600">Founder &amp; Host</div>
-                        </div>
+                        @if(auth()->check() && $owner && auth()->id() !== $owner->id)
+                            <a href="{{ route('user.reports.user.create', ['user' => $owner->id, 'community_id' => $community->id]) }}" class="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline flex-shrink-0">
+                                Laporkan
+                            </a>
+                        @endif
                     </div>
 
                     {{-- Real Members --}}
@@ -877,14 +884,21 @@
                                     ->map(fn($w) => strtoupper(substr($w, 0, 1)))
                                     ->take(2)->implode('');
                             @endphp
-                            <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
-                                    {{ $mInitials }}
+                            <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
+                                        {{ $mInitials }}
+                                    </div>
+                                    <div class="truncate">
+                                        <div class="text-xs font-bold text-slate-900 truncate">{{ $member->user->name }}</div>
+                                        <div class="text-[10px] text-slate-400 font-medium">Anggota Aktif</div>
+                                    </div>
                                 </div>
-                                <div class="truncate">
-                                    <div class="text-xs font-bold text-slate-900 truncate">{{ $member->user->name }}</div>
-                                    <div class="text-[10px] text-slate-400 font-medium">Anggota Aktif</div>
-                                </div>
+                                @if(auth()->check() && auth()->id() !== $member->user->id)
+                                    <a href="{{ route('user.reports.user.create', ['user' => $member->user->id, 'community_id' => $community->id]) }}" class="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline flex-shrink-0">
+                                        Laporkan
+                                    </a>
+                                @endif
                             </div>
                         @endif
                     @endforeach

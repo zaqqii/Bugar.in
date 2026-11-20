@@ -26,7 +26,16 @@ class Report extends Model
 
     protected $casts = [
         'handled_at' => 'datetime',
+        'evidence_images' => 'array',
     ];
+
+    /**
+     * Komunitas konteks terjadinya pelanggaran
+     */
+    public function community(): BelongsTo
+    {
+        return $this->belongsTo(Community::class, 'community_id');
+    }
 
     /**
      * Pelapor (User)

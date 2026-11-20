@@ -12,23 +12,23 @@ use Illuminate\Support\Facades\Auth;
 class ReportController extends Controller
 {
     /**
-     * Kategori alasan pelaporan yang valid
+     * Kategori alasan pelaporan yang valid (sentence case)
      */
     public const COMMUNITY_REASONS = [
-        'Pungutan Liar & Penipuan Jadwal',
-        'Konten / Informasi Komunitas Palsu',
-        'Pelanggaran Aturan Komunitas & Norma Sosial',
-        'Pelecehan / Diskriminasi SARA',
-        'Spam / Promosi Judi / Iklan Terlarang',
+        'Pungutan liar & penipuan jadwal',
+        'Konten / informasi komunitas palsu',
+        'Pelanggaran aturan komunitas & norma sosial',
+        'Pelecehan / diskriminasi SARA',
+        'Spam / promosi judi / iklan terlarang',
         'Lainnya',
     ];
 
     public const USER_REASONS = [
-        'Perilaku Kasar & Pelecehan Verbal',
-        'Ujaran Kebencian & SARA',
-        'Spam / Promosi Judi / Iklan Terlarang',
-        'Pelecehan Seksual / Perilaku Tidak Pantas',
-        'Akun Palsu / Penipuan Identitas',
+        'Perilaku kasar & pelecehan verbal',
+        'Ujaran kebencian & SARA',
+        'Spam / promosi judi / iklan terlarang',
+        'Pelecehan seksual / perilaku tidak pantas',
+        'Akun palsu / penipuan identitas',
         'Lainnya',
     ];
 
@@ -120,21 +120,42 @@ class ReportController extends Controller
             'reason' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'min:15', 'max:1500'],
             'evidence_url' => ['nullable', 'url', 'max:500'],
+            'evidence_images' => ['nullable', 'array', 'max:5'],
+            'evidence_images.*' => ['file', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ], [
             'reason.required' => 'Pilih kategori alasan pelaporan.',
             'description.required' => 'Deskripsi kronologi laporan wajib diisi.',
             'description.min' => 'Deskripsi minimal 15 karakter agar admin dapat memverifikasi.',
             'evidence_url.url' => 'Tautan bukti pendukung harus berupa URL yang valid (contoh: https://drive.google.com/...).',
+            'evidence_images.max' => 'Maksimal 5 foto bukti yang dapat diunggah.',
+            'evidence_images.*.mimes' => 'Format foto bukti harus berupa jpeg, png, jpg, atau webp.',
+            'evidence_images.*.max' => 'Ukuran setiap foto bukti maksimal 2MB.',
         ]);
 
-        // 4. Simpan laporan
+        // Upload bukti foto ke storage privat (r2_private jika terkonfigurasi, fallback ke local private)
+        $uploadedImages = [];
+        if ($request->hasFile('evidence_images')) {
+            $disk = config('filesystems.disks.r2_private') ? 'r2_private' : 'local';
+            foreach ($request->file('evidence_images') as $file) {
+                $path = $file->store('reports/evidence', $disk);
+                if ($path) {
+                    $uploadedImages[] = $path;
+                }
+            }
+        }
+
+        // 4. Simpan laporan dengan assignment eksplisit
         $report = new Report();
         $report->reporter_id = Auth::id();
         $report->reportable_type = Community::class;
         $report->reportable_id = $community->id;
+        $report->community_id = $community->id; // Butir 1: community_id diturunkan dari komunitas
         $report->reason = $request->input('reason');
         $report->description = $request->input('description');
-        $report->evidence = $request->input('evidence_url'); // Sesuai aturan MVP: bukti berupa tautan/teks
+        $report->evidence = $request->input('evidence_url'); // Bukti berupa tautan/teks
+        if (!empty($uploadedImages)) {
+            $report->evidence_images = $uploadedImages; // Bukti foto di bucket privat
+        }
         $report->status = 'pending';
         $report->save();
 
@@ -145,7 +166,7 @@ class ReportController extends Controller
     /**
      * Tampilkan form pelaporan untuk User lain (misal sesama peserta kegiatan)
      */
-    public function createUser($userId)
+    public function createUser(Request $request, $userId)
     {
         $user = User::findOrFail($userId);
 
@@ -155,7 +176,36 @@ class ReportController extends Controller
                 ->with('error', 'Anda tidak dapat melaporkan akun Anda sendiri.');
         }
 
-        // 2. Cek apakah ada laporan terbuka
+        // 2. Validasi konteks komunitas jika ada
+        $community = null;
+        $communityId = $request->query('community_id');
+        if ($communityId) {
+            $community = Community::where(function ($q) use ($communityId) {
+                if (is_numeric($communityId)) {
+                    $q->where('id', (int) $communityId)->orWhere('slug', (string) $communityId);
+                } else {
+                    $q->where('slug', (string) $communityId);
+                }
+            })->first();
+
+            // Cek apakah user yang dilaporkan terafiliasi dengan komunitas ini
+            if ($community) {
+                $isAffiliated = $community->owner_id === $user->id
+                    || $community->members()->where('user_id', $user->id)->exists()
+                    || \App\Models\Participant::where('user_id', $user->id)
+                        ->where(function ($q) use ($community) {
+                            $q->whereHasMorph('participatable', [\App\Models\Schedule::class, \App\Models\Event::class], function ($query) use ($community) {
+                                $query->where('community_id', $community->id);
+                            });
+                        })->exists();
+
+                if (!$isAffiliated) {
+                    $community = null; // Tidak valid sebagai konteks komunitas terlapor
+                }
+            }
+        }
+
+        // 3. Cek apakah ada laporan terbuka
         $existingReport = Report::where('reporter_id', Auth::id())
             ->where('reportable_type', User::class)
             ->where('reportable_id', $user->id)
@@ -164,7 +214,7 @@ class ReportController extends Controller
 
         $reasons = self::USER_REASONS;
 
-        return view('user.reports.create-user', compact('user', 'reasons', 'existingReport'));
+        return view('user.reports.create-user', compact('user', 'reasons', 'existingReport', 'community'));
     }
 
     /**
@@ -190,26 +240,80 @@ class ReportController extends Controller
             return back()->with('error', 'Anda masih memiliki laporan aktif terhadap pengguna ini yang sedang diproses admin.');
         }
 
-        // 3. Validasi
+        // 3. Validasi komunitas konteks: pastikan user terlapor memang anggota/peserta/owner komunitas itu
+        $validatedCommunityId = null;
+        if ($request->filled('community_id')) {
+            $inputCommId = $request->input('community_id');
+            $comm = Community::where(function ($q) use ($inputCommId) {
+                if (is_numeric($inputCommId)) {
+                    $q->where('id', (int) $inputCommId)->orWhere('slug', (string) $inputCommId);
+                } else {
+                    $q->where('slug', (string) $inputCommId);
+                }
+            })->first();
+
+            if (!$comm) {
+                return back()->with('error', 'Komunitas konteks laporan tidak ditemukan.');
+            }
+
+            // Validasi di backend bahwa user terlapor memang terafiliasi dengan komunitas ini
+            $isAffiliated = $comm->owner_id === $user->id
+                || $comm->members()->where('user_id', $user->id)->exists()
+                || \App\Models\Participant::where('user_id', $user->id)
+                    ->where(function ($q) use ($comm) {
+                        $q->whereHasMorph('participatable', [\App\Models\Schedule::class, \App\Models\Event::class], function ($query) use ($comm) {
+                            $query->where('community_id', $comm->id);
+                        });
+                    })->exists();
+
+            if (!$isAffiliated) {
+                return back()->with('error', 'Pengguna yang dilaporkan bukan anggota atau peserta pada komunitas yang dipilih.');
+            }
+
+            $validatedCommunityId = $comm->id;
+        }
+
+        // 4. Validasi input
         $request->validate([
             'reason' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'min:15', 'max:1500'],
             'evidence_url' => ['nullable', 'url', 'max:500'],
+            'evidence_images' => ['nullable', 'array', 'max:5'],
+            'evidence_images.*' => ['file', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ], [
             'reason.required' => 'Pilih kategori alasan pelaporan.',
             'description.required' => 'Deskripsi kronologi laporan wajib diisi.',
             'description.min' => 'Deskripsi minimal 15 karakter agar admin dapat memverifikasi.',
             'evidence_url.url' => 'Tautan bukti pendukung harus berupa URL yang valid.',
+            'evidence_images.max' => 'Maksimal 5 foto bukti yang dapat diunggah.',
+            'evidence_images.*.mimes' => 'Format foto bukti harus berupa jpeg, png, jpg, atau webp.',
+            'evidence_images.*.max' => 'Ukuran setiap foto bukti maksimal 2MB.',
         ]);
 
-        // 4. Simpan laporan
+        // Upload bukti foto ke storage privat
+        $uploadedImages = [];
+        if ($request->hasFile('evidence_images')) {
+            $disk = config('filesystems.disks.r2_private') ? 'r2_private' : 'local';
+            foreach ($request->file('evidence_images') as $file) {
+                $path = $file->store('reports/evidence', $disk);
+                if ($path) {
+                    $uploadedImages[] = $path;
+                }
+            }
+        }
+
+        // 5. Simpan laporan dengan assignment eksplisit
         $report = new Report();
         $report->reporter_id = Auth::id();
         $report->reportable_type = User::class;
         $report->reportable_id = $user->id;
+        $report->community_id = $validatedCommunityId; // Butir 1: community_id tervalidasi
         $report->reason = $request->input('reason');
         $report->description = $request->input('description');
-        $report->evidence = $request->input('evidence_url');
+        $report->evidence = $request->input('evidence_url'); // Bukti tautan
+        if (!empty($uploadedImages)) {
+            $report->evidence_images = $uploadedImages; // Bukti foto di bucket privat
+        }
         $report->status = 'pending';
         $report->save();
 
