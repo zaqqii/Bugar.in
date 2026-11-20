@@ -51,6 +51,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/reports/{id}', [AdminReportController::class, 'show'])->name('reports.show');
         Route::post('/reports/{id}/dismiss', [AdminReportController::class, 'dismiss'])->name('reports.dismiss');
         Route::post('/reports/{id}/resolve', [AdminReportController::class, 'resolve'])->name('reports.resolve');
+        Route::post('/reports/{id}/warn-community', [AdminReportController::class, 'warnCommunity'])->name('reports.community.warn');
         Route::post('/reports/community/{id}/toggle-status', [AdminReportController::class, 'toggleCommunityStatus'])->name('reports.community.toggle-status');
         Route::post('/reports/user/{id}/toggle-status', [AdminReportController::class, 'toggleUserStatus'])->name('reports.user.toggle-status');
 

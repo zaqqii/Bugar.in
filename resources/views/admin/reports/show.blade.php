@@ -1,11 +1,11 @@
 @extends('layouts.admin')
 
-@section('title', 'Detail Laporan #' . $report->id . ' — Console Admin Bugar.in')
+@section('title', 'Detail laporan #' . $report->id . ' — Console admin Bugar.in')
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6" x-data="{ showDismissModal: false, showWarnModal: false, showSancModal: false }">
 
-    {{-- Breadcrumb & Back --}}
+    {{-- Header & navigasi --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
@@ -15,39 +15,27 @@
                 <span>/</span>
                 <span class="text-rose-400 font-mono font-bold">#{{ $report->id }}</span>
             </div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Detail Laporan Pelanggaran
+            <h1 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                Detail laporan pelanggaran
             </h1>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div>
             <a href="{{ route('admin.reports.index') }}"
-               class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+               class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-semibold border border-slate-800 transition-all inline-flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
                 </svg>
-                <span>Kembali ke Daftar</span>
+                <span>Kembali ke daftar</span>
             </a>
         </div>
     </div>
 
-    {{-- Flash Messages --}}
-    @if(session('success'))
-        <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
-            <span>✓</span>
-            <span>{{ session('success') }}</span>
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-            <span>✕</span>
-            <span>{{ session('error') }}</span>
-        </div>
-    @endif
+    {{-- Flash messages ditangani terpusat oleh layout admin --}}
     @if($errors->any())
-        <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs space-y-1">
+        <div class="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs space-y-1">
             <div class="font-bold">Terjadi kesalahan validasi:</div>
-            <ul class="list-disc list-inside">
+            <ul class="list-disc list-inside space-y-0.5">
                 @foreach($errors->all() as $err)
                     <li>{{ $err }}</li>
                 @endforeach
@@ -55,40 +43,29 @@
         </div>
     @endif
 
-    {{-- Susunan Detail Sesuai Aturan (Atas ke Bawah):
-         1. Identitas Pelapor dan Terlapor
-         2. Badge Status Read-only
-         3. Alasan, Deskripsi, dan Tanggal
-         4. Bukti
-         5. Riwayat & Keputusan
-         6. Tombol Aksi (Tolak, Selesai, dan Sanksi) --}}
-
     {{-- 1. IDENTITAS PELAPOR & TERLAPOR --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        {{-- Card Pelapor (Hanya untuk Admin, identitas aman dan tidak tampil ke terlapor) --}}
-        <div class="p-5 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        {{-- Card pelapor --}}
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between pb-2.5 border-b border-slate-800">
                 <div class="flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Identitas Pelapor (Internal Admin)</h4>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Identitas pelapor</h4>
                 </div>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono">Pelapor</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono">Privat admin</span>
             </div>
 
             @if($report->reporter)
                 <div class="flex items-start gap-3">
-                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white font-extrabold flex items-center justify-center text-sm shadow-md flex-shrink-0">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white font-extrabold flex items-center justify-center text-xs shadow-sm flex-shrink-0">
                         {{ strtoupper(substr($report->reporter->name, 0, 1)) }}
                     </div>
-                    <div class="min-w-0 flex-1 space-y-1">
-                        <div class="font-bold text-white text-sm truncate">{{ $report->reporter->name }}</div>
-                        <div class="text-xs text-slate-400 font-mono truncate">{{ $report->reporter->email }}</div>
+                    <div class="min-w-0 flex-1 space-y-0.5 text-xs">
+                        <div class="font-bold text-white truncate">{{ $report->reporter->name }}</div>
+                        <div class="text-slate-400 font-mono text-[11px] truncate">{{ $report->reporter->email }}</div>
                         <div class="text-[11px] text-slate-400">
-                            Username: <span class="text-slate-300 font-mono font-semibold">{{ '@' . ($report->reporter->username ?? '-') }}</span>
-                        </div>
-                        <div class="text-[11px] text-slate-400">
-                            Role: <span class="capitalize px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-semibold">{{ $report->reporter->role }}</span>
+                            Username: <span class="text-slate-300 font-mono">{{ '@' . ($report->reporter->username ?? '-') }}</span>
                         </div>
                     </div>
                 </div>
@@ -97,14 +74,14 @@
             @endif
         </div>
 
-        {{-- Card Terlapor (Polymorphic: User / Community) --}}
-        <div class="p-5 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        {{-- Card terlapor --}}
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between pb-2.5 border-b border-slate-800">
                 <div class="flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Entitas yang Dilaporkan</h4>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Pihak terlapor</h4>
                 </div>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 font-mono uppercase font-bold">
+                <span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 font-mono font-bold uppercase">
                     {{ class_basename($report->reportable_type) }}
                 </span>
             </div>
@@ -117,15 +94,18 @@
 
                 @if($targetType === 'Community')
                     <div class="flex items-start gap-3">
-                        <div class="w-11 h-11 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center text-lg flex-shrink-0">
-                            🏟️
+                        <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                            </svg>
                         </div>
-                        <div class="min-w-0 flex-1 space-y-1">
-                            <div class="font-bold text-white text-sm truncate">{{ $target->name }}</div>
-                            <div class="text-xs text-slate-400">Kategori: <span class="text-slate-300 font-medium capitalize">{{ $target->sport_category }}</span></div>
-                            <div class="text-[11px] text-slate-400">Kota: <span class="text-slate-300">{{ $target->city ?? '-' }}</span></div>
+                        <div class="min-w-0 flex-1 space-y-0.5 text-xs">
+                            <div class="font-bold text-white truncate">{{ $target->name }}</div>
+                            <div class="text-slate-400 text-[11px]">
+                                {{ ucfirst($target->sport_category ?? 'Umum') }} &bull; {{ $target->city ?? 'Indonesia' }}
+                            </div>
                             <div class="text-[11px] text-slate-400">
-                                Status Aktif:
+                                Status:
                                 <span class="font-semibold {{ $target->is_active ? 'text-emerald-400' : 'text-rose-400' }}">
                                     {{ $target->is_active ? 'Aktif' : 'Dinonaktifkan' }}
                                 </span>
@@ -134,15 +114,14 @@
                     </div>
                 @elseif($targetType === 'User')
                     <div class="flex items-start gap-3">
-                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-600 to-orange-500 text-white font-extrabold flex items-center justify-center text-sm shadow-md flex-shrink-0">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-600 to-orange-500 text-white font-extrabold flex items-center justify-center text-xs shadow-sm flex-shrink-0">
                             {{ strtoupper(substr($target->name, 0, 1)) }}
                         </div>
-                        <div class="min-w-0 flex-1 space-y-1">
-                            <div class="font-bold text-white text-sm truncate">{{ $target->name }}</div>
-                            <div class="text-xs text-slate-400 font-mono truncate">{{ $target->email }}</div>
-                            <div class="text-[11px] text-slate-400">Role: <span class="capitalize text-slate-300">{{ $target->role }}</span></div>
+                        <div class="min-w-0 flex-1 space-y-0.5 text-xs">
+                            <div class="font-bold text-white truncate">{{ $target->name }}</div>
+                            <div class="text-slate-400 font-mono text-[11px] truncate">{{ $target->email }}</div>
                             <div class="text-[11px] text-slate-400">
-                                Status Akun:
+                                Status akun:
                                 <span class="font-semibold {{ $target->is_active ? 'text-emerald-400' : 'text-rose-400' }}">
                                     {{ $target->is_active ? 'Aktif' : 'Dinonaktifkan' }}
                                 </span>
@@ -161,256 +140,402 @@
 
     </div>
 
-    {{-- 2 & 3. BADGE STATUS READ-ONLY, ALASAN, DESKRIPSI, DAN TANGGAL --}}
-    <div class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5">
-        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
+    {{-- 2. INFORMASI LAPORAN & BUKTI --}}
+    <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
             <div class="flex items-center gap-3">
-                <span class="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center text-lg font-bold">
-                    ⚠️
-                </span>
+                <div class="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                </div>
                 <div>
                     <div class="flex flex-wrap items-center gap-2">
-                        <h3 class="text-base font-bold text-white">{{ $report->reason }}</h3>
-                        {{-- 2. BADGE READ-ONLY BERWARNA (SATU SUMBER MODEL REPORT) --}}
-                        <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider {{ $report->status_badge_class }}">
+                        <h3 class="text-sm sm:text-base font-bold text-white">{{ $report->reason }}</h3>
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $report->status_badge_class }}">
                             {{ $report->status_label }}
                         </span>
                     </div>
-                    <span class="text-xs text-slate-400 font-mono">
-                        Dilaporkan pada {{ $report->created_at->translatedFormat('d F Y, H:i') }} WIB ({{ $report->created_at->diffForHumans() }})
+                    <span class="text-[11px] text-slate-400 font-mono">
+                        Diajukan {{ $report->created_at->diffForHumans() }} ({{ $report->created_at->format('d/m/Y H:i') }})
                     </span>
                 </div>
             </div>
 
             @if(in_array($report->status, ['resolved', 'dismissed']))
-                <span class="px-2.5 py-1 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-semibold">
-                    🔒 Status Final (Terkunci)
+                <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-medium inline-flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                    </svg>
+                    <span>Status final</span>
                 </span>
             @endif
         </div>
 
-        {{-- 3. Deskripsi Pelanggaran --}}
-        <div class="space-y-2">
-            <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Deskripsi / Kronologi Laporan</label>
-            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 text-sm text-slate-200 leading-relaxed whitespace-pre-line">
-                {{ $report->description ?: 'Tidak ada deskripsi rinci yang disertakan oleh pelapor.' }}
+        {{-- Deskripsi kronologi --}}
+        <div class="space-y-1.5">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Deskripsi kronologi</span>
+            <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 leading-relaxed whitespace-pre-line">
+                {{ $report->description ?: 'Tidak ada deskripsi rinci yang disertakan.' }}
             </div>
         </div>
 
-        {{-- 4. BUKTI (EVIDENCE) --}}
-        <div class="space-y-2 pt-2">
-            <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Bukti Lampiran / Tautan Pendukung</label>
+        {{-- Bukti pendukung --}}
+        <div class="space-y-1.5 pt-1">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Bukti pendukung</span>
             @if($report->evidence)
-                <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-3">
+                <div class="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-3">
                     <div class="flex items-center gap-2 text-xs text-slate-300 truncate">
-                        <span>🔗</span>
-                        <span class="font-mono truncate">{{ $report->evidence }}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                        </svg>
+                        <span class="font-mono text-[11px] truncate">{{ $report->evidence }}</span>
                     </div>
                     <a href="{{ $report->evidence }}" target="_blank" rel="noopener noreferrer"
-                       class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors flex-shrink-0 flex items-center gap-1.5 shadow-sm shadow-blue-500/20">
-                        <span>Buka Bukti</span>
-                        <span>&nearr;</span>
+                       class="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors flex-shrink-0 inline-flex items-center gap-1">
+                        <span>Buka tautan</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
                     </a>
                 </div>
             @else
-                <div class="p-4 rounded-2xl bg-slate-950/50 border border-dashed border-slate-800 text-xs text-slate-500 italic">
-                    Pelapor tidak menyertakan tautan bukti pendukung tambahan.
+                <div class="p-3 rounded-xl bg-slate-950/40 border border-dashed border-slate-800 text-xs text-slate-500 italic">
+                    Tidak ada bukti tautan tambahan.
                 </div>
             @endif
         </div>
     </div>
 
-    {{-- 5. RIWAYAT & KEPUTUSAN PENANGANAN --}}
-    <div class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
-        <div class="pb-3 border-b border-slate-800 flex items-center justify-between">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Riwayat &amp; Keputusan Penanganan</h4>
+    {{-- 3. RIWAYAT KEPUTUSAN & TINDAKAN MODERASI --}}
+    <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+        <div class="pb-2.5 border-b border-slate-800 flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Riwayat keputusan</h4>
             @if($report->handled_by)
                 <span class="text-[10px] font-mono text-slate-400">
-                    Selesai ditangani {{ $report->handled_at ? $report->handled_at->diffForHumans() : '-' }}
+                    Ditangani {{ $report->handled_at ? $report->handled_at->diffForHumans() : '-' }}
                 </span>
             @endif
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-1">
-                <span class="text-[11px] text-slate-400 font-medium">Admin Penanggung Jawab:</span>
-                <div class="font-bold text-white text-sm">
-                    {{ $report->handler->name ?? ($report->handled_by ? 'Admin #' . $report->handled_by : 'Belum Ditangani') }}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                <span class="text-[10px] text-slate-400 block uppercase">Admin penanggung jawab</span>
+                <div class="font-bold text-white mt-0.5">
+                    {{ $report->handler->name ?? ($report->handled_by ? 'Admin #' . $report->handled_by : 'Belum ada') }}
                 </div>
-                @if($report->handler && $report->handler->email)
-                    <div class="text-[10px] text-slate-400 font-mono">{{ $report->handler->email }}</div>
-                @endif
             </div>
 
-            <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-1">
-                <span class="text-[11px] text-slate-400 font-medium">Waktu Keputusan Final:</span>
-                <div class="font-bold text-white text-sm">
-                    {{ $report->handled_at ? $report->handled_at->translatedFormat('d F Y, H:i') . ' WIB' : 'Belum Diputuskan' }}
-                </div>
-                <div class="text-[10px] text-slate-400 font-mono">
-                    {{ $report->handled_at ? $report->handled_at->diffForHumans() : 'Menunggu tindakan final' }}
+            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                <span class="text-[10px] text-slate-400 block uppercase">Waktu penanganan final</span>
+                <div class="font-bold text-white mt-0.5">
+                    {{ $report->handled_at ? $report->handled_at->format('d/m/Y H:i') . ' WIB' : 'Menunggu tindakan' }}
                 </div>
             </div>
         </div>
 
-        {{-- Keputusan: Rejection Reason (Jika ditolak) --}}
+        {{-- Alasan penolakan jika ditolak --}}
         @if($report->status === 'dismissed' && ($report->rejection_reason || $report->admin_notes))
-            <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs space-y-1">
-                <span class="font-bold text-rose-300 block">Alasan Penolakan Laporan (Terlihat oleh Pelapor):</span>
+            <div class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs space-y-1">
+                <span class="font-bold text-rose-300 block">Alasan penolakan laporan (terlihat oleh pelapor):</span>
                 <p class="text-slate-200 leading-relaxed whitespace-pre-line">{{ $report->rejection_reason ?: $report->admin_notes }}</p>
             </div>
         @endif
 
-        {{-- Keputusan: Admin Notes (Catatan internal) --}}
-        @if($report->admin_notes)
-            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 text-xs space-y-1">
-                <span class="font-bold text-slate-300 block">Catatan Internal Admin (Hanya terbaca oleh Admin):</span>
+        {{-- Catatan pemberitahuan / admin_notes --}}
+        @if($report->admin_notes && $report->status !== 'dismissed')
+            <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs space-y-1">
+                <span class="font-bold text-slate-300 block">Pemberitahuan hasil verifikasi ke pelapor:</span>
                 <p class="text-slate-300 leading-relaxed whitespace-pre-line">{{ $report->admin_notes }}</p>
+            </div>
+        @endif
+
+        {{-- Log tindakan / peringatan (action_note) --}}
+        @if($report->action_note)
+            <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
+                <span class="font-bold text-amber-300 block">Catatan tindakan &amp; peringatan resmi:</span>
+                <p class="text-slate-200 leading-relaxed whitespace-pre-line font-mono text-[11px]">{{ $report->action_note }}</p>
             </div>
         @endif
     </div>
 
-    {{-- 6. TOMBOL AKSI: TOLAK, SELESAI, DAN QUICK ACTION SANKSI --}}
+    {{-- 4. KEPUTUSAN STATUS (SETUJUI / TOLAK) --}}
     @php
         $isFinal = in_array($report->status, ['resolved', 'dismissed']);
+        $isCommunity = class_basename($report->reportable_type) === 'Community';
+        $isUser = class_basename($report->reportable_type) === 'User';
+        $targetObj = $report->reportable;
     @endphp
 
     @if(!$isFinal)
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" x-data="{ showDismissModal: false, showSancModal: false }">
+        <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+            <div class="pb-2.5 border-b border-slate-800">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Keputusan moderasi</h4>
+                <p class="text-xs text-slate-400 mt-0.5">Tentukan persetujuan atau penolakan laporan ini.</p>
+            </div>
 
-            {{-- Kolom Aksi Keputusan: Selesaikan & Tolak --}}
-            <div class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
-                <div class="pb-3 border-b border-slate-800">
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Keputusan Status Laporan</h4>
-                    <p class="text-xs text-slate-400 mt-1">Pilih keputusan akhir untuk tiket laporan ini.</p>
-                </div>
-
-                {{-- Form Selesaikan Laporan (Resolved) --}}
-                <form method="POST" action="{{ route('admin.reports.resolve', $report->id) }}" class="space-y-3">
+            <div class="flex flex-col sm:flex-row gap-3">
+                {{-- Form Selesaikan / Setujui --}}
+                <form method="POST" action="{{ route('admin.reports.resolve', $report->id) }}" class="flex-1"
+                      onsubmit="return confirm('Setujui laporan ini? Sistem akan mengirimkan pemberitahuan default ke pelapor.');">
                     @csrf
-                    <div>
-                        <label for="admin_notes_resolve" class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                            Catatan Internal Admin (Opsional, maks. 1000 karakter)
-                        </label>
-                        <textarea id="admin_notes_resolve" name="admin_notes" rows="2"
-                                  placeholder="Tuliskan catatan investigasi atau hasil tindakan (internal admin)..."
-                                  class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs placeholder:text-slate-600 focus:outline-hidden focus:border-emerald-500 transition-colors resize-none"></textarea>
-                    </div>
-
+                    <input type="hidden" name="admin_notes" value="">
                     <button type="submit"
-                            onclick="return confirm('Apakah Anda yakin ingin menyelesaikan laporan ini?')"
-                            class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer">
-                        <span>✓ Selesaikan Laporan (Resolved)</span>
+                            class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all inline-flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20 cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        <span>Setujui laporan (terbukti valid)</span>
                     </button>
                 </form>
 
-                <div class="pt-3 border-t border-slate-800">
-                    {{-- Tombol Buka Modal Tolak Laporan --}}
+                {{-- Tombol Tolak --}}
+                <div class="flex-1">
                     <button type="button"
                             @click="showDismissModal = true"
-                            class="w-full py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer">
-                        <span>✕ Tolak Laporan (Dismissed)...</span>
+                            class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-slate-700 hover:border-rose-500/30 font-bold text-xs transition-all inline-flex items-center justify-center gap-2 cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <span>Tolak laporan</span>
                     </button>
                 </div>
             </div>
+        </div>
+    @endif
 
-            {{-- Kolom Tindakan Sanksi Administratif (Quick Action AD-03 / AD-04) --}}
-            @if($report->reportable)
-                @php
-                    $isCommunity = class_basename($report->reportable_type) === 'Community';
-                    $isUser = class_basename($report->reportable_type) === 'User';
-                    $targetObj = $report->reportable;
-                @endphp
-
-                @if($isCommunity || $isUser)
-                    <div class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
-                        <div class="pb-3 border-b border-slate-800">
-                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">
-                                Sanksi Administratif {{ $isCommunity ? 'Komunitas' : 'Akun Pengguna' }}
-                            </h4>
-                            <p class="text-xs text-slate-400 mt-1">
-                                Status saat ini:
-                                <strong class="{{ $targetObj->is_active ? 'text-emerald-400' : 'text-rose-400' }}">
-                                    {{ $targetObj->is_active ? 'Aktif' : 'Dinonaktifkan' }}
-                                </strong>
-                            </p>
-                        </div>
-
-                        <form method="POST"
-                              action="{{ $isCommunity ? route('admin.reports.community.toggle-status', $targetObj->id) : route('admin.reports.user.toggle-status', $targetObj->id) }}"
-                              class="space-y-3">
-                            @csrf
-                            <input type="hidden" name="report_id" value="{{ $report->id }}">
-
-                            @if($targetObj->is_active)
-                                <div>
-                                    <label for="sanc_reason" class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                                        Alasan Sanksi Penonaktifan (Wajib, min 5 karakter) <span class="text-rose-400">*</span>
-                                    </label>
-                                    <textarea id="sanc_reason" name="reason" rows="2" required minlength="5" maxlength="1000"
-                                              placeholder="Jelaskan alasan penonaktifan berdasarkan hasil investigasi laporan..."
-                                              class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs placeholder:text-slate-600 focus:outline-hidden focus:border-rose-500 transition-colors resize-none"></textarea>
-                                </div>
-                            @endif
-
-                            <button type="submit"
-                                    onclick="return confirm('Apakah Anda yakin ingin memproses perubahan status aktif entitas ini?')"
-                                    class="w-full py-2.5 rounded-xl {{ $targetObj->is_active ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20' }} font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
-                                <span>{{ $targetObj->is_active ? 'Nonaktifkan Sementara (Beri Sanksi)' : 'Aktifkan Kembali Entitas' }}</span>
-                            </button>
-                        </form>
-                    </div>
-                @endif
+    {{-- 5. AKSI PERINGATAN KE KOMUNITAS (JIKA TARGET KOMUNITAS) --}}
+    @if($isCommunity && $targetObj)
+        <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800">
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Peringatan komunitas</h4>
+                    <p class="text-xs text-slate-400 mt-0.5">Kirim teguran resmi dengan template pesan pelanggaran standar.</p>
+                </div>
+                <div>
+                    @if($report->status === 'resolved')
+                        <button type="button"
+                                @click="showWarnModal = true"
+                                class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all inline-flex items-center gap-2 cursor-pointer shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                            <span>Beri peringatan ke komunitas</span>
+                        </button>
+                    @else
+                        <button type="button" disabled
+                                class="px-3.5 py-2 rounded-xl bg-slate-800 text-slate-500 font-semibold text-xs border border-slate-700/50 cursor-not-allowed inline-flex items-center gap-2"
+                                title="Laporan harus disetujui terlebih dahulu">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                            <span>Beri peringatan ke komunitas</span>
+                        </button>
+                    @endif
+                </div>
+            </div>
+            @if($report->status !== 'resolved')
+                <p class="text-[11px] text-slate-500 italic">
+                    Tombol peringatan aktif setelah laporan disetujui admin.
+                </p>
             @endif
+        </div>
+    @endif
 
-            {{-- MODAL TOLAK LAPORAN (DISMISSED) --}}
-            <div x-show="showDismissModal"
-                 class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs"
-                 style="display: none;"
-                 x-transition>
-                <div @click.away="showDismissModal = false"
-                     class="w-full max-w-md p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl space-y-4">
-                    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-                        <div class="flex items-center gap-2">
-                            <span class="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold">✕</span>
-                            <h3 class="text-sm font-bold text-white">Tolak Laporan #{{ $report->id }}</h3>
-                        </div>
-                        <button type="button" @click="showDismissModal = false" class="text-slate-400 hover:text-white text-lg font-bold">&times;</button>
-                    </div>
+    {{-- 6. SANKSI NONAKTIFKAN (DITARUH DI PALING BAWAH, AKTIF JIKA STATUS RESOLVED) --}}
+    @if($targetObj && ($isCommunity || $isUser))
+        <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-800">
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-rose-400">
+                        Sanksi nonaktifkan {{ $isCommunity ? 'komunitas' : 'pengguna' }}
+                    </h4>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Status saat ini:
+                        <span class="font-bold {{ $targetObj->is_active ? 'text-emerald-400' : 'text-rose-400' }}">
+                            {{ $targetObj->is_active ? 'Aktif' : 'Dinonaktifkan' }}
+                        </span>
+                    </p>
+                </div>
 
-                    <form method="POST" action="{{ route('admin.reports.dismiss', $report->id) }}" class="space-y-4">
-                        @csrf
-                        <div>
-                            <label for="rejection_reason" class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                                Alasan Penolakan <span class="text-rose-400">* (Wajib, 10–1000 karakter)</span>
-                            </label>
-                            <p class="text-[11px] text-slate-400 mb-2">
-                                Alasan ini akan ditampilkan secara transparan kepada pelapor di Riwayat Laporan mereka.
-                            </p>
-                            <textarea id="rejection_reason" name="rejection_reason" rows="4" required minlength="10" maxlength="1000"
-                                      placeholder="Contoh: Bukti yang dilampirkan tidak mencukupi atau tidak relevan dengan pelanggaran..."
-                                      class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs placeholder:text-slate-600 focus:outline-hidden focus:border-rose-500 transition-colors resize-none"></textarea>
-                        </div>
-
-                        <div class="flex items-center justify-end gap-2 pt-2">
-                            <button type="button"
-                                    @click="showDismissModal = false"
-                                    class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors">
-                                Batal
-                            </button>
-                            <button type="submit"
-                                    class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all cursor-pointer">
-                                Konfirmasi Tolak Laporan
-                            </button>
-                        </div>
-                    </form>
+                <div>
+                    @if($report->status === 'resolved')
+                        <button type="button"
+                                @click="showSancModal = true"
+                                class="px-4 py-2 rounded-xl {{ $targetObj->is_active ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20' }} font-bold text-xs shadow-sm transition-all inline-flex items-center gap-2 cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                            <span>{{ $targetObj->is_active ? 'Nonaktifkan sementara' : 'Aktifkan kembali' }}</span>
+                        </button>
+                    @else
+                        <button type="button" disabled
+                                class="px-4 py-2 rounded-xl bg-slate-800 text-slate-500 font-semibold text-xs border border-slate-700/50 cursor-not-allowed inline-flex items-center gap-2"
+                                title="Selesaikan atau setujui laporan terlebih dahulu sebelum sanksi dapat dijatuhkan">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                            </svg>
+                            <span>Nonaktifkan sementara</span>
+                        </button>
+                    @endif
                 </div>
             </div>
 
+            @if($report->status !== 'resolved')
+                <p class="text-[11px] text-slate-500 italic">
+                    Tombol sanksi nonaktifkan hanya dapat diklik setelah laporan disetujui oleh admin.
+                </p>
+            @endif
         </div>
-    @else
-        <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 text-center text-xs text-slate-400">
-            Laporan ini sudah diselesaikan dengan status <strong class="text-white uppercase">{{ $report->status_label }}</strong>. Seluruh aksi perubahan keputusan atau penjatuhan sanksi telah dikunci.
+    @endif
+
+    {{-- MODAL 1: TOLAK LAPORAN --}}
+    <div x-show="showDismissModal"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs"
+         style="display: none;"
+         x-transition>
+        <div @click.away="showDismissModal = false"
+             class="w-full max-w-md p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider">Tolak laporan #{{ $report->id }}</h3>
+                </div>
+                <button type="button" @click="showDismissModal = false" class="text-slate-400 hover:text-white text-base">&times;</button>
+            </div>
+
+            <form method="POST" action="{{ route('admin.reports.dismiss', $report->id) }}" class="space-y-3">
+                @csrf
+                <div>
+                    <label for="rejection_reason" class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                        Alasan penolakan <span class="text-rose-400">* (10–1000 karakter)</span>
+                    </label>
+                    <textarea id="rejection_reason" name="rejection_reason" rows="3" required minlength="10" maxlength="1000"
+                              placeholder="Tulis alasan penolakan yang akan ditampilkan kepada pelapor..."
+                              class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs placeholder:text-slate-600 focus:outline-hidden focus:border-rose-500 transition-colors resize-none"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-1">
+                    <button type="button" @click="showDismissModal = false"
+                            class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            class="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all cursor-pointer">
+                        Konfirmasi tolak
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- MODAL 2: PERINGATAN RESMI KOMUNITAS --}}
+    @if($isCommunity && $targetObj)
+        <div x-show="showWarnModal"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs"
+             style="display: none;"
+             x-transition>
+            <div @click.away="showWarnModal = false"
+                 class="w-full max-w-lg p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl space-y-4">
+                <div class="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xs font-bold text-white uppercase tracking-wider">Kirim peringatan ke komunitas</h3>
+                    </div>
+                    <button type="button" @click="showWarnModal = false" class="text-slate-400 hover:text-white text-base">&times;</button>
+                </div>
+
+                <form method="POST" action="{{ route('admin.reports.community.warn', $report->id) }}" class="space-y-3">
+                    @csrf
+                    <div>
+                        <label for="warning_message" class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                            Pesan peringatan resmi
+                        </label>
+                        <p class="text-[11px] text-slate-400 mb-2">
+                            Pesan default berikut dapat disesuaikan sebelum dikirimkan ke komunitas terlapor:
+                        </p>
+                        <textarea id="warning_message" name="warning_message" rows="4" maxlength="1000"
+                                  class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs placeholder:text-slate-600 focus:outline-hidden focus:border-amber-500 transition-colors resize-none leading-relaxed">Peringatan resmi dari tim moderasi Bugar.in: Komunitas '{{ $targetObj->name }}' telah terbukti melanggar aturan platform pada laporan #{{ $report->id }} (alasan: {{ $report->reason }}). Harap segera mematuhi regulasi komunitas. Jika pelanggaran berulang, komunitas akan dinonaktifkan secara sepihak.</textarea>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-1">
+                        <button type="button" @click="showWarnModal = false"
+                                class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors">
+                            Batal
+                        </button>
+                        <button type="submit"
+                                class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all cursor-pointer">
+                            Kirim peringatan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
+    {{-- MODAL 3: KONFIRMASI SANKSI NONAKTIFKAN --}}
+    @if($targetObj && ($isCommunity || $isUser))
+        <div x-show="showSancModal"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs"
+             style="display: none;"
+             x-transition>
+            <div @click.away="showSancModal = false"
+                 class="w-full max-w-md p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl space-y-4">
+                <div class="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xs font-bold text-white uppercase tracking-wider">
+                            Konfirmasi {{ $targetObj->is_active ? 'penonaktifan' : 'pengaktifan' }}
+                        </h3>
+                    </div>
+                    <button type="button" @click="showSancModal = false" class="text-slate-400 hover:text-white text-base">&times;</button>
+                </div>
+
+                <form method="POST"
+                      action="{{ $isCommunity ? route('admin.reports.community.toggle-status', $targetObj->id) : route('admin.reports.user.toggle-status', $targetObj->id) }}"
+                      class="space-y-3">
+                    @csrf
+                    <input type="hidden" name="report_id" value="{{ $report->id }}">
+
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Anda akan mengubah status <strong class="text-white">{{ $targetObj->name }}</strong> menjadi <strong class="{{ $targetObj->is_active ? 'text-rose-400' : 'text-emerald-400' }}">{{ $targetObj->is_active ? 'nonaktif' : 'aktif' }}</strong>.
+                    </p>
+
+                    @if($targetObj->is_active)
+                        <div>
+                            <label for="sanc_reason" class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                                Alasan penonaktifan <span class="text-rose-400">* (min. 5 karakter)</span>
+                            </label>
+                            <textarea id="sanc_reason" name="reason" rows="3" required minlength="5" maxlength="1000"
+                                      placeholder="Tuliskan alasan penonaktifan berdasarkan bukti laporan yang terbukti..."
+                                      class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs placeholder:text-slate-600 focus:outline-hidden focus:border-rose-500 transition-colors resize-none"></textarea>
+                        </div>
+                    @endif
+
+                    <div class="flex items-center justify-end gap-2 pt-1">
+                        <button type="button" @click="showSancModal = false"
+                                class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors">
+                            Batal
+                        </button>
+                        <button type="submit"
+                                class="px-3.5 py-1.5 rounded-lg {{ $targetObj->is_active ? 'bg-rose-600 hover:bg-rose-500' : 'bg-emerald-600 hover:bg-emerald-500' }} text-white text-xs font-bold transition-all cursor-pointer">
+                            Ya, proses sekarang
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     @endif
 

@@ -14,7 +14,7 @@
                     <span>Platform Operations &bull; Status Normal</span>
                 </div>
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
-                    Selamat bertugas, {{ auth()->user()->name ?? 'Administrator' }}! 👋
+                    Selamat bertugas, {{ auth()->user()->name ?? 'Administrator' }}
                 </h1>
                 <p class="text-xs sm:text-sm text-slate-400 mt-1.5 max-w-2xl leading-relaxed">
                     Pantau seluruh metrik operasional komunitas olahraga, verifikasi izin penyelenggara, serta pastikan integritas ekosistem Bugar.in berjalan aman.
@@ -41,8 +41,10 @@
         <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm hover:border-slate-700 transition-all">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Pengguna Aktif</span>
-                <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-sm">
-                    👥
+                <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                    </svg>
                 </div>
             </div>
             <div class="text-3xl font-extrabold text-white tracking-tight">
@@ -58,8 +60,10 @@
         <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm hover:border-slate-700 transition-all">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Komunitas</span>
-                <div class="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center text-sm">
-                    🏟️
+                <div class="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                    </svg>
                 </div>
             </div>
             <div class="text-3xl font-extrabold text-white tracking-tight">
@@ -81,8 +85,10 @@
         <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm hover:border-slate-700 transition-all">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Event Olahraga</span>
-                <div class="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20 flex items-center justify-center text-sm">
-                    🏆
+                <div class="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.004 0A6.75 6.75 0 0015 7.5V6a2.25 2.25 0 00-2.25-2.25h-1.5A2.25 2.25 0 009 6v1.5a6.75 6.75 0 002.625 5.375" />
+                    </svg>
                 </div>
             </div>
             <div class="text-3xl font-extrabold text-white tracking-tight">
@@ -98,8 +104,10 @@
         <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm hover:border-slate-700 transition-all">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Partisipasi Sesi</span>
-                <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-sm">
-                    ⚡
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                    </svg>
                 </div>
             </div>
             <div class="text-3xl font-extrabold text-white tracking-tight">
@@ -131,8 +139,10 @@
 
         @if($pendingCommunities->isEmpty())
             <div class="py-12 px-4 text-center max-w-md mx-auto">
-                <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl mx-auto mb-3">
-                    ✓
+                <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
                 </div>
                 <h4 class="text-sm font-bold text-white mb-1">Semua Antrean Bersih</h4>
                 <p class="text-xs text-slate-400 leading-relaxed">
@@ -195,8 +205,11 @@
                                         {{-- Tombol Setujui --}}
                                         <form method="POST" action="{{ route('admin.communities.verify', $comm->id) }}" onsubmit="return confirm('Setujui verifikasi untuk komunitas {{ $comm->name }}?');">
                                             @csrf
-                                            <button type="submit" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-2xs">
-                                                ✓ Setujui
+                                            <button type="submit" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-2xs inline-flex items-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                                </svg>
+                                                <span>Setujui</span>
                                             </button>
                                         </form>
 
@@ -241,7 +254,11 @@
                                 <div class="flex items-center gap-2">
                                     <h4 class="text-xs font-bold text-white truncate">{{ $rc->name }}</h4>
                                     @if($rc->isVerified())
-                                        <span class="text-blue-400 text-xs" title="Terverifikasi">✓</span>
+                                        <span class="text-blue-400 text-xs inline-flex" title="Terverifikasi">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                            </svg>
+                                        </span>
                                     @endif
                                 </div>
                                 <p class="text-[11px] text-slate-400 truncate mt-0.5">
@@ -308,7 +325,110 @@
 
     </div>
 
-    {{-- 5. Grid Dua Kolom: Pengguna Terbaru & Distribusi Cabang Olahraga --}}
+    {{-- 5. Laporan Pengguna Terbaru (#laporan) --}}
+    <section id="laporan" class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div class="flex items-center gap-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <a href="{{ route('admin.reports.index') }}" class="group inline-flex items-center gap-2 hover:text-white transition-colors">
+                    <h2 class="text-base sm:text-lg font-bold text-white tracking-tight group-hover:text-rose-400 transition-colors">
+                        Laporan pengguna terbaru
+                    </h2>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                </a>
+            </div>
+
+            <a href="{{ route('admin.reports.index') }}"
+               class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition-all inline-flex items-center gap-1.5 self-start sm:self-auto">
+                <span>Lihat semua laporan</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+            </a>
+        </div>
+
+        @if($recentReports->isEmpty())
+            <div class="py-8 px-4 text-center max-w-md mx-auto">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto mb-2.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                </div>
+                <h4 class="text-xs font-bold text-white mb-0.5">Tidak ada laporan aktif</h4>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                    Belum ada laporan pelanggaran yang masuk dari pengguna.
+                </p>
+            </div>
+        @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead>
+                        <tr class="border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-400 bg-slate-950/40">
+                            <th class="py-3 px-4 rounded-l-xl">ID</th>
+                            <th class="py-3 px-4">Alasan laporan</th>
+                            <th class="py-3 px-4">Terlapor</th>
+                            <th class="py-3 px-4">Pelapor</th>
+                            <th class="py-3 px-4">Status</th>
+                            <th class="py-3 px-4">Waktu</th>
+                            <th class="py-3 px-4 text-right rounded-r-xl">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60">
+                        @foreach($recentReports as $rep)
+                            @php
+                                $targetName = '-';
+                                $targetType = class_basename($rep->reportable_type);
+                                if ($rep->reportable) {
+                                    $targetName = $rep->reportable->name ?? ($rep->reportable->title ?? ('#' . $rep->reportable_id));
+                                }
+                            @endphp
+                            <tr class="hover:bg-slate-800/40 transition-colors">
+                                <td class="py-3 px-4 font-mono font-bold text-rose-400">
+                                    #{{ $rep->id }}
+                                </td>
+                                <td class="py-3 px-4 max-w-xs">
+                                    <div class="font-bold text-white text-xs truncate">{{ $rep->reason }}</div>
+                                    <div class="text-[11px] text-slate-400 truncate mt-0.5">
+                                        {{ $rep->description ?: 'Tanpa keterangan tambahan' }}
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-800 text-slate-300 mb-0.5 inline-block">
+                                        {{ $targetType === 'Community' ? 'Komunitas' : ($targetType === 'User' ? 'Pengguna' : $targetType) }}
+                                    </span>
+                                    <div class="font-semibold text-white truncate max-w-[130px]">{{ $targetName }}</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="font-medium text-slate-200 truncate max-w-[120px]">{{ $rep->reporter->name ?? 'User dihapus' }}</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $rep->status_badge_class }}">
+                                        {{ $rep->status_label }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-slate-400 font-mono text-[11px]">
+                                    {{ $rep->created_at->diffForHumans() }}
+                                </td>
+                                <td class="py-3 px-4 text-right">
+                                    <a href="{{ route('admin.reports.show', $rep->id) }}"
+                                       class="px-3 py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/20 font-bold text-xs transition-all inline-flex items-center gap-1.5 shadow-2xs">
+                                        <span>Periksa</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                        </svg>
+                                    </a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </section>
+
+    {{-- 6. Grid Dua Kolom: Pengguna Terbaru & Distribusi Cabang Olahraga --}}
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
         {{-- Kolom Kiri: Basis Pengguna Terbaru (#pengguna) --}}

@@ -15,8 +15,8 @@ class Report extends Model
      * Pemetaan status laporan ke label Bahasa Indonesia
      */
     public const STATUS_LABELS = [
-        'pending'      => 'Belum Dicek',
-        'under_review' => 'Sedang Ditinjau',
+        'pending'      => 'Belum dicek',
+        'under_review' => 'Sedang ditinjau',
         'resolved'     => 'Selesai',
         'dismissed'    => 'Ditolak',
     ];
