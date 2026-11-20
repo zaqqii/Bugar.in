@@ -460,6 +460,13 @@ class DashboardController extends Controller
             ], 400);
         }
 
+        if (!$schedule->streak_enabled) {
+            return response()->json([
+                'error' => 'streak_disabled',
+                'message' => 'Sesi jadwal ini tidak mengaktifkan fitur streak dan presensi QR.'
+            ], 400);
+        }
+
         if ($schedule->isCancelled() || !$schedule->is_active) {
             return response()->json([
                 'error' => 'session_cancelled',
@@ -590,6 +597,7 @@ class DashboardController extends Controller
         $events = Event::where('is_active', true)
             ->active()
             ->with('community')
+            ->withCount(['participants' => fn($q) => $q->whereIn('status', ['registered', 'waiting_payment', 'attended'])])
             ->orderBy('event_date', 'asc')
             ->get();
 
@@ -641,7 +649,8 @@ class DashboardController extends Controller
             'start' => $event->start_time ? substr($event->start_time, 0, 5) : null,
             'end' => $event->end_time ? substr($event->end_time, 0, 5) : null,
             'capacity' => $event->capacity,
-            'filled' => $event->participants_count,
+            'filled' => (int) ($event->participants_count ?? $event->activeParticipantsCount()),
+            'remaining' => $event->capacity !== null ? max(0, (int) $event->capacity - (int) ($event->participants_count ?? $event->activeParticipantsCount())) : null,
             'status' => $event->status,
             'is_finished' => $event->event_date ? Carbon::parse($event->event_date->toDateString() . ' ' . ($event->end_time ?? '23:59:59'), config('app.timezone', 'Asia/Jakarta'))->isPast() : false,
             'streak_enabled' => false,

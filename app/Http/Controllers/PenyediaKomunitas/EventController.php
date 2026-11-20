@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\PenyediaKomunitas;
 
+use App\Exceptions\CheckinException;
 use App\Http\Controllers\Controller;
 use App\Models\Community;
 use App\Models\Event;
+use App\Models\Participant;
 use App\Models\UserAnnouncement;
+use App\Services\AttendanceService;
 use App\Support\NotificationType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -92,12 +95,16 @@ class EventController extends Controller
         $user = Auth::user();
         $community = Community::where('owner_id', $user->id)->firstOrFail();
 
+        $isDraft = ($request->input('action') === 'draft') || ($request->input('status') === 'draft');
+        $initialStatus = $isDraft ? 'draft' : 'published';
+        $r = $isDraft ? 'nullable' : 'required';
+
         $validated = $request->validate([
             'title' => 'required|string|max:80',
             'type' => 'required|string|in:fun_match,tournament,gathering,workshop,other',
             'description' => 'required|string',
             'rundown' => 'nullable|string',
-            'cover_image' => $cover . '|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'qris_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'event_date' => $r . '|date',
             'registration_close_at' => $r . '|date',
@@ -121,9 +128,6 @@ class EventController extends Controller
             'title.max' => 'Nama event tidak boleh lebih dari 80 karakter agar tampilan tetap rapi.',
         ]);
 
-        $isDraft = ($request->input('action') === 'draft') || ($request->input('status') === 'draft');
-        $initialStatus = $isDraft ? 'draft' : 'published';
-
         // Verifikasi Komunitas: Hanya jika mempublikasikan event berbayar
         $isPaidEvent = ($request->is_paid === '1') || ((float) ($validated['registration_fee'] ?? 0) > 0);
         if (!$isDraft && $isPaidEvent && !$community->isVerified()) {
@@ -143,6 +147,17 @@ class EventController extends Controller
                 return back()->withInput()->withErrors([
                     'cover_image' => 'Gagal mengunggah gambar sampul karena masalah jaringan ke cloud storage. Silakan coba lagi atau gunakan gambar yang lebih ringkas.',
                 ]);
+            }
+        }
+
+        // Upload QRIS Image
+        $qrisPath = null;
+        if ($request->hasFile('qris_image')) {
+            $disk = config('filesystems.default');
+            try {
+                $qrisPath = $request->file('qris_image')->store('events/qris', $disk);
+            } catch (\Throwable $e) {
+                Log::error('Gagal mengunggah barcode QRIS ke storage: ' . $e->getMessage());
             }
         }
 
@@ -186,6 +201,7 @@ class EventController extends Controller
             'slug' => $slug,
             'description' => $description,
             'cover_image' => $coverPath,
+            'qris_image' => $qrisPath,
             'type' => $validated['type'],
             'location' => $validated['location'],
             'maps_url' => $validated['maps_url'] ?? null,
@@ -628,5 +644,174 @@ class EventController extends Controller
             'penyedia-komunitas.events.show_event',
             compact('event')
         );
+    }
+
+    /**
+     * Memproses absensi manual (Hadir) untuk peserta event oleh penyedia komunitas.
+     * Menggunakan AttendanceService untuk mencatat kehadiran dan poin.
+     */
+    public function checkinManual(
+        Request $request,
+        Event $event,
+        Participant $participant,
+        AttendanceService $attendanceService
+    ) {
+        $this->authorizeEventOwnership($event);
+
+        if ($participant->participatable_type !== Event::class || (int) $participant->participatable_id !== (int) $event->id) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'wrong_session',
+                    'message' => 'Peserta tidak terdaftar pada event ini.',
+                ], 400);
+            }
+            return back()->with('error', 'Peserta tidak terdaftar pada event ini.');
+        }
+
+        if ($participant->status !== 'registered') {
+            $label = method_exists($participant, 'statusLabel') ? $participant->statusLabel() : $participant->status;
+            $msg = "Peserta tidak dapat ditandai hadir karena status saat ini adalah '{$label}'.";
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'not_registered',
+                    'message' => $msg,
+                ], 400);
+            }
+            return back()->with('error', $msg);
+        }
+
+        try {
+            $result = $attendanceService->checkIn($participant, Auth::user(), 'manual');
+
+            $user = $result['user'] ?? $participant->user;
+            $avatarUrl = null;
+            if ($user && $user->avatar) {
+                $avatarUrl = Str::startsWith($user->avatar, ['http://', 'https://'])
+                    ? $user->avatar
+                    : Storage::url($user->avatar);
+            }
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Check-in manual untuk {$user->name} berhasil.",
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'avatar' => $avatarUrl,
+                    ],
+                    'check_in_at' => $result['check_in_at_formatted'] ?? null,
+                    'points_awarded' => $result['points_awarded'] ?? false,
+                    'points_amount' => $result['points_amount'] ?? 0,
+                    'total_points' => $result['total_points'] ?? (int) ($user->total_points ?? 0),
+                ]);
+            }
+
+            $msg = "Check-in manual untuk {$user->name} berhasil dicatat!";
+            if (!empty($result['points_awarded'])) {
+                $msg .= " (+{$result['points_amount']} Poin)";
+            }
+            return back()->with('success', $msg);
+        } catch (CheckinException $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => $e->getErrorCode(),
+                    'message' => $e->getMessage(),
+                ], 400);
+            }
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'system_error',
+                    'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage(),
+                ], 500);
+            }
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Memproses penandaan Tidak Hadir (no_show) untuk peserta event oleh penyedia komunitas.
+     * Catatan: Memerlukan method markNoShow pada AttendanceService (ketergantungan Rifat).
+     */
+    public function markNoShow(
+        Request $request,
+        Event $event,
+        Participant $participant,
+        AttendanceService $attendanceService
+    ) {
+        $this->authorizeEventOwnership($event);
+
+        if ($participant->participatable_type !== Event::class || (int) $participant->participatable_id !== (int) $event->id) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'wrong_session',
+                    'message' => 'Peserta tidak terdaftar pada event ini.',
+                ], 400);
+            }
+            return back()->with('error', 'Peserta tidak terdaftar pada event ini.');
+        }
+
+        if ($participant->status !== 'registered') {
+            $label = method_exists($participant, 'statusLabel') ? $participant->statusLabel() : $participant->status;
+            $msg = "Peserta tidak dapat ditandai tidak hadir karena status saat ini adalah '{$label}'.";
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'not_registered',
+                    'message' => $msg,
+                ], 400);
+            }
+            return back()->with('error', $msg);
+        }
+
+        if (!method_exists($attendanceService, 'markNoShow')) {
+            $msg = 'Fitur penandaan Tidak Hadir belum didukung oleh AttendanceService di backend.';
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'not_implemented',
+                    'message' => $msg,
+                ], 501);
+            }
+            return back()->with('error', $msg);
+        }
+
+        try {
+            $result = $attendanceService->markNoShow($participant, Auth::user());
+            $user = $participant->user;
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Peserta {$user->name} berhasil ditandai Tidak Hadir.",
+                ]);
+            }
+            return back()->with('success', "Peserta {$user->name} berhasil ditandai Tidak Hadir.");
+        } catch (CheckinException $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => $e->getErrorCode(),
+                    'message' => $e->getMessage(),
+                ], 400);
+            }
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'system_error',
+                    'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage(),
+                ], 500);
+            }
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 }

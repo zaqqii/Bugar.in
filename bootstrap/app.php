@@ -32,4 +32,22 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, Request $request) {
+            $message = 'Terlalu banyak percobaan, coba lagi sebentar';
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json(['message' => $message], 429, $e->getHeaders());
+            }
+
+            return redirect()->back(fallback: $request->url())
+                ->withHeaders($e->getHeaders())
+                ->withInput($request->except(['password', 'password_confirmation']))
+                ->withErrors([
+                    'login' => $message,
+                    'email' => $message,
+                    'throttle' => $message,
+                ])
+                ->with('error', $message);
+        });
     })->create();

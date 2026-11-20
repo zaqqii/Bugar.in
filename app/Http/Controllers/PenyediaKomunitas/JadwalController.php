@@ -270,7 +270,7 @@ class JadwalController extends Controller
     /**
      * Tampilkan detail jadwal dan daftar pesertanya.
      */
-    public function show(Schedule $schedule)
+    public function show(Request $request, Schedule $schedule)
     {
         $this->authorizeScheduleOwnership($schedule);
 
@@ -281,12 +281,30 @@ class JadwalController extends Controller
 
         $community = $schedule->community;
 
-        $participants = $schedule->participants()
-            ->with('user')
-            ->orderBy('registered_at', 'desc')
-            ->paginate(20);
+        // Validasi filter status (hanya nilai enum participants yang diizinkan)
+        $allowedStatuses = ['registered', 'cancelled', 'attended', 'no_show', 'waiting_list', 'waiting_payment'];
+        $filterStatus = $request->query('status_peserta');
+        if (!in_array($filterStatus, $allowedStatuses, true)) {
+            $filterStatus = null;
+        }
 
-        $activeParticipantsCount = $schedule->activeParticipantsCount();
+        $participantsQuery = $schedule->participants()
+            ->with(['user', 'attendance'])
+            ->orderBy('registered_at', 'desc');
+
+        if ($filterStatus !== null) {
+            $participantsQuery->where('status', $filterStatus);
+        }
+
+        $participants = $participantsQuery->paginate(20)->withQueryString();
+
+        // Ringkasan jumlah per status — satu query aggregate
+        $statusCounts = $schedule->participants()
+            ->selectRaw('status, COUNT(*) as cnt')
+            ->groupBy('status')
+            ->pluck('cnt', 'status');
+
+        $activeParticipantsCount = ($statusCounts->get('registered', 0) + $statusCounts->get('attended', 0));
 
         // Riwayat kehadiran peserta di komunitas ini dihitung dengan SATU query groupBy
         $userIds = $participants->pluck('user_id')->filter()->unique()->values();
@@ -308,11 +326,13 @@ class JadwalController extends Controller
         }
 
         return view('penyedia-komunitas.jadwal.show', [
-            'schedule' => $schedule,
-            'community' => $community,
-            'participants' => $participants,
-            'activeParticipantsCount' => $activeParticipantsCount,
-            'attendanceStats' => $attendanceStats,
+            'schedule'               => $schedule,
+            'community'              => $community,
+            'participants'           => $participants,
+            'activeParticipantsCount'=> $activeParticipantsCount,
+            'attendanceStats'        => $attendanceStats,
+            'statusCounts'           => $statusCounts,
+            'filterStatus'           => $filterStatus,
         ]);
     }
 
@@ -640,7 +660,10 @@ class JadwalController extends Controller
         $community = Community::where('owner_id', $user->id)->firstOrFail();
 
         $blocks = CommunityBlock::where('community_id', $community->id)
-            ->with(['user', 'blocker'])
+            ->with([
+                'user' => fn($q) => $q->select('id', 'name', 'avatar', 'username'),
+                'blocker' => fn($q) => $q->select('id', 'name'),
+            ])
             ->latest()
             ->paginate(15);
 
@@ -735,7 +758,10 @@ class JadwalController extends Controller
         $community = $schedule->community;
 
         $participants = $schedule->participants()
-            ->with(['user', 'user.streaks'])
+            ->with([
+                'user' => fn($q) => $q->select('id', 'name', 'avatar', 'username'),
+                'user.streaks',
+            ])
             ->whereIn('status', ['registered', 'attended'])
             ->orderByRaw("CASE WHEN status = 'registered' THEN 0 ELSE 1 END")
             ->orderBy('registered_at', 'asc')
@@ -783,7 +809,7 @@ class JadwalController extends Controller
         $this->authorizeScheduleOwnership($schedule);
 
         $participants = $schedule->participants()
-            ->with('user')
+            ->with(['user' => fn($q) => $q->select('id', 'name', 'avatar', 'username')])
             ->whereIn('status', ['registered', 'attended'])
             ->orderByRaw("CASE WHEN status = 'registered' THEN 0 ELSE 1 END")
             ->orderBy('registered_at', 'asc')
@@ -812,7 +838,7 @@ class JadwalController extends Controller
                 'id' => $p->id,
                 'user_id' => $p->user_id,
                 'user_name' => $p->user?->name ?? 'Peserta #' . $p->user_id,
-                'user_email' => $p->user?->email ?? '-',
+                'user_username' => $p->user?->username,
                 'user_avatar' => $avatarUrl,
                 'status' => $p->status,
                 'status_label' => $p->statusLabel(),
@@ -827,6 +853,7 @@ class JadwalController extends Controller
                 'total' => $participants->count(),
                 'attended' => $participants->where('status', 'attended')->count(),
                 'registered' => $participants->where('status', 'registered')->count(),
+                'no_show' => $participants->where('status', 'no_show')->count(),
             ],
             'participants' => $data,
         ]);
