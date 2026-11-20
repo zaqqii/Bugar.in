@@ -12,6 +12,7 @@ use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\PenyediaKomunitas\DashboardController as PenyediaDashboardController;
 use App\Http\Controllers\User\CommunityController;
 use App\Http\Controllers\PenyediaKomunitas\EventController;
+use App\Http\Controllers\Admin\CommunityVerificationController;
 use App\Models\Community;
 use App\Models\Schedule;
 
@@ -47,6 +48,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/communities/{id}/verify', [AdminDashboardController::class, 'approveVerification'])->name('communities.verify');
         Route::post('/communities/{id}/reject', [AdminDashboardController::class, 'rejectVerification'])->name('communities.reject');
         Route::post('/communities/{id}/toggle-status', [AdminDashboardController::class, 'toggleCommunityStatus'])->name('communities.toggle-status');
+        Route::get('/verifications', [CommunityVerificationController::class, 'index'])->name('verifications.index');
+        Route::patch('/verifications/{community}/approve', [CommunityVerificationController::class, 'approve'])->name('verifications.approve');
+        Route::patch('/verifications/{community}/reject', [CommunityVerificationController::class, 'reject'])->name('verifications.reject');
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     });
 });
