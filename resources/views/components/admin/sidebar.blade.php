@@ -87,15 +87,18 @@
                         <span class="flex-1">Klub &amp; Komunitas</span>
                     </a>
 
-                    {{-- 4. Pengguna & Role --}}
-                    <a href="{{ route('admin.dashboard') }}#pengguna"
-                       class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all duration-150">
-                        <span class="text-cyan-400">
+                    {{-- 4. Data Pengguna --}}
+                    <a href="{{ route('admin.users.index') }}"
+                       class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 {{ request()->routeIs('admin.users.*') ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30 shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
+                        <span class="{{ request()->routeIs('admin.users.*') ? 'text-cyan-400' : 'text-slate-400' }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                             </svg>
                         </span>
-                        <span class="flex-1">Basis Pengguna</span>
+                        <span class="flex-1">Data Pengguna</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                            {{ \App\Models\User::count() }}
+                        </span>
                     </a>
 
                     {{-- 5. Event & Kegiatan --}}
