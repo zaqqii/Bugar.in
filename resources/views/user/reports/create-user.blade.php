@@ -88,18 +88,25 @@
               x-data="{
                   descText: '{{ addslashes(old('description', '')) }}',
                   submitAttempted: false,
+                  fileErrorMessage: '',
                   get isDescInvalid() {
                       return this.descText.trim().length < 15;
                   },
                   validateAndSubmit(e) {
                       this.submitAttempted = true;
+                      if (this.fileErrorMessage) {
+                          e.preventDefault();
+                          const fi = document.getElementById('evidence_images');
+                          if (fi) fi.focus();
+                          return false;
+                      }
                       if (this.isDescInvalid) {
                           e.preventDefault();
                           const el = document.getElementById('description');
                           if (el) el.focus();
                           return false;
                       }
-                      return confirm('Kirim laporan ini ke tim admin?');
+                      return confirm('Kirim laporan ini?');
                   }
               }"
               @submit="if (!validateAndSubmit($event)) $event.preventDefault()"
@@ -175,15 +182,14 @@
             {{-- Unggah Foto Bukti Privat --}}
             <div class="space-y-1" x-data="{
                 files: [],
-                errorMessage: '',
                 allowedTypes: ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'],
                 allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
                 handleFileSelect(event) {
-                    this.errorMessage = '';
+                    fileErrorMessage = '';
                     const selectedFiles = Array.from(event.target.files);
 
                     if (selectedFiles.length > 5) {
-                        this.errorMessage = 'Maksimal 5 foto bukti yang dapat dipilih. Silakan kurangi jumlah foto.';
+                        fileErrorMessage = 'Maksimal 5 foto bukti yang dapat dipilih. Silakan kurangi jumlah foto.';
                         event.target.value = '';
                         this.files = [];
                         return;
@@ -195,7 +201,7 @@
                     });
 
                     if (invalidFiles.length > 0) {
-                        this.errorMessage = 'Format file tidak didukung (' + invalidFiles.map(f => f.name).join(', ') + '). Hanya diperbolehkan JPG, PNG, dan WEBP.';
+                        fileErrorMessage = 'Format file tidak didukung (' + invalidFiles.map(f => f.name).join(', ') + '). Hanya diperbolehkan JPG, PNG, dan WEBP.';
                         event.target.value = '';
                         this.files = [];
                         return;
@@ -203,7 +209,7 @@
 
                     const oversizedFiles = selectedFiles.filter(f => f.size > 2048 * 1024);
                     if (oversizedFiles.length > 0) {
-                        this.errorMessage = 'Ukuran file terlalu besar (' + oversizedFiles.map(f => f.name).join(', ') + '). Maksimal 2MB per foto.';
+                        fileErrorMessage = 'Ukuran file terlalu besar (' + oversizedFiles.map(f => f.name).join(', ') + '). Maksimal 2MB per foto.';
                         event.target.value = '';
                         this.files = [];
                         return;
@@ -226,12 +232,12 @@
                        class="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs focus:outline-hidden focus:border-blue-600 focus:bg-white transition-colors file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
 
                 {{-- Alert Error Validasi Frontend --}}
-                <template x-if="errorMessage">
+                <template x-if="fileErrorMessage">
                     <div class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-1.5">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                         </svg>
-                        <span x-text="errorMessage"></span>
+                        <span x-text="fileErrorMessage"></span>
                     </div>
                 </template>
 
