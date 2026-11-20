@@ -1017,14 +1017,19 @@
 }
 
 @media (max-width: 768px) {
+    body.auth-user-body,
     .auth-user-body {
-        overflow: auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+        height: auto;
+        min-height: 100vh;
     }
 
     .auth-user-page {
         flex-direction: column;
         height: auto;
         min-height: 100vh;
+        overflow: visible;
     }
 
     .auth-panel-left {
@@ -1041,54 +1046,88 @@
         min-height: 300px;
     }
 
-    .auth-slides-wrapper {
-        overflow: visible;
-        height: auto;
-    }
-
-    .auth-slides-track {
-        flex-direction: column;
-        width: 100%;
-        height: auto;
-    }
-
-    .auth-slides-track[style] {
-        transform: none !important;
-    }
-
-    .auth-slide {
-        flex: none;
-        width: 100%;
-        height: auto;
-        overflow: visible;
-    }
-
-    /* On mobile, only show active slide */
-    #slide-register,
-    #slide-login {
-        display: none;
-    }
-
-    /* Alpine will handle visibility via x-show equivalent */
-
-    .auth-form-row {
-        grid-template-columns: 1fr;
-    }
-
-    .auth-social-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .auth-form-scroll {
-        padding: 1.25rem 1.25rem 2rem;
-    }
-
     .auth-panel-header {
         padding: 1rem 1.25rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
     }
 
     .auth-brand-sub {
         display: none;
+    }
+
+    .auth-header-actions {
+        max-width: 100%;
+    }
+
+    .auth-header-btn {
+        padding: 0.4rem 0.85rem;
+        font-size: 0.78rem;
+    }
+
+    .auth-slides-wrapper {
+        overflow: hidden;
+        width: 100%;
+        position: relative;
+    }
+
+    .auth-slides-track {
+        display: flex;
+        width: 200%;
+        align-items: flex-start;
+        transition: transform 420ms cubic-bezier(0.4, 0, 0.2, 1);
+        will-change: transform;
+    }
+
+    .auth-slide {
+        flex: 0 0 50%;
+        width: 50%;
+        height: auto;
+        overflow: visible;
+    }
+
+    .auth-form-scroll {
+        padding: 1.5rem 1.25rem 2.5rem;
+        max-width: 100%;
+        width: 100%;
+        min-height: auto;
+        min-width: 0;
+    }
+
+    .auth-form-title {
+        font-size: 1.5rem;
+    }
+
+    .auth-form {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .auth-form-row {
+        grid-template-columns: 1fr;
+        gap: 0.875rem;
+    }
+
+    .auth-field {
+        min-width: 0;
+    }
+
+    .auth-field-input {
+        font-size: 16px;
+    }
+
+    .auth-social-grid {
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    .auth-social-btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .auth-panel-right__content {
+        padding: 2rem 1.25rem;
     }
 
     .auth-promo-heading {
@@ -1098,12 +1137,33 @@
     .auth-stats-grid {
         flex-direction: row;
         overflow-x: auto;
+        gap: 0.625rem;
+        padding-bottom: 0.5rem;
     }
 
     .auth-stat {
         flex-direction: column;
         text-align: center;
-        min-width: 120px;
+        min-width: 125px;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-panel-header {
+        padding: 0.875rem 1rem;
+    }
+
+    .auth-header-btn {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.74rem;
+    }
+
+    .auth-form-scroll {
+        padding: 1.25rem 1rem 2rem;
+    }
+
+    .auth-form-title {
+        font-size: 1.35rem;
     }
 }
 
