@@ -61,19 +61,14 @@
                     </a>
 
                     {{-- 2. Verifikasi Komunitas --}}
-                    <a href="{{ route('admin.dashboard') }}#verifikasi"
-                       class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all duration-150">
+                    <a href="{{ route('admin.verifications.index') }}"
+                        class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 {{ request()->routeIs('admin.verifications.*') ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
                         <span class="text-amber-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </span>
                         <span class="flex-1">Verifikasi Komunitas</span>
-                        @if(isset($stats['pending_verifications']) && $stats['pending_verifications'] > 0)
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                {{ $stats['pending_verifications'] }}
-                            </span>
-                        @endif
                     </a>
 
                     {{-- 3. Monitoring Komunitas --}}
