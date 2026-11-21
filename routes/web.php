@@ -12,6 +12,8 @@ use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\PenyediaKomunitas\DashboardController as PenyediaDashboardController;
 use App\Http\Controllers\User\CommunityController;
 use App\Http\Controllers\PenyediaKomunitas\EventController;
+use App\Http\Controllers\Admin\ContentController as AdminContentController;
+use App\Http\Controllers\User\EducationController;
 use App\Models\Community;
 use App\Models\Schedule;
 
@@ -48,6 +50,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/communities/{id}/reject', [AdminDashboardController::class, 'rejectVerification'])->name('communities.reject');
         Route::post('/communities/{id}/toggle-status', [AdminDashboardController::class, 'toggleCommunityStatus'])->name('communities.toggle-status');
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
+    });
+
+    Route::prefix('contents')->name('contents.')->group(function () {
+    Route::get('/', [AdminContentController::class, 'index'])->name('index');
+    Route::get('/create', [AdminContentController::class, 'create'])->name('create');
+    Route::post('/', [AdminContentController::class, 'store'])->name('store');
+    Route::get('/{content}/edit', [AdminContentController::class, 'edit'])->name('edit');
+    Route::put('/{content}', [AdminContentController::class, 'update'])->name('update');
+    Route::delete('/{content}', [AdminContentController::class, 'destroy'])->name('destroy');
+    Route::patch('/{content}/toggle-publish', [AdminContentController::class, 'togglePublish'])->name('toggle-publish');
     });
 });
 
@@ -119,6 +131,10 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::post('/rewards/{reward}/redeem', [DashboardController::class, 'redeemReward'])->name('rewards.redeem');
     Route::post('/streak/check-in', [DashboardController::class, 'streakCheckIn'])->name('streak.check-in');
     Route::post('/announcements/{announcement}/read', [DashboardController::class, 'readAnnouncement'])->name('announcements.read');
+    Route::prefix('edukasi')->name('edukasi.')->group(function () {
+        Route::get('/', [EducationController::class, 'index'])->name('index');
+        Route::get('/{content:slug}', [EducationController::class, 'show'])->name('show');
+    });
     Route::post('/logout', [UserAuthController::class, 'logout'])->name('logout');
 });
 
