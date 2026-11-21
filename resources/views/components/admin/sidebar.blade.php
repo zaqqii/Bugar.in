@@ -111,6 +111,17 @@
                         </span>
                         <span class="flex-1">Event &amp; Turnamen</span>
                     </a>
+
+                    {{-- 6. Kelola Konten Edukasi --}}
+                    <a href="{{ route('admin.contents.index') }}"
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 {{ request()->routeIs('admin.contents.*') ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
+                        <span class="text-cyan-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                            </svg>
+                        </span>
+                        <span class="flex-1">Konten Edukasi</span>
+                    </a>
                 </div>
             </div>
 
