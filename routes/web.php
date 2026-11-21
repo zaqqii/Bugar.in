@@ -17,7 +17,7 @@ use App\Http\Controllers\Admin\ContentController as AdminContentController;
 use App\Http\Controllers\User\EducationController;
 use App\Models\Community;
 use App\Models\Schedule;
-
+use App\Http\Controllers\Admin\CommunityManagementController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 
 // Landing Page
@@ -50,6 +50,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/communities/{id}/verify', [AdminDashboardController::class, 'approveVerification'])->name('communities.verify');
         Route::post('/communities/{id}/reject', [AdminDashboardController::class, 'rejectVerification'])->name('communities.reject');
         Route::post('/communities/{id}/toggle-status', [AdminDashboardController::class, 'toggleCommunityStatus'])->name('communities.toggle-status');
+        Route::get('/communities', [CommunityManagementController::class, 'index'])->name('communities.index');
+        Route::get('/communities/{community}', [CommunityManagementController::class, 'show'])->name('communities.show');
+        Route::patch('/communities/{community}/toggle-active', [CommunityManagementController::class, 'toggleActive'])->name('communities.toggle-active');
+        Route::patch('/communities/{community}/revoke-verification', [CommunityManagementController::class, 'revokeVerification'])->name('communities.revoke-verification');
         Route::get('/verifications', [CommunityVerificationController::class, 'index'])->name('verifications.index');
         Route::patch('/verifications/{community}/approve', [CommunityVerificationController::class, 'approve'])->name('verifications.approve');
         Route::patch('/verifications/{community}/reject', [CommunityVerificationController::class, 'reject'])->name('verifications.reject');
