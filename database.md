@@ -2,7 +2,7 @@
 
 DBMS: PostgreSQL (Neon). Framework: Laravel 13 (PHP 8.3). Deploy: Render. Storage: Cloudflare R2.
 
-Ringkasan schema diperbarui 2026-11-17 berdasarkan audit repository (branch `deploy`, commit `aaa3d7e`, 13 November 2026). **Sumber kebenaran tetap `database/migrations/`**; kalau dokumen ini beda dengan migration, migration yang menang dan perbedaannya **wajib dilaporkan** ke pengguna.
+Ringkasan schema diperbarui 2026-11-18 berdasarkan audit repository (branch `deploy`, commit `aaa3d7e`, 13 November 2026). **Sumber kebenaran tetap `database/migrations/`**; kalau dokumen ini beda dengan migration, migration yang menang dan perbedaannya **wajib dilaporkan** ke pengguna.
 
 > **STOP. BACA BAGIAN 0 SEBELUM MELAKUKAN APA PUN.**
 > Database Neon ini berisi data nyata yang dipakai bersama tim. Sudah dua kali agent menjalankan `php artisan migrate:fresh` saat mengerjakan task. Hal itu tidak boleh terulang.
@@ -411,10 +411,15 @@ Belum ada UNIQUE di level database untuk mencegah poin ganda; idempotensi saat i
 | status | varchar(255) | wajib, default `pending` |
 | handled_by | bigint | opsional, FK `users` (admin) |
 | admin_notes | text | opsional |
+| rejection_reason | text | opsional, alasan tolak yang tampil ke user (dipisah dari admin_notes internal) |
+| community_id | bigint | opsional, FK `communities` (ON DELETE SET NULL), terindeks (penyedia hanya boleh melihat laporan komunitasnya) |
+| action_note | text | opsional, teks peringatan atau alasan tindakan dari penyedia |
+| evidence_images | json | opsional, path foto bukti tanpa tabel baru |
 | handled_at | timestamp | opsional |
 | created_at, updated_at | timestamp | |
 
 Tabel siap, **fitur pelaporan belum diimplementasi** (belum ada form maupun halaman admin).
+Catatan: `community_id` diisi aplikasi saat laporan dibuat (turunan dari objek yang dilaporkan); `evidence_images` wajib disimpan di storage privat (`AWS_PRIVATE_BUCKET`); pemilik model `Report` perlu menambahkan kolom ini ke `$fillable`.
 
 ### notifications
 | Kolom | Tipe | Catatan |
@@ -504,6 +509,7 @@ Belum ada model/controller yang memakai tabel ini.
 | points_histories.user_id | users | CASCADE |
 | reports.reporter_id | users | CASCADE |
 | reports.handled_by | users | SET NULL |
+| reports.community_id | communities | SET NULL |
 | schedules.community_id | communities | CASCADE |
 | streaks.user_id | users | CASCADE |
 
