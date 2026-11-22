@@ -10,6 +10,7 @@ use App\Models\Participant;
 use App\Models\UserAnnouncement;
 use App\Services\AttendanceService;
 use App\Support\NotificationType;
+use App\Support\ProviderActivityOverlap;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -110,7 +111,7 @@ class EventController extends Controller
             'registration_close_at' => $r . '|date',
             'timezone' => 'nullable|in:WIB,WITA,WIT',
             'start_time' => $r,
-            'end_time' => 'nullable',
+            'end_time' => 'nullable|date_format:H:i|after:start_time',
             'location' => $r . '|string|max:255',
             'maps_url' => 'nullable|url|max:500',
             'capacity_type' => 'nullable|in:limited,unlimited',
@@ -127,6 +128,22 @@ class EventController extends Controller
         ], [
             'title.max' => 'Nama event tidak boleh lebih dari 80 karakter agar tampilan tetap rapi.',
         ]);
+
+        $overlapChecker = app(ProviderActivityOverlap::class);
+        $overlapWarnings = [];
+        if (!empty($validated['event_date']) && !empty($validated['start_time'])) {
+            $overlaps = $overlapChecker->inspect(
+                (int) $community->id,
+                $validated['event_date'],
+                $validated['start_time'],
+                $validated['end_time'] ?? null,
+                $validated['location'] ?? '',
+            );
+            if ($overlaps['blocking'] !== []) {
+                return back()->withInput()->withErrors(['event_date' => implode(' ', $overlaps['blocking'])]);
+            }
+            $overlapWarnings = $overlaps['warnings'];
+        }
 
         // Verifikasi Komunitas: Hanya jika mempublikasikan event berbayar
         $isPaidEvent = ($request->is_paid === '1') || ((float) ($validated['registration_fee'] ?? 0) > 0);
@@ -195,34 +212,61 @@ class EventController extends Controller
         $slug = Str::slug($validated['title']) . '-' . Str::lower(Str::random(6));
 
         // Create Event
-        Event::create([
-            'community_id' => $community->id,
-            'title' => $validated['title'],
-            'slug' => $slug,
-            'description' => $description,
-            'cover_image' => $coverPath,
-            'qris_image' => $qrisPath,
-            'type' => $validated['type'],
-            'location' => $validated['location'],
-            'maps_url' => $validated['maps_url'] ?? null,
-            'event_date' => $validated['event_date'],
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'] ?? null,
-            'capacity' => $capacity,
-            'registration_fee' => $registrationFee,
-            'requirements' => $requirements ?: null,
-            'registration_open_at' => $isDraft ? null : now(),
-            'registration_close_at' => $validated['registration_close_at'],
-            'status' => $initialStatus,
-            'participants_count' => 0,
-            'is_active' => true,
-        ]);
+        $blockingOverlaps = [];
+        DB::transaction(function () use ($community, $validated, $overlapChecker, &$blockingOverlaps, $slug, $description, $coverPath, $qrisPath, $capacity, $registrationFee, $requirements, $isDraft, $initialStatus) {
+            Community::whereKey($community->id)->lockForUpdate()->firstOrFail();
+
+            if (!empty($validated['event_date']) && !empty($validated['start_time'])) {
+                $overlaps = $overlapChecker->inspect(
+                    (int) $community->id,
+                    $validated['event_date'],
+                    $validated['start_time'],
+                    $validated['end_time'] ?? null,
+                    $validated['location'] ?? '',
+                );
+                $blockingOverlaps = $overlaps['blocking'];
+                if ($blockingOverlaps !== []) {
+                    return;
+                }
+            }
+
+            Event::create([
+                'community_id' => $community->id,
+                'title' => $validated['title'],
+                'slug' => $slug,
+                'description' => $description,
+                'cover_image' => $coverPath,
+                'qris_image' => $qrisPath,
+                'type' => $validated['type'],
+                'location' => $validated['location'],
+                'maps_url' => $validated['maps_url'] ?? null,
+                'event_date' => $validated['event_date'] ?? null,
+                'start_time' => $validated['start_time'] ?? null,
+                'end_time' => $validated['end_time'] ?? null,
+                'capacity' => $capacity,
+                'registration_fee' => $registrationFee,
+                'requirements' => $requirements ?: null,
+                'registration_open_at' => $isDraft ? null : now(),
+                'registration_close_at' => $validated['registration_close_at'] ?? null,
+                'status' => $initialStatus,
+                'participants_count' => 0,
+                'is_active' => true,
+            ]);
+        });
+
+        if ($blockingOverlaps !== []) {
+            return back()->withInput()->withErrors(['event_date' => implode(' ', $blockingOverlaps)]);
+        }
 
         $message = $isDraft
             ? 'Draft event "' . $validated['title'] . '" berhasil disimpan!'
             : 'Event "' . $validated['title'] . '" berhasil dipublikasikan!';
 
-        return redirect()->route('penyedia-komunitas.events.index')->with('success', $message);
+        $redirect = redirect()->route('penyedia-komunitas.events.index')->with('success', $message);
+
+        return $overlapWarnings !== []
+            ? $redirect->with('warning', implode(' ', array_unique($overlapWarnings)))
+            : $redirect;
     }
 
     public function edit(Event $event)
@@ -266,7 +310,7 @@ class EventController extends Controller
             'registration_close_at' => 'required|date',
             'timezone' => 'nullable|string|in:WIB,WITA,WIT',
             'start_time' => 'required',
-            'end_time' => 'nullable',
+            'end_time' => 'nullable|date_format:H:i|after:start_time',
             'location' => 'required|string|max:255',
             'maps_url' => 'nullable|url|max:500',
             'capacity_type' => 'nullable|string|in:limited,unlimited',
@@ -282,6 +326,20 @@ class EventController extends Controller
         ], [
             'title.max' => 'Nama event tidak boleh lebih dari 80 karakter agar tampilan tetap rapi.',
         ]);
+
+        $overlapChecker = app(ProviderActivityOverlap::class);
+        $overlaps = $overlapChecker->inspect(
+            (int) $community->id,
+            $validated['event_date'],
+            $validated['start_time'],
+            $validated['end_time'] ?? null,
+            $validated['location'],
+            ignoreEventId: (int) $event->id,
+        );
+        if ($overlaps['blocking'] !== []) {
+            return back()->withInput()->withErrors(['event_date' => implode(' ', $overlaps['blocking'])]);
+        }
+        $overlapWarnings = $overlaps['warnings'];
 
         $isDraftAction = ($request->input('action') === 'draft') || ($request->input('status') === 'draft');
 
@@ -377,10 +435,35 @@ class EventController extends Controller
             $updateData['registration_open_at'] = now();
         }
 
-        $event->update($updateData);
+        $blockingOverlaps = [];
+        DB::transaction(function () use ($community, $event, $updateData, $overlapChecker, &$blockingOverlaps) {
+            Community::whereKey($community->id)->lockForUpdate()->firstOrFail();
+            $overlaps = $overlapChecker->inspect(
+                (int) $community->id,
+                $updateData['event_date'],
+                $updateData['start_time'],
+                $updateData['end_time'],
+                $updateData['location'],
+                ignoreEventId: (int) $event->id,
+            );
+            $blockingOverlaps = $overlaps['blocking'];
+            if ($blockingOverlaps !== []) {
+                return;
+            }
 
-        return redirect()->route('penyedia-komunitas.events.index')
+            $event->update($updateData);
+        });
+
+        if ($blockingOverlaps !== []) {
+            return back()->withInput()->withErrors(['event_date' => implode(' ', $blockingOverlaps)]);
+        }
+
+        $redirect = redirect()->route('penyedia-komunitas.events.index')
             ->with('success', 'Perubahan event "' . $validated['title'] . '" berhasil disimpan!');
+
+        return $overlapWarnings !== []
+            ? $redirect->with('warning', implode(' ', array_unique($overlapWarnings)))
+            : $redirect;
     }
 
     public function publish(Event $event)

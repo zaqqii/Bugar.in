@@ -76,6 +76,14 @@
         </p>
     </div>
 
+    @if($errors->any())
+        <div role="alert" class="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">
+            @foreach($errors->all() as $message)
+                <p>{{ $message }}</p>
+            @endforeach
+        </div>
+    @endif
+
     {{-- WIZARD STEPPER & ANIMATED PROGRESS BAR --}}
     <div class="bg-white rounded-2xl border border-slate-200 p-6 mb-8 shadow-sm">
         <div class="relative">
