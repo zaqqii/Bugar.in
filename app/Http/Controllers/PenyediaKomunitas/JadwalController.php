@@ -134,6 +134,16 @@ class JadwalController extends Controller
 
         $filteredSchedules = $query->get();
 
+        $filteredSchedules->each(function (Schedule $schedule): void {
+            $filled = (int) ($schedule->registered_participants_count ?? 0);
+            $capacity = $schedule->capacity;
+
+            $schedule->setAttribute('capacity_filled', $filled);
+            $schedule->setAttribute('capacity_is_full', $capacity !== null && $filled >= $capacity);
+            $schedule->setAttribute('capacity_percentage', $capacity ? (int) min(100, round(($filled / $capacity) * 100)) : null);
+            $schedule->setAttribute('capacity_remaining', $capacity === null ? null : max(0, $capacity - $filled));
+        });
+
         // Kelompokkan per tanggal
         $groupedSchedules = $filteredSchedules->groupBy(function (Schedule $item) {
             return $item->date ? $item->date->format('Y-m-d') : 'unspecified';
@@ -305,6 +315,12 @@ class JadwalController extends Controller
             ->pluck('cnt', 'status');
 
         $activeParticipantsCount = ($statusCounts->get('registered', 0) + $statusCounts->get('attended', 0));
+        $capacityDisplay = [
+            'filled' => $activeParticipantsCount,
+            'is_full' => $schedule->capacity !== null && $activeParticipantsCount >= $schedule->capacity,
+            'percentage' => $schedule->capacity ? (int) min(100, round(($activeParticipantsCount / $schedule->capacity) * 100)) : null,
+            'remaining' => $schedule->capacity === null ? null : max(0, $schedule->capacity - $activeParticipantsCount),
+        ];
 
         // Riwayat kehadiran peserta di komunitas ini dihitung dengan SATU query groupBy
         $userIds = $participants->pluck('user_id')->filter()->unique()->values();
@@ -330,6 +346,7 @@ class JadwalController extends Controller
             'community'              => $community,
             'participants'           => $participants,
             'activeParticipantsCount'=> $activeParticipantsCount,
+            'capacityDisplay'        => $capacityDisplay,
             'attendanceStats'        => $attendanceStats,
             'statusCounts'           => $statusCounts,
             'filterStatus'           => $filterStatus,

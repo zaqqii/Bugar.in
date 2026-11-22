@@ -417,10 +417,9 @@
 
                             @foreach($events as $event)
                                 @php
-                                    $filled = (int) $event->participants_count;
                                     $capacity = $event->capacity;
-                                    $isFull = $event->isFull();
-                                    $percentage = $event->fillPercentage();
+                                    $isFull = $event->capacity_is_full;
+                                    $percentage = $event->capacity_percentage;
                                     $status = $statusConfig[$event->status] ?? ['label' => ucfirst($event->status), 'bg' => 'bg-slate-50 text-slate-700 border-slate-200', 'dot' => 'bg-slate-400'];
                                     
                                     // Bersihkan cuplikan deskripsi dari separator rundown
@@ -520,16 +519,16 @@
                                         <div class="w-36">
                                             <div class="flex items-center justify-between text-[11px] mb-1">
                                                 <span class="font-bold text-slate-700">
-                                                    {{ $filled }} / {{ $capacity ?? '∞' }} Peserta
+                                                    {{ $event->capacity_filled }} / {{ $capacity ?? '∞' }} Peserta
                                                 </span>
                                                 <span class="font-semibold {{ $isFull ? 'text-red-500' : 'text-primary-600' }}">
-                                                    {{ $isFull ? 'Penuh' : ($capacity ? $percentage . '%' : 'Unlimited') }}
+                                                    {{ $isFull ? 'Penuh' : ($capacity !== null ? 'Sisa ' . $event->capacity_remaining . ' slot' : 'Tanpa batas') }}
                                                 </span>
                                             </div>
-                                            @if($capacity)
+                                            @if($capacity !== null)
                                                 <div class="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                                                    <div class="h-full rounded-full transition-all duration-300 {{ $isFull ? 'bg-red-500' : 'bg-primary-500' }}"
-                                                         style="width: {{ min(100, $percentage) }}%;"></div>
+                                                    <div class="h-full rounded-full transition-all duration-300 {{ $isFull ? 'bg-red-500' : (($percentage ?? 0) >= 80 ? 'bg-amber-500' : 'bg-primary-500') }}"
+                                                         style="width: {{ $percentage }}%;"></div>
                                                 </div>
                                             @endif
                                         </div>
@@ -537,6 +536,9 @@
 
                                     {{-- Kolom 5: Status --}}
                                     <td class="py-4 px-6 whitespace-nowrap min-w-[140px]">
+                                        @if($isFull)
+                                            <span class="mb-1 inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-extrabold text-rose-700">Kuota Penuh</span>
+                                        @endif
                                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border {{ $status['bg'] }}">
                                             <span class="w-2 h-2 rounded-full {{ $status['dot'] }}"></span>
                                             {{ $status['label'] }}

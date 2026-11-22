@@ -287,9 +287,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach($schedules as $i => $schedule)
                         @php
-                            $regCount = $schedule->registered_participants_count ?? $schedule->activeParticipantsCount();
                             $capacity = $schedule->capacity;
-                            $percent = $capacity ? (int) min(100, round(($regCount / $capacity) * 100)) : 0;
                             $isFinished = $schedule->isFinished();
                             $isCancelled = $schedule->isCancelled();
                             $schDateFormatted = $schedule->date ? $schedule->date->locale('id')->isoFormat('dddd, D MMMM Y') : 'Tanggal Belum Ditentukan';
@@ -319,6 +317,9 @@
                                     </div>
 
                                     <div class="flex items-center gap-1.5 flex-wrap">
+                                        @if($schedule->capacity_is_full)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-extrabold">Penuh</span>
+                                        @endif
                                         {{-- Level Badge --}}
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border {{ $schedule->levelBadgeClass() }}">
                                             {{ $schedule->levelLabel() }}
@@ -389,14 +390,18 @@
                                 <div class="pt-2">
                                     <div class="flex items-center justify-between text-xs mb-1">
                                         <span class="font-bold text-slate-600">Peserta Terdaftar</span>
-                                        <span class="font-bold {{ $capacity && $regCount >= $capacity ? 'text-rose-600' : 'text-slate-900' }}">
-                                            {{ $regCount }} {{ $capacity ? '/ ' . $capacity . ' peserta' : 'peserta (Tanpa batas)' }}
+                                        <span class="font-bold {{ $schedule->capacity_is_full ? 'text-rose-600' : 'text-slate-900' }}">
+                                            {{ $schedule->capacity_filled }} {{ $capacity !== null ? '/ ' . $capacity . ' peserta' : 'peserta · tanpa batas' }}
                                         </span>
                                     </div>
-                                    @if($capacity)
+                                    @if($capacity !== null)
                                         <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                            <div class="h-full rounded-full transition-all duration-300 {{ $percent >= 100 ? 'bg-rose-500' : ($percent >= 80 ? 'bg-amber-500' : 'bg-blue-600') }}"
-                                                 style="width: {{ $percent }}%"></div>
+                                            <div class="h-full rounded-full transition-all duration-300 {{ $schedule->capacity_is_full ? 'bg-rose-500' : (($schedule->capacity_percentage ?? 0) >= 80 ? 'bg-amber-500' : 'bg-blue-600') }}"
+                                                 style="width: {{ $schedule->capacity_percentage }}%"></div>
+                                        </div>
+                                        <div class="mt-1 flex items-center justify-between text-[10px]">
+                                            <span class="{{ $schedule->capacity_is_full ? 'font-bold text-rose-600' : 'text-slate-500' }}">{{ $schedule->capacity_is_full ? 'Penuh' : 'Sisa ' . $schedule->capacity_remaining . ' slot' }}</span>
+                                            <span class="text-slate-400">{{ $schedule->capacity_percentage }}% terisi</span>
                                         </div>
                                     @endif
                                 </div>
