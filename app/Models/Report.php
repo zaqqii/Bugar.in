@@ -77,6 +77,14 @@ class Report extends Model
     ];
 
     /**
+     * Komunitas konteks terjadinya pelanggaran
+     */
+    public function community(): BelongsTo
+    {
+        return $this->belongsTo(Community::class, 'community_id');
+    }
+
+    /**
      * Pelapor (User)
      */
     public function reporter(): BelongsTo

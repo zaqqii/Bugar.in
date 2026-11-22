@@ -72,34 +72,60 @@ class DashboardController extends Controller
             'ratings_count' => $community->ratings_count,
         ];
 
+        $tz = config('app.timezone', 'Asia/Jakarta');
+        $now = Carbon::now($tz);
+        $todayStr = $now->toDateString();
+        $nowTimeStr = $now->format('H:i:s');
+
         $upcomingEvents = $community->events()
             ->whereIn('status', ['published', 'registration_closed', 'ongoing'])
-            ->orderBy('event_date')
-            ->orderBy('start_time')
+            ->where(function ($q) use ($todayStr, $nowTimeStr) {
+                $q->whereDate('event_date', '>', $todayStr)
+                  ->orWhere(function ($sub) use ($todayStr, $nowTimeStr) {
+                      $sub->whereDate('event_date', '=', $todayStr)
+                          ->where(function ($timeSub) use ($nowTimeStr) {
+                              $timeSub->where('status', 'ongoing')
+                                  ->orWhere(function ($t) use ($nowTimeStr) {
+                                      $t->whereNotNull('end_time')
+                                        ->where('end_time', '>=', $nowTimeStr);
+                                  })
+                                  ->orWhere(function ($t) use ($nowTimeStr) {
+                                      $t->whereNull('end_time')
+                                        ->where('start_time', '>=', $nowTimeStr);
+                                  });
+                          });
+                  });
+            })
+            ->orderBy('event_date', 'asc')
+            ->orderBy('start_time', 'asc')
             ->limit(5)
             ->get()
             ->map(fn(Event $event) => $this->formatEventRow($event));
 
         $upcomingSchedules = $community->schedules()
-            ->whereIn('status', ['open', 'almost_full'])
             ->where('is_active', true)
-            ->orderByRaw("CASE day_of_week
-                WHEN 'monday'    THEN 1
-                WHEN 'tuesday'   THEN 2
-                WHEN 'wednesday' THEN 3
-                WHEN 'thursday'  THEN 4
-                WHEN 'friday'    THEN 5
-                WHEN 'saturday'  THEN 6
-                WHEN 'sunday'    THEN 7
-                END")
-            ->limit(3)
+            ->whereNull('cancelled_at')
+            ->whereIn('status', ['open', 'almost_full', 'full'])
+            ->where(function ($q) use ($todayStr, $nowTimeStr) {
+                $q->whereDate('date', '>', $todayStr)
+                  ->orWhere(function ($sub) use ($todayStr, $nowTimeStr) {
+                      $sub->whereDate('date', '=', $todayStr)
+                          ->where('end_time', '>=', $nowTimeStr);
+                  });
+            })
+            ->orderBy('date', 'asc')
+            ->orderBy('start_time', 'asc')
+            ->limit(5)
             ->get()
             ->map(fn(Schedule $schedule) => $this->formatScheduleRow($schedule));
 
-        $upcomingItems = $upcomingEvents->concat($upcomingSchedules)->take(5);
+        $upcomingItems = $upcomingEvents->concat($upcomingSchedules)
+            ->sortBy('raw_datetime')
+            ->values()
+            ->take(5);
 
         $pendingMembers = $community->members()
-            ->with('user')
+            ->with(['user' => fn($q) => $q->select('id', 'name', 'avatar', 'username')])
             ->where('status', 'pending')
             ->orderBy('joined_at')
             ->limit(5)
@@ -115,18 +141,22 @@ class DashboardController extends Controller
 
     private function formatEventRow(Event $event): array
     {
+        $tz = config('app.timezone', 'Asia/Jakarta');
         $filled = $event->participants_count;
         $capacity = $event->capacity;
         $isFull = $capacity !== null && $filled >= $capacity;
         $percentage = $event->fillPercentage();
-        $date = Carbon::parse($event->event_date);
+        $date = Carbon::parse($event->event_date, $tz)->locale('id');
+        $startTime = substr($event->start_time, 0, 5);
+        $rawDatetime = Carbon::parse($date->format('Y-m-d') . ' ' . $event->start_time, $tz);
 
         return [
             'type' => 'event',
+            'raw_datetime' => $rawDatetime,
             'date_month' => $date->isoFormat('MMM'),
             'date_day' => $date->format('d'),
             'title' => $event->title,
-            'time_label' => $date->translatedFormat('l') . ', ' . substr($event->start_time, 0, 5) . ' WIB',
+            'time_label' => $date->isoFormat('dddd') . ', ' . $startTime . ' WIB',
             'location' => $event->location,
             'slots_filled' => $filled,
             'slots_total' => $capacity ?? '∞',
@@ -135,23 +165,35 @@ class DashboardController extends Controller
             'status_label' => self::EVENT_STATUS_LABELS[$event->status] ?? $event->status,
             'status_color' => $isFull ? 'var(--color-gray-200)' : 'var(--color-primary-100)',
             'status_dot_color' => $isFull ? '#94a3b8' : 'var(--color-primary-500)',
+            'action_url' => route('penyedia-komunitas.events.edit', $event),
+            'is_recurring' => false,
         ];
     }
 
     private function formatScheduleRow(Schedule $schedule): array
     {
+        $tz = config('app.timezone', 'Asia/Jakarta');
         $filled = $schedule->filledCount();
         $capacity = $schedule->capacity;
         $isFull = $capacity !== null && $filled >= $capacity;
         $percentage = $schedule->fillPercentage();
-        $nextDate = $this->nextOccurrence($schedule->day_of_week);
+
+        $date = $schedule->date
+            ? Carbon::parse($schedule->date, $tz)->locale('id')
+            : $this->nextOccurrence($schedule->day_of_week)->locale('id');
+
+        $startTime = substr($schedule->start_time, 0, 5);
+        $rawDatetime = $schedule->date
+            ? $schedule->startsAt()
+            : $date->copy()->setTimeFromTimeString($schedule->start_time);
 
         return [
             'type' => 'schedule',
-            'date_month' => $nextDate->isoFormat('MMM'),
-            'date_day' => $nextDate->format('d'),
+            'raw_datetime' => $rawDatetime,
+            'date_month' => $date->isoFormat('MMM'),
+            'date_day' => $date->format('d'),
             'title' => $schedule->title,
-            'time_label' => $schedule->dayLabel() . ', ' . substr($schedule->start_time, 0, 5) . ' WIB',
+            'time_label' => $schedule->dayLabel() . ', ' . $startTime . ' WIB',
             'location' => $schedule->location ?? '-',
             'slots_filled' => $filled,
             'slots_total' => $capacity ?? '∞',
@@ -160,6 +202,8 @@ class DashboardController extends Controller
             'status_label' => self::SCHEDULE_STATUS_LABELS[$schedule->status] ?? $schedule->status,
             'status_color' => $isFull ? 'var(--color-gray-200)' : 'var(--color-primary-100)',
             'status_dot_color' => $isFull ? '#94a3b8' : 'var(--color-primary-500)',
+            'action_url' => route('penyedia-komunitas.jadwal.show', $schedule),
+            'is_recurring' => (bool) $schedule->is_recurring,
         ];
     }
 
@@ -175,8 +219,9 @@ class DashboardController extends Controller
             'sunday' => Carbon::SUNDAY,
         ];
 
-        $targetDow = $map[$dayOfWeek] ?? Carbon::MONDAY;
-        $today = now()->startOfDay();
+        $targetDow = $map[strtolower(trim($dayOfWeek))] ?? Carbon::MONDAY;
+        $tz = config('app.timezone', 'Asia/Jakarta');
+        $today = Carbon::now($tz)->startOfDay();
 
         return $today->dayOfWeek === $targetDow ? $today : $today->next($targetDow);
     }

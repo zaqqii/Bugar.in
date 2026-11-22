@@ -368,6 +368,17 @@
                                 Link Tersalin! ✓
                             </span>
                         </button>
+
+                        {{-- Tombol Laporkan Komunitas (AD-05) --}}
+                        @if(auth()->check() && auth()->id() !== ($community->owner_id ?? 0))
+                            <a href="{{ route('user.reports.community.create', $community->slug ?? $community->id) }}"
+                               title="Laporkan Komunitas Ini"
+                               class="w-9 h-9 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200/80 hover:border-rose-200 flex items-center justify-center transition-all shadow-2xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                </svg>
+                            </a>
+                        @endif
                     </div>
 
                 </div>
@@ -848,14 +859,21 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
                     {{-- Koordinator / Owner --}}
-                    <div class="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-200/80 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs">
-                            {{ $ownerInitials }}
+                    <div class="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-200/80 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs">
+                                {{ $ownerInitials }}
+                            </div>
+                            <div class="truncate">
+                                <div class="text-xs font-bold text-slate-900 truncate">{{ $owner?->name ?? 'Koordinator Komunitas' }}</div>
+                                <div class="text-[10px] font-bold text-blue-600">Founder &amp; Host</div>
+                            </div>
                         </div>
-                        <div class="truncate">
-                            <div class="text-xs font-bold text-slate-900 truncate">{{ $owner?->name ?? 'Koordinator Komunitas' }}</div>
-                            <div class="text-[10px] font-bold text-blue-600">Founder &amp; Host</div>
-                        </div>
+                        @if(auth()->check() && $owner && auth()->id() !== $owner->id)
+                            <a href="{{ route('user.reports.user.create', ['user' => $owner->id, 'community_id' => $community->id]) }}" class="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline flex-shrink-0">
+                                Laporkan
+                            </a>
+                        @endif
                     </div>
 
                     {{-- Real Members --}}
@@ -866,14 +884,21 @@
                                     ->map(fn($w) => strtoupper(substr($w, 0, 1)))
                                     ->take(2)->implode('');
                             @endphp
-                            <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
-                                    {{ $mInitials }}
+                            <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
+                                        {{ $mInitials }}
+                                    </div>
+                                    <div class="truncate">
+                                        <div class="text-xs font-bold text-slate-900 truncate">{{ $member->user->name }}</div>
+                                        <div class="text-[10px] text-slate-400 font-medium">Anggota Aktif</div>
+                                    </div>
                                 </div>
-                                <div class="truncate">
-                                    <div class="text-xs font-bold text-slate-900 truncate">{{ $member->user->name }}</div>
-                                    <div class="text-[10px] text-slate-400 font-medium">Anggota Aktif</div>
-                                </div>
+                                @if(auth()->check() && auth()->id() !== $member->user->id)
+                                    <a href="{{ route('user.reports.user.create', ['user' => $member->user->id, 'community_id' => $community->id]) }}" class="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline flex-shrink-0">
+                                        Laporkan
+                                    </a>
+                                @endif
                             </div>
                         @endif
                     @endforeach
@@ -1166,7 +1191,7 @@
                         <span class="text-base shrink-0">👥</span>
                         <div>
                             <span class="block font-bold text-slate-900">Kapasitas Slot</span>
-                            <span class="text-slate-600" x-text="modalSchedule.capacity ? `${modalSchedule.registeredCount} peserta terdaftar · Sisa ${modalSchedule.remaining !== null ? modalSchedule.remaining : (modalSchedule.capacity - modalSchedule.registeredCount)} dari ${modalSchedule.capacity} slot` : `${modalSchedule.registeredCount} peserta terdaftar · Tanpa batas slot`"></span>
+                            <span class="text-slate-600" x-text="modalSchedule.capacity ? `${modalSchedule.registeredCount || 0}/${modalSchedule.capacity} peserta terdaftar` : `${modalSchedule.registeredCount || 0} peserta terdaftar · Tanpa batas slot`"></span>
                         </div>
                     </div>
                 </div>

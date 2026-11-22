@@ -1,0 +1,349 @@
+@extends('layouts.user')
+
+@section('title', 'Lapor Pengguna — Bugar.in')
+
+@section('content')
+<div class="max-w-xl mx-auto space-y-5">
+
+    {{-- Navigasi ringkas --}}
+    <div class="flex items-center gap-2 text-xs text-slate-500">
+        <a href="{{ route('user.dashboard') }}" class="hover:text-blue-600 transition-colors">Beranda</a>
+        <span>/</span>
+        <span class="text-rose-600 font-semibold">Lapor pengguna</span>
+    </div>
+
+    {{-- Header ringkas --}}
+    <div class="rounded-2xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-3">
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h1 class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+                    Laporkan pengguna
+                </h1>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Aduan pelanggaran terhadap akun pengguna lain di kegiatan komunitas.
+                </p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7 0 3.75 3.75 0 017 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+            </div>
+        </div>
+
+        {{-- Penjelasan alur moderasi berjenjang (User -> Penyedia Komunitas -> Admin) --}}
+        <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100/80 text-xs text-blue-900 space-y-1">
+            <div class="flex items-center gap-1.5 font-bold text-blue-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+                <span>Alur penanganan aduan</span>
+            </div>
+            <p class="text-[11px] text-blue-800/90 leading-relaxed">
+                Laporan Anda akan diterima terlebih dahulu oleh pengelola komunitas terkait. Jika terbukti ada pelanggaran, pengelola akan meneruskannya ke admin platform untuk mitigasi penonaktifan akun.
+            </p>
+        </div>
+
+        {{-- Entitas Terlapor Card --}}
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-orange-400 text-white font-extrabold text-xs flex items-center justify-center flex-shrink-0">
+                    {{ strtoupper(substr($user->name, 0, 1)) }}
+                </div>
+                <div class="min-w-0">
+                    <div class="font-bold text-slate-800 truncate">{{ $user->name }}</div>
+                    <div class="text-[10px] text-slate-400 font-mono">{{ '@' . ($user->username ?? 'user') }}</div>
+                    @if(isset($community) && $community)
+                        <div class="text-[10px] text-blue-600 mt-0.5">
+                            Konteks: <span class="font-medium">{{ $community->name }}</span>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-200 text-slate-700 capitalize">
+                {{ $user->role ?? 'User' }}
+            </span>
+        </div>
+    </div>
+
+    {{-- Cek jika ada laporan aktif yang belum selesai --}}
+    @if($existingReport)
+        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2">
+            <div class="flex items-center gap-2 font-semibold text-amber-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Laporan sedang diproses admin</span>
+            </div>
+            <p class="text-slate-600">
+                Anda sudah mengirimkan laporan pada <strong>{{ $existingReport->created_at->translatedFormat('d M Y') }}</strong>.
+            </p>
+            <a href="{{ route('user.reports.index') }}" class="inline-flex items-center gap-1 font-semibold text-amber-900 underline text-[11px]">
+                <span>Lihat riwayat laporan</span>
+                <span>&rarr;</span>
+            </a>
+        </div>
+    @else
+        {{-- Form Pelaporan --}}
+        <div x-data="{
+                  descText: '{{ addslashes(old('description', '')) }}',
+                  submitAttempted: false,
+                  fileErrorMessage: '',
+                  showConfirmModal: false,
+                  get isDescInvalid() {
+                      return this.descText.trim().length < 15;
+                  },
+                  handleFormSubmit(e) {
+                      this.submitAttempted = true;
+                      if (this.fileErrorMessage) {
+                          e.preventDefault();
+                          const fi = document.getElementById('evidence_images');
+                          if (fi) fi.focus();
+                          return false;
+                      }
+                      if (this.isDescInvalid) {
+                          e.preventDefault();
+                          const el = document.getElementById('description');
+                          if (el) el.focus();
+                          return false;
+                      }
+                      e.preventDefault();
+                      this.showConfirmModal = true;
+                  },
+                  confirmAndSend() {
+                      this.showConfirmModal = false;
+                      this.$refs.reportUserForm.submit();
+                  }
+              }">
+            <form x-ref="reportUserForm"
+                  method="POST" action="{{ route('user.reports.user.store', $user->id) }}" enctype="multipart/form-data"
+                  @submit="handleFormSubmit($event)"
+                  class="rounded-2xl bg-white border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
+                @csrf
+            @if(isset($community) && $community)
+                <input type="hidden" name="community_id" value="{{ $community->id }}">
+            @endif
+
+            {{-- Alasan Pelaporan --}}
+            <div class="space-y-1">
+                <label for="reason" class="block text-xs font-semibold text-slate-700">
+                    Alasan pelaporan <span class="text-rose-500">*</span>
+                </label>
+                <select id="reason" name="reason" required
+                        class="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs focus:outline-hidden focus:border-blue-600 focus:bg-white transition-colors">
+                    <option value="" disabled {{ old('reason') ? '' : 'selected' }}>Pilih kategori pelanggaran...</option>
+                    @foreach($reasons as $r)
+                        <option value="{{ $r }}" {{ old('reason') === $r ? 'selected' : '' }}>{{ $r }}</option>
+                    @endforeach
+                </select>
+                @error('reason')
+                    <p class="text-xs text-rose-500">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Deskripsi Kronologi --}}
+            <div class="space-y-1">
+                <div class="flex items-center justify-between text-xs">
+                    <label for="description" class="font-semibold text-slate-700">
+                        Deskripsi kejadian <span class="text-rose-500">*</span>
+                    </label>
+                    <span class="text-[11px] font-mono" :class="descText.trim().length >= 15 ? 'text-emerald-600' : (descText.trim().length > 0 ? 'text-rose-500' : 'text-slate-400')">
+                        <span x-text="descText.trim().length"></span>/15 karakter
+                    </span>
+                </div>
+                <textarea id="description" name="description" rows="4" required
+                          x-model="descText"
+                          placeholder="Jelaskan kronologi kejadian secara ringkas..."
+                          :class="(submitAttempted && isDescInvalid) || {{ $errors->has('description') ? 'true' : 'false' }}
+                              ? 'border-rose-500 bg-rose-50/30 text-rose-900 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                              : 'border-slate-200 bg-slate-50 text-slate-800 focus:border-blue-600 focus:bg-white'"
+                          class="w-full px-3.5 py-2 rounded-xl border text-xs focus:outline-hidden transition-colors resize-none">{{ old('description') }}</textarea>
+
+                <template x-if="submitAttempted && isDescInvalid">
+                    <p class="text-xs text-rose-500 flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-rose-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                        </svg>
+                        <span>Deskripsi wajib minimal 15 karakter (saat ini <span x-text="descText.trim().length"></span> karakter).</span>
+                    </p>
+                </template>
+
+                @error('description')
+                    <p class="text-xs text-rose-500">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Bukti Pendukung (Link/Tautan) --}}
+            <div class="space-y-1">
+                <label for="evidence_url" class="block text-xs font-semibold text-slate-700">
+                    Tautan bukti pendukung (opsional)
+                </label>
+                <input type="url" id="evidence_url" name="evidence_url"
+                       placeholder="https://..."
+                       value="{{ old('evidence_url') }}"
+                       class="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs focus:outline-hidden focus:border-blue-600 focus:bg-white transition-colors">
+                @error('evidence_url')
+                    <p class="text-xs text-rose-500">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Unggah Foto Bukti Privat --}}
+            <div class="space-y-1" x-data="{
+                files: [],
+                allowedTypes: ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'],
+                allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
+                handleFileSelect(event) {
+                    fileErrorMessage = '';
+                    const selectedFiles = Array.from(event.target.files);
+
+                    if (selectedFiles.length > 5) {
+                        fileErrorMessage = 'Maksimal 5 foto bukti yang dapat dipilih. Silakan kurangi jumlah foto.';
+                        event.target.value = '';
+                        this.files = [];
+                        return;
+                    }
+
+                    const invalidFiles = selectedFiles.filter(f => {
+                        const ext = f.name.split('.').pop().toLowerCase();
+                        return !this.allowedTypes.includes(f.type) && !this.allowedExtensions.includes(ext);
+                    });
+
+                    if (invalidFiles.length > 0) {
+                        fileErrorMessage = 'Format file tidak didukung (' + invalidFiles.map(f => f.name).join(', ') + '). Hanya diperbolehkan JPG, PNG, dan WEBP.';
+                        event.target.value = '';
+                        this.files = [];
+                        return;
+                    }
+
+                    const oversizedFiles = selectedFiles.filter(f => f.size > 2048 * 1024);
+                    if (oversizedFiles.length > 0) {
+                        fileErrorMessage = 'Ukuran file terlalu besar (' + oversizedFiles.map(f => f.name).join(', ') + '). Maksimal 2MB per foto.';
+                        event.target.value = '';
+                        this.files = [];
+                        return;
+                    }
+
+                    this.files = selectedFiles.map(f => ({
+                        name: f.name,
+                        size: (f.size / 1024).toFixed(1) + ' KB'
+                    }));
+                }
+            }">
+                <div class="flex items-center justify-between text-xs">
+                    <label for="evidence_images" class="font-semibold text-slate-700">
+                        Foto bukti (opsional, maks. 5)
+                    </label>
+                    <span class="text-[11px] text-slate-400">JPG, PNG, WEBP &le; 2MB</span>
+                </div>
+                <input type="file" id="evidence_images" name="evidence_images[]" multiple accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                       @change="handleFileSelect"
+                       class="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs focus:outline-hidden focus:border-blue-600 focus:bg-white transition-colors file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+
+                {{-- Alert Error Validasi Frontend --}}
+                <template x-if="fileErrorMessage">
+                    <div class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                        </svg>
+                        <span x-text="fileErrorMessage"></span>
+                    </div>
+                </template>
+
+                {{-- Daftar Berkas Terpilih --}}
+                <template x-if="files.length > 0">
+                    <div class="p-2.5 rounded-xl bg-blue-50/50 border border-blue-200/50 space-y-1.5">
+                        <span class="text-[11px] font-semibold text-blue-900 block">Foto dipilih (<span x-text="files.length"></span>/5):</span>
+                        <ul class="space-y-1 text-xs">
+                            <template x-for="(file, idx) in files" :key="idx">
+                                <li class="flex items-center justify-between gap-2 bg-white px-2.5 py-1 rounded-lg border border-blue-100">
+                                    <div class="flex items-center gap-1.5 truncate">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                                        </svg>
+                                        <span class="truncate text-slate-700" x-text="file.name"></span>
+                                    </div>
+                                    <span class="text-[10px] text-slate-400 font-mono flex-shrink-0" x-text="file.size"></span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                </template>
+
+                @error('evidence_images')
+                    <p class="text-xs text-rose-500">{{ $message }}</p>
+                @enderror
+                @error('evidence_images.*')
+                    <p class="text-xs text-rose-500">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Tombol Aksi --}}
+            <div class="pt-2 flex items-center justify-end gap-2.5">
+                <a href="{{ route('user.dashboard') }}"
+                   class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition-colors">
+                    Batal
+                </a>
+                <button type="submit"
+                        class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer">
+                    Kirim laporan
+                </button>
+            </div>
+        </form>
+
+        {{-- Pop-up Modal Konfirmasi Sederhana & Responsif --}}
+        <div x-show="showConfirmModal"
+             x-cloak
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-2xs">
+
+            <div @click.away="showConfirmModal = false"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 text-center space-y-4">
+
+                {{-- Icon Alert SVG --}}
+                <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 mx-auto flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                </div>
+
+                {{-- Teks Konfirmasi --}}
+                <div class="space-y-1.5">
+                    <h3 class="text-base font-extrabold text-slate-900 tracking-tight">
+                        Kirim laporan sekarang?
+                    </h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        Laporan terhadap pengguna <strong class="text-slate-800">{{ $user->name }}</strong> akan diteruskan ke tim moderasi Bugar.in. Pastikan informasi yang Anda berikan sudah sesuai.
+                    </p>
+                </div>
+
+                {{-- Tombol Batal & Kirim --}}
+                <div class="pt-2 flex items-center gap-2">
+                    <button type="button"
+                            @click="showConfirmModal = false"
+                            class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs transition-colors cursor-pointer">
+                        Periksa kembali
+                    </button>
+                    <button type="button"
+                            @click="confirmAndSend()"
+                            class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition-colors cursor-pointer shadow-xs">
+                        Ya, kirim laporan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+</div>
+@endsection
