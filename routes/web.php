@@ -6,14 +6,18 @@ use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\Auth\PenyediaKomunitasAuthController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\PenyediaKomunitas\DashboardController as PenyediaDashboardController;
 use App\Http\Controllers\User\CommunityController;
 use App\Http\Controllers\PenyediaKomunitas\EventController;
+use App\Http\Controllers\Admin\CommunityVerificationController;
+use App\Http\Controllers\Admin\ContentController as AdminContentController;
+use App\Http\Controllers\User\EducationController;
 use App\Models\Community;
 use App\Models\Schedule;
-
+use App\Http\Controllers\Admin\CommunityManagementController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 
 // Landing Page
@@ -37,14 +41,33 @@ Route::post('/auth/social/apple/callback', [SocialAuthController::class, 'appleC
 // ============================================================
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:login')->name('login.post');
 
     Route::middleware('admin')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::post('/users/{id}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('users.toggle-status');
         Route::post('/communities/{id}/verify', [AdminDashboardController::class, 'approveVerification'])->name('communities.verify');
         Route::post('/communities/{id}/reject', [AdminDashboardController::class, 'rejectVerification'])->name('communities.reject');
         Route::post('/communities/{id}/toggle-status', [AdminDashboardController::class, 'toggleCommunityStatus'])->name('communities.toggle-status');
+        Route::get('/communities', [CommunityManagementController::class, 'index'])->name('communities.index');
+        Route::get('/communities/{community}', [CommunityManagementController::class, 'show'])->name('communities.show');
+        Route::patch('/communities/{community}/toggle-active', [CommunityManagementController::class, 'toggleActive'])->name('communities.toggle-active');
+        Route::patch('/communities/{community}/revoke-verification', [CommunityManagementController::class, 'revokeVerification'])->name('communities.revoke-verification');
+        Route::get('/verifications', [CommunityVerificationController::class, 'index'])->name('verifications.index');
+        Route::patch('/verifications/{community}/approve', [CommunityVerificationController::class, 'approve'])->name('verifications.approve');
+        Route::patch('/verifications/{community}/reject', [CommunityVerificationController::class, 'reject'])->name('verifications.reject');
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
+    });
+
+    Route::prefix('contents')->name('contents.')->group(function () {
+    Route::get('/', [AdminContentController::class, 'index'])->name('index');
+    Route::get('/create', [AdminContentController::class, 'create'])->name('create');
+    Route::post('/', [AdminContentController::class, 'store'])->name('store');
+    Route::get('/{content}/edit', [AdminContentController::class, 'edit'])->name('edit');
+    Route::put('/{content}', [AdminContentController::class, 'update'])->name('update');
+    Route::delete('/{content}', [AdminContentController::class, 'destroy'])->name('destroy');
+    Route::patch('/{content}/toggle-publish', [AdminContentController::class, 'togglePublish'])->name('toggle-publish');
     });
 });
 
@@ -62,8 +85,8 @@ Route::prefix('auth/user')->name('auth.user.')->group(function () {
     Route::get('/login', function () {
         return app(UserAuthController::class)->showForm('login');
     })->name('login');
-    Route::post('/register', [UserAuthController::class, 'register'])->name('register.post');
-    Route::post('/login', [UserAuthController::class, 'login'])->name('login.post');
+    Route::post('/register', [UserAuthController::class, 'register'])->middleware('throttle:register')->name('register.post');
+    Route::post('/login', [UserAuthController::class, 'login'])->middleware('throttle:login')->name('login.post');
     Route::get('/google-complete', [GoogleAuthController::class, 'showUserCompleteForm'])->name('google-complete');
     Route::post('/google-complete', [GoogleAuthController::class, 'storeUserComplete'])->name('google-complete.post');
 });
@@ -107,11 +130,13 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::get('/communities/{id}', [CommunityController::class, 'show'])->name('communities.show');
     Route::post('/communities/{community}/follow', [DashboardController::class, 'followCommunity'])->name('communities.follow');
     Route::delete('/communities/{community}/unfollow', [DashboardController::class, 'unfollowCommunity'])->name('communities.unfollow');
-    Route::post('/communities/{id}/join', [CommunityController::class, 'join'])->name('communities.join');
+    Route::post('/communities/{id}/join', [CommunityController::class, 'join'])->middleware('throttle:join')->name('communities.join');
     Route::get('/schedules/{schedule}/availability', [DashboardController::class, 'scheduleAvailability'])->name('schedules.availability');
-    Route::post('/schedules/{schedule}/join', [DashboardController::class, 'joinSchedule'])->name('schedules.join');
-    Route::post('/events/{event}/join', [DashboardController::class, 'joinEvent'])->name('events.join');
+    Route::post('/schedules/{schedule}/join', [DashboardController::class, 'joinSchedule'])->middleware('throttle:join')->name('schedules.join');
+    Route::post('/events/{event}/join', [DashboardController::class, 'joinEvent'])->middleware('throttle:join')->name('events.join');
     Route::post('/participation/cancel', [DashboardController::class, 'cancelParticipation'])->name('participation.cancel');
+    Route::post('/schedules/{schedule}/checkin-token', [DashboardController::class, 'getCheckinToken'])->middleware('throttle:30,1')->name('schedules.checkin-token');
+    Route::get('/schedules/{schedule}/checkin-status', [DashboardController::class, 'getCheckinStatus'])->middleware('throttle:60,1')->name('schedules.checkin-status');
     Route::post('/rewards/{reward}/redeem', [DashboardController::class, 'redeemReward'])->name('rewards.redeem');
     Route::post('/streak/check-in', [DashboardController::class, 'streakCheckIn'])->name('streak.check-in');
     Route::post('/announcements/{announcement}/read', [DashboardController::class, 'readAnnouncement'])->name('announcements.read');
@@ -123,6 +148,10 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::get('/reports/user/{user}', [UserReportController::class, 'createUser'])->name('reports.user.create');
     Route::post('/reports/user/{user}', [UserReportController::class, 'storeUser'])->middleware('throttle:6,1')->name('reports.user.store');
 
+    Route::prefix('edukasi')->name('edukasi.')->group(function () {
+        Route::get('/', [EducationController::class, 'index'])->name('index');
+        Route::get('/{content:slug}', [EducationController::class, 'show'])->name('show');
+    });
     Route::post('/logout', [UserAuthController::class, 'logout'])->name('logout');
 });
 
@@ -134,8 +163,8 @@ Route::prefix('auth/penyedia-komunitas')->name('auth.penyedia-komunitas.')->grou
     Route::get('/login', function () {
         return app(PenyediaKomunitasAuthController::class)->showForm('login');
     })->name('login');
-    Route::post('/register', [PenyediaKomunitasAuthController::class, 'register'])->name('register.post');
-    Route::post('/login', [PenyediaKomunitasAuthController::class, 'login'])->name('login.post');
+    Route::post('/register', [PenyediaKomunitasAuthController::class, 'register'])->middleware('throttle:register')->name('register.post');
+    Route::post('/login', [PenyediaKomunitasAuthController::class, 'login'])->middleware('throttle:login')->name('login.post');
     Route::get('/google-complete', [GoogleAuthController::class, 'showPenyediaCompleteForm'])->name('google-complete');
     Route::post('/google-complete', [GoogleAuthController::class, 'storePenyediaComplete'])->name('google-complete.post');
 });
@@ -152,6 +181,10 @@ Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware(['a
     Route::get('/jadwal/blokir', [PenyediaJadwalController::class, 'blocksIndex'])->name('jadwal.blocks');
     Route::delete('/jadwal/blokir/{block}', [PenyediaJadwalController::class, 'unblock'])->name('jadwal.unblock');
     Route::get('/jadwal/{schedule}', [PenyediaJadwalController::class, 'show'])->name('jadwal.show');
+    Route::get('/jadwal/{schedule}/checkin', [PenyediaJadwalController::class, 'checkinView'])->name('jadwal.checkin');
+    Route::get('/jadwal/{schedule}/checkin/participants', [PenyediaJadwalController::class, 'checkinParticipantsJson'])->name('jadwal.checkin.participants');
+    Route::post('/jadwal/{schedule}/checkin/scan', [PenyediaJadwalController::class, 'checkinScan'])->middleware('throttle:60,1')->name('jadwal.checkin.scan');
+    Route::post('/jadwal/{schedule}/checkin/manual/{participant}', [PenyediaJadwalController::class, 'checkinManual'])->middleware('throttle:60,1')->name('jadwal.checkin.manual');
     Route::get('/jadwal/{schedule}/edit', [PenyediaJadwalController::class, 'edit'])->name('jadwal.edit');
     Route::put('/jadwal/{schedule}', [PenyediaJadwalController::class, 'update'])->name('jadwal.update');
     Route::delete('/jadwal/{schedule}', [PenyediaJadwalController::class, 'destroy'])->name('jadwal.destroy');

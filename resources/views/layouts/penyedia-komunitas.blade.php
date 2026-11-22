@@ -10,6 +10,11 @@
     {{-- Vite Assets --}}
     @vite(['resources/css/app.css', 'resources/css/penyedia-komunitas.css', 'resources/js/app.js'])
 
+    {{-- Alpine.js cloak --}}
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+
     {{-- Page-specific head --}}
     @stack('head')
 </head>

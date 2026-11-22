@@ -41,24 +41,11 @@ class AkunController extends Controller
 
         $community = Community::where('owner_id', $user->id)->first();
 
-        // Cek apakah komunitas otomatis terverifikasi dengan syarat 15 pengikut
-        if ($community && $community->verification_status !== 'verified') {
+        // Sinkronkan jumlah followers tanpa auto-verify
+        if ($community) {
             $followersCount = $community->followers()->count();
             if ($followersCount !== $community->followers_count) {
                 $community->update(['followers_count' => $followersCount]);
-            }
-
-            if ($followersCount >= 15) {
-                $updateData = [
-                    'verification_status' => 'verified',
-                    'verified_at' => now(),
-                ];
-                if (Schema::hasColumn('communities', 'verification_type')) {
-                    $updateData['verification_type'] = 'free_followers';
-                }
-                $community->update($updateData);
-
-                session()->flash('success_auto_verify', 'Selamat! Komunitas Anda telah otomatis terverifikasi karena berhasil mengumpulkan 15+ pengikut. Anda sekarang dapat membuat event berbayar!');
             }
         }
 
@@ -213,7 +200,8 @@ class AkunController extends Controller
     }
 
     /**
-     * Ajukan atau aktifkan verifikasi komunitas (versi gratis 15 pengikut atau berbayar).
+     * Ajukan verifikasi komunitas (versi gratis 15 pengikut atau berbayar).
+     * Seluruh jalur masuk ke status 'pending' untuk diverifikasi oleh admin.
      */
     public function verify(Request $request)
     {
@@ -221,6 +209,17 @@ class AkunController extends Controller
         $user = Auth::user();
 
         $community = Community::where('owner_id', $user->id)->firstOrFail();
+
+        // 2) PENGAJUAN ULANG: Tolak jika status sudah pending atau verified
+        if ($community->verification_status === 'pending') {
+            return redirect()->route('penyedia-komunitas.akun.index', ['tab' => 'verifikasi'])
+                ->with('error', 'Pengajuan verifikasi komunitas Anda sedang dalam proses peninjauan oleh admin.');
+        }
+
+        if ($community->verification_status === 'verified') {
+            return redirect()->route('penyedia-komunitas.akun.index', ['tab' => 'verifikasi'])
+                ->with('error', 'Komunitas Anda sudah berstatus resmi terverifikasi.');
+        }
 
         $validated = $request->validate([
             'verification_type' => ['required', 'in:free,paid'],
@@ -233,13 +232,13 @@ class AkunController extends Controller
             // Syarat: Minimal 15 pengikut
             $actualFollowers = $community->followers()->count();
             if ($actualFollowers < 15) {
-                return redirect()->route('penyedia-komunitas.akun.index')
+                return redirect()->route('penyedia-komunitas.akun.index', ['tab' => 'verifikasi'])
                     ->with('error', "Komunitas belum memenuhi syarat verifikasi gratis. Diperlukan minimal 15 pengikut (saat ini baru {$actualFollowers} pengikut).");
             }
 
             $updateData = [
-                'verification_status' => 'verified',
-                'verified_at' => now(),
+                'verification_status' => 'pending',
+                'rejection_reason' => null,
             ];
             if (Schema::hasColumn('communities', 'verification_type')) {
                 $updateData['verification_type'] = 'free_followers';
@@ -250,17 +249,17 @@ class AkunController extends Controller
 
             $community->update($updateData);
 
-            return redirect()->route('penyedia-komunitas.akun.index')
-                ->with('success', 'Selamat! Komunitas Anda berhasil diverifikasi secara gratis dengan 15+ pengikut. Anda sekarang dapat membuat event berbayar!');
+            return redirect()->route('penyedia-komunitas.akun.index', ['tab' => 'verifikasi'])
+                ->with('success', 'Pengajuan verifikasi komunitas (15+ pengikut) berhasil dikirim. Menunggu persetujuan admin.');
         }
 
         if ($type === 'paid') {
-            // Opsi berbayar: Terverifikasi instan
+            // Opsi berbayar: Set status pending, jangan isi verified_at
             $paymentMethod = $validated['payment_method'] ?? 'qris';
 
             $updateData = [
-                'verification_status' => 'verified',
-                'verified_at' => now(),
+                'verification_status' => 'pending',
+                'rejection_reason' => null,
             ];
             if (Schema::hasColumn('communities', 'verification_type')) {
                 $updateData['verification_type'] = 'paid';
@@ -277,10 +276,10 @@ class AkunController extends Controller
 
             $community->update($updateData);
 
-            return redirect()->route('penyedia-komunitas.akun.index')
-                ->with('success', 'Pembayaran berhasil dikonfirmasi! Komunitas Anda kini resmi terverifikasi dan dapat segera membuat event berbayar.');
+            return redirect()->route('penyedia-komunitas.akun.index', ['tab' => 'verifikasi'])
+                ->with('success', 'Pengajuan verifikasi berbayar berhasil dikirim. Menunggu pembayaran dan persetujuan admin.');
         }
 
-        return redirect()->route('penyedia-komunitas.akun.index');
+        return redirect()->route('penyedia-komunitas.akun.index', ['tab' => 'verifikasi']);
     }
 }
