@@ -70,14 +70,14 @@
         </div>
     @else
         {{-- Form Pelaporan --}}
-        <form method="POST" action="{{ route('user.reports.community.store', $community->slug ?? $community->id) }}" enctype="multipart/form-data"
-              x-data="{
+        <div x-data="{
                   descText: '{{ addslashes(old('description', '')) }}',
                   submitAttempted: false,
+                  showConfirmModal: false,
                   get isDescInvalid() {
                       return this.descText.trim().length < 15;
                   },
-                  validateAndSubmit(e) {
+                  handleFormSubmit(e) {
                       this.submitAttempted = true;
                       if (this.isDescInvalid) {
                           e.preventDefault();
@@ -85,12 +85,19 @@
                           if (el) el.focus();
                           return false;
                       }
-                      return confirm('Kirim laporan ini ke tim admin?');
+                      e.preventDefault();
+                      this.showConfirmModal = true;
+                  },
+                  confirmAndSend() {
+                      this.showConfirmModal = false;
+                      this.$refs.reportForm.submit();
                   }
-              }"
-              @submit="if (!validateAndSubmit($event)) $event.preventDefault()"
-              class="rounded-2xl bg-white border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-            @csrf
+              }">
+            <form x-ref="reportForm"
+                  method="POST" action="{{ route('user.reports.community.store', $community->slug ?? $community->id) }}" enctype="multipart/form-data"
+                  @submit="handleFormSubmit($event)"
+                  class="rounded-2xl bg-white border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
+                @csrf
 
             {{-- Alasan Pelaporan --}}
             <div class="space-y-1">
@@ -259,6 +266,60 @@
                 </button>
             </div>
         </form>
+
+        {{-- Pop-up Modal Konfirmasi Sederhana & Responsif --}}
+        <div x-show="showConfirmModal"
+             x-cloak
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-2xs">
+
+            <div @click.away="showConfirmModal = false"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 text-center space-y-4">
+
+                {{-- Icon Alert SVG --}}
+                <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 mx-auto flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                </div>
+
+                {{-- Teks Konfirmasi --}}
+                <div class="space-y-1.5">
+                    <h3 class="text-base font-extrabold text-slate-900 tracking-tight">
+                        Kirim laporan sekarang?
+                    </h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        Laporan akan diteruskan ke tim moderasi Bugar.in untuk ditinjau. Pastikan bukti dan informasi yang Anda sertakan sudah benar.
+                    </p>
+                </div>
+
+                {{-- Tombol Batal & Kirim --}}
+                <div class="pt-2 flex items-center gap-2">
+                    <button type="button"
+                            @click="showConfirmModal = false"
+                            class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs transition-colors cursor-pointer">
+                        Periksa kembali
+                    </button>
+                    <button type="button"
+                            @click="confirmAndSend()"
+                            class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition-colors cursor-pointer shadow-xs">
+                        Ya, kirim laporan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     @endif
 
 </div>
