@@ -84,7 +84,7 @@ class DashboardController extends Controller
             'recentEvents',
             'recentUsers',
             'sportDistribution',
-            'auditLogs'
+            'auditLogs',
             'recentReports'
         ));
     }
