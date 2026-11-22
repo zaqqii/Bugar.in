@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Audit Log Integritas — Console Admin Bugar.in')
+@section('title', 'Audit log integritas — Console admin Bugar.in')
 
 @section('content')
 <div class="space-y-6">
@@ -11,10 +11,10 @@
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
                 <a href="{{ route('admin.dashboard') }}" class="hover:text-white transition-colors">Dashboard</a>
                 <span>/</span>
-                <span class="text-cyan-400 font-bold">Audit Log</span>
+                <span class="text-cyan-400 font-bold">Audit log</span>
             </div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Pusat Rekaman Audit &amp; Keamanan
+                Pusat rekaman audit &amp; keamanan
             </h1>
             <p class="text-xs sm:text-sm text-slate-400 mt-1">
                 Jejak audit permanen atas seluruh tindakan administratif dan operasional sensitif di platform Bugar.in.
@@ -23,11 +23,11 @@
 
         <div>
             <a href="{{ route('admin.dashboard') }}"
-               class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all flex items-center gap-2">
+               class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all inline-flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                <span>Kembali ke Dashboard</span>
+                <span>Kembali ke dashboard</span>
             </a>
         </div>
     </div>
@@ -37,10 +37,10 @@
         <form method="GET" action="{{ route('admin.audit-logs.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
             <div>
                 <label for="filter-action" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                    Filter Aksi
+                    Filter aksi
                 </label>
                 <select id="filter-action" name="action" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs focus:outline-hidden focus:border-cyan-500">
-                    <option value="">Semua Aksi</option>
+                    <option value="">Semua aksi</option>
                     @foreach($actions as $act)
                         <option value="{{ $act }}" {{ request('action') === $act ? 'selected' : '' }}>{{ $act }}</option>
                     @endforeach
@@ -49,10 +49,10 @@
 
             <div>
                 <label for="filter-actor" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                    Filter Pelaku
+                    Filter pelaku
                 </label>
                 <select id="filter-actor" name="user_id" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs focus:outline-hidden focus:border-cyan-500">
-                    <option value="">Semua Pelaku</option>
+                    <option value="">Semua pelaku</option>
                     @foreach($actors as $actor)
                         <option value="{{ $actor->id }}" {{ request('user_id') == $actor->id ? 'selected' : '' }}>
                             {{ $actor->name }} ({{ $actor->email }})
@@ -63,13 +63,13 @@
 
             <div>
                 <label for="filter-target" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                    Target Entitas
+                    Target entitas
                 </label>
                 <select id="filter-target" name="target" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs focus:outline-hidden focus:border-cyan-500">
-                    <option value="">Semua Target</option>
-                    <option value="community" {{ request('target') === 'community' ? 'selected' : '' }}>Komunitas (Community)</option>
-                    <option value="user" {{ request('target') === 'user' ? 'selected' : '' }}>Pengguna (User)</option>
-                    <option value="report" {{ request('target') === 'report' ? 'selected' : '' }}>Laporan (Report)</option>
+                    <option value="">Semua target</option>
+                    <option value="community" {{ request('target') === 'community' ? 'selected' : '' }}>Komunitas</option>
+                    <option value="user" {{ request('target') === 'user' ? 'selected' : '' }}>Pengguna</option>
+                    <option value="report" {{ request('target') === 'report' ? 'selected' : '' }}>Laporan</option>
                 </select>
             </div>
 
@@ -108,9 +108,9 @@
                         <th class="py-3.5 px-4">Waktu</th>
                         <th class="py-3.5 px-4">Pelaku</th>
                         <th class="py-3.5 px-4">Aksi</th>
-                        <th class="py-3.5 px-4">Objek Target</th>
-                        <th class="py-3.5 px-4">Detail Nilai</th>
-                        <th class="py-3.5 px-4 text-right">IP &amp; Device</th>
+                        <th class="py-3.5 px-4">Objek target</th>
+                        <th class="py-3.5 px-4">Detail nilai</th>
+                        <th class="py-3.5 px-4 text-right">IP &amp; perangkat</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/60">

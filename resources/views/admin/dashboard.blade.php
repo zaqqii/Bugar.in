@@ -413,10 +413,10 @@
             <div>
                 <div class="flex items-center gap-2.5">
                     <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                    <h2 class="text-base sm:text-lg font-extrabold text-white tracking-tight">Recent Activity &amp; Audit Log</h2>
+                    <h2 class="text-base sm:text-lg font-extrabold text-white tracking-tight">Aktivitas dan log audit terbaru</h2>
                 </div>
                 <p class="text-xs text-slate-400 mt-1">
-                    Jejak rekaman aktivitas administratif terkini (SPA / live updates).
+                    Jejak rekaman aktivitas administratif terkini pada platform Bugar.in.
                 </p>
             </div>
 
@@ -445,14 +445,16 @@
                             @click="filterAction = 'user'; fetchLogs()"
                             :class="filterAction === 'user' ? 'bg-cyan-600 text-white shadow-xs font-bold' : 'text-slate-400 hover:text-white'"
                             class="px-2.5 py-1 rounded-lg transition-all cursor-pointer">
-                        User
+                        Pengguna
                     </button>
                 </div>
 
                 <a href="{{ route('admin.audit-logs.index') }}"
-                   class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all flex items-center gap-1.5">
-                    <span>Lihat Log Lengkap</span>
-                    <span>&rarr;</span>
+                   class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all inline-flex items-center gap-1.5">
+                    <span>Lihat log lengkap</span>
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
                 </a>
             </div>
         </div>
