@@ -67,12 +67,23 @@
             scrollbar-color: #fca5a5 #fff1f2;
         }
         @media (max-width: 640px) {
+            html, body {
+                height: auto;
+                min-height: 100%;
+                overflow-x: hidden;
+                overflow-y: auto;
+            }
             .google-host-wrapper {
-                padding: 1rem 0.75rem;
+                height: auto;
+                min-height: 100vh;
+                overflow: visible;
+                padding: 1.25rem 0.75rem;
+                justify-content: flex-start;
             }
             .google-host-card {
+                max-height: none;
+                overflow-y: visible;
                 padding: 1.5rem 1.25rem;
-                max-height: calc(100vh - 2rem);
             }
         }
         .google-host-verified-box {

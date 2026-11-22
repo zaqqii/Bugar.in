@@ -47,6 +47,11 @@ class ReportController extends Controller
             'dismissed' => Report::where('status', 'dismissed')->count(),
         ];
 
+        // Jika request via AJAX / SPA, kembalikan partial list tabel saja
+        if ($request->ajax()) {
+            return view('admin.reports._table', compact('reports'))->render();
+        }
+
         return view('admin.reports.index', compact('reports', 'counts', 'status', 'type'));
     }
 

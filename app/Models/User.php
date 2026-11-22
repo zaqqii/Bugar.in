@@ -39,6 +39,23 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected $appends = [
+        'avatar_url',
+    ];
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (!$this->avatar) {
+            return null;
+        }
+
+        if (str_starts_with($this->avatar, 'http://') || str_starts_with($this->avatar, 'https://')) {
+            return $this->avatar;
+        }
+
+        return \Illuminate\Support\Facades\Storage::url($this->avatar);
+    }
+
     protected function casts(): array
     {
         return [
@@ -58,6 +75,12 @@ class User extends Authenticatable
     public function communityMemberships()
     {
         return $this->hasMany(CommunityMember::class);
+    }
+
+    public function joinedCommunities()
+    {
+        return $this->belongsToMany(Community::class, 'community_members')
+            ->withPivot('status', 'joined_at', 'left_at');
     }
 
     public function followedCommunities()

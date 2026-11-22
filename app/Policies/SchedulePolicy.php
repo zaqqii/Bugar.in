@@ -55,6 +55,11 @@ class SchedulePolicy
         return $this->isOwner($user, $schedule);
     }
 
+    public function checkIn(User $user, Schedule $schedule): bool
+    {
+        return $this->isOwner($user, $schedule);
+    }
+
     public function isOwner(User $user, Schedule $schedule): bool
     {
         return $schedule->community !== null && (int) $schedule->community->owner_id === (int) $user->id;

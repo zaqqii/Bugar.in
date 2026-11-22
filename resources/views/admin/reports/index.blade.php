@@ -32,127 +32,125 @@
         </div>
     </div>
 
-    {{-- Filter toolbar --}}
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-        {{-- Filter status tabs --}}
-        <div class="flex flex-wrap items-center gap-1.5">
-            <a href="{{ route('admin.reports.index', array_filter(['type' => $type])) }}"
-               class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {{ empty($status) ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800' }}">
-                Semua ({{ $counts['all'] }})
-            </a>
-            <a href="{{ route('admin.reports.index', array_filter(['status' => 'pending', 'type' => $type])) }}"
-               class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {{ $status === 'pending' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-900 text-amber-400/80 hover:text-amber-300 border border-slate-800' }}">
-                Belum dicek ({{ $counts['pending'] }})
-            </a>
-            <a href="{{ route('admin.reports.index', array_filter(['status' => 'under_review', 'type' => $type])) }}"
-               class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {{ $status === 'under_review' ? 'bg-blue-600 text-white font-bold' : 'bg-slate-900 text-blue-400/80 hover:text-blue-300 border border-slate-800' }}">
-                Sedang ditinjau ({{ $counts['under_review'] }})
-            </a>
-            <a href="{{ route('admin.reports.index', array_filter(['status' => 'resolved', 'type' => $type])) }}"
-               class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {{ $status === 'resolved' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-900 text-emerald-400/80 hover:text-emerald-300 border border-slate-800' }}">
-                Selesai ({{ $counts['resolved'] }})
-            </a>
-            <a href="{{ route('admin.reports.index', array_filter(['status' => 'dismissed', 'type' => $type])) }}"
-               class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all {{ $status === 'dismissed' ? 'bg-slate-700 text-white font-bold' : 'bg-slate-900 text-slate-400 hover:text-slate-300 border border-slate-800' }}">
-                Ditolak ({{ $counts['dismissed'] }})
-            </a>
-        </div>
+    {{-- Container AJAX / SPA Filter Laporan --}}
+    <div x-data="{
+             currentStatus: '{{ $status ?? '' }}',
+             currentType: '{{ $type ?? '' }}',
+             isLoading: false,
+             async fetchReports(url = null) {
+                 this.isLoading = true;
+                 const targetUrl = new URL(url || '{{ route('admin.reports.index') }}', window.location.origin);
+                 if (this.currentStatus) {
+                     targetUrl.searchParams.set('status', this.currentStatus);
+                 } else {
+                     targetUrl.searchParams.delete('status');
+                 }
+                 if (this.currentType) {
+                     targetUrl.searchParams.set('type', this.currentType);
+                 } else {
+                     targetUrl.searchParams.delete('type');
+                 }
+                 try {
+                     const response = await fetch(targetUrl, {
+                         headers: {
+                             'X-Requested-With': 'XMLHttpRequest',
+                             'Accept': 'text/html'
+                         }
+                     });
+                     if (response.ok) {
+                         const html = await response.text();
+                         this.$refs.tableContainer.innerHTML = html;
+                         window.history.replaceState({}, '', targetUrl);
+                     }
+                 } catch (e) {
+                     console.error('Gagal mengambil data laporan:', e);
+                 } finally {
+                     this.isLoading = false;
+                 }
+             }
+         }"
+         class="space-y-4">
 
-        {{-- Filter tipe target --}}
-        <div class="inline-flex rounded-xl bg-slate-950 p-1 border border-slate-800 text-xs flex-shrink-0">
-            <a href="{{ route('admin.reports.index', array_filter(['status' => $status])) }}"
-               class="px-2.5 py-1 rounded-lg font-semibold transition-all {{ empty($type) ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white' }}">
-                Semua target
-            </a>
-            <a href="{{ route('admin.reports.index', array_filter(['status' => $status, 'type' => 'community'])) }}"
-               class="px-2.5 py-1 rounded-lg font-semibold transition-all {{ $type === 'community' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white' }}">
-                Komunitas
-            </a>
-            <a href="{{ route('admin.reports.index', array_filter(['status' => $status, 'type' => 'user'])) }}"
-               class="px-2.5 py-1 rounded-lg font-semibold transition-all {{ $type === 'user' ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-white' }}">
-                Pengguna
-            </a>
-        </div>
-    </div>
-
-    {{-- Tabel laporan --}}
-    <div class="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                    <tr class="border-b border-slate-800 bg-slate-950/50 text-slate-400 uppercase tracking-wider font-bold text-[10px]">
-                        <th class="py-3 px-4">ID</th>
-                        <th class="py-3 px-4">Alasan &amp; kronologi</th>
-                        <th class="py-3 px-4">Pelapor</th>
-                        <th class="py-3 px-4">Terlapor</th>
-                        <th class="py-3 px-4">Status</th>
-                        <th class="py-3 px-4">Waktu</th>
-                        <th class="py-3 px-4 text-right">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-800/60">
-                    @forelse($reports as $r)
-                        @php
-                            $targetName = '-';
-                            $targetType = class_basename($r->reportable_type);
-                            if ($r->reportable) {
-                                $targetName = $r->reportable->name ?? ($r->reportable->title ?? ('#' . $r->reportable_id));
-                            }
-                        @endphp
-                        <tr class="hover:bg-slate-800/30 transition-colors">
-                            <td class="py-3.5 px-4 font-mono font-bold text-rose-400">
-                                #{{ $r->id }}
-                            </td>
-                            <td class="py-3.5 px-4 max-w-xs">
-                                <div class="font-bold text-white text-xs truncate">{{ $r->reason }}</div>
-                                <div class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
-                                    {{ $r->description ?: 'Tanpa deskripsi tambahan' }}
-                                </div>
-                            </td>
-                            <td class="py-3.5 px-4">
-                                <div class="font-semibold text-slate-200">{{ $r->reporter->name ?? 'User dihapus' }}</div>
-                                <div class="text-[10px] text-slate-400 font-mono">{{ $r->reporter->email ?? '-' }}</div>
-                            </td>
-                            <td class="py-3.5 px-4">
-                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-800 text-slate-300 mb-0.5 inline-block">
-                                    {{ $targetType === 'Community' ? 'Komunitas' : ($targetType === 'User' ? 'Pengguna' : $targetType) }}
-                                </span>
-                                <div class="font-semibold text-white truncate max-w-[140px]">{{ $targetName }}</div>
-                            </td>
-                            <td class="py-3.5 px-4">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $r->status_badge_class }}">
-                                    {{ $r->status_label }}
-                                </span>
-                            </td>
-                            <td class="py-3.5 px-4 text-slate-400 font-mono text-[11px]">
-                                {{ $r->created_at->diffForHumans() }}
-                            </td>
-                            <td class="py-3.5 px-4 text-right">
-                                <a href="{{ route('admin.reports.show', $r->id) }}"
-                                   class="px-3 py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/20 font-bold text-xs transition-all inline-flex items-center gap-1.5">
-                                    <span>Periksa</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                                    </svg>
-                                </a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="py-10 text-center text-slate-400">
-                                Tidak ada laporan yang ditemukan untuk kriteria filter ini.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        @if($reports->hasPages())
-            <div class="p-3.5 border-t border-slate-800">
-                {{ $reports->links() }}
+        {{-- Filter toolbar --}}
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            {{-- Filter status tabs --}}
+            <div class="flex flex-wrap items-center gap-1.5">
+                <button type="button"
+                        @click="currentStatus = ''; fetchReports()"
+                        :class="currentStatus === '' ? 'bg-blue-600 text-white shadow-xs font-bold' : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'"
+                        class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer">
+                    Semua ({{ $counts['all'] }})
+                </button>
+                <button type="button"
+                        @click="currentStatus = 'pending'; fetchReports()"
+                        :class="currentStatus === 'pending' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-900 text-amber-400/80 hover:text-amber-300 border border-slate-800'"
+                        class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer">
+                    Belum dicek ({{ $counts['pending'] }})
+                </button>
+                <button type="button"
+                        @click="currentStatus = 'under_review'; fetchReports()"
+                        :class="currentStatus === 'under_review' ? 'bg-blue-600 text-white font-bold' : 'bg-slate-900 text-blue-400/80 hover:text-blue-300 border border-slate-800'"
+                        class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer">
+                    Sedang ditinjau ({{ $counts['under_review'] }})
+                </button>
+                <button type="button"
+                        @click="currentStatus = 'resolved'; fetchReports()"
+                        :class="currentStatus === 'resolved' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-900 text-emerald-400/80 hover:text-emerald-300 border border-slate-800'"
+                        class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer">
+                    Selesai ({{ $counts['resolved'] }})
+                </button>
+                <button type="button"
+                        @click="currentStatus = 'dismissed'; fetchReports()"
+                        :class="currentStatus === 'dismissed' ? 'bg-slate-700 text-white font-bold' : 'bg-slate-900 text-slate-400 hover:text-slate-300 border border-slate-800'"
+                        class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer">
+                    Ditolak ({{ $counts['dismissed'] }})
+                </button>
             </div>
-        @endif
+
+            {{-- Filter tipe target --}}
+            <div class="inline-flex rounded-xl bg-slate-950 p-1 border border-slate-800 text-xs flex-shrink-0">
+                <button type="button"
+                        @click="currentType = ''; fetchReports()"
+                        :class="currentType === '' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'"
+                        class="px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer">
+                    Semua target
+                </button>
+                <button type="button"
+                        @click="currentType = 'community'; fetchReports()"
+                        :class="currentType === 'community' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'"
+                        class="px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer">
+                    Komunitas
+                </button>
+                <button type="button"
+                        @click="currentType = 'user'; fetchReports()"
+                        :class="currentType === 'user' ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-white'"
+                        class="px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer">
+                    Pengguna
+                </button>
+            </div>
+        </div>
+
+        {{-- Tabel laporan dengan Indikator Loading --}}
+        <div class="relative rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden shadow-sm min-h-[160px]">
+            {{-- Loading Overlay --}}
+            <div x-show="isLoading"
+                 x-cloak
+                 class="absolute inset-0 bg-slate-900/70 backdrop-blur-2xs rounded-2xl flex items-center justify-center z-10"
+                 style="display: none;">
+                <div class="flex items-center gap-2 text-xs font-mono text-cyan-400">
+                    <svg class="animate-spin h-4 w-4 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span>Memperbarui data laporan...</span>
+                </div>
+            </div>
+
+            <div x-ref="tableContainer">
+                @include('admin.reports._table', ['reports' => $reports])
+            </div>
+        </div>
+
     </div>
 
 </div>

@@ -67,12 +67,26 @@
             scrollbar-color: #93c5fd #f1f5f9;
         }
         @media (max-width: 640px) {
+            html, body {
+                height: auto;
+                min-height: 100%;
+                overflow-x: hidden;
+                overflow-y: auto;
+            }
             .google-complete-wrapper {
-                padding: 1rem 0.75rem;
+                height: auto;
+                min-height: 100vh;
+                overflow: visible;
+                padding: 1.25rem 0.75rem;
+                justify-content: flex-start;
             }
             .google-complete-card {
+                max-height: none;
+                overflow-y: visible;
                 padding: 1.5rem 1.25rem;
-                max-height: calc(100vh - 2rem);
+            }
+            .auth-field-input {
+                font-size: 16px;
             }
         }
         .google-verified-box {

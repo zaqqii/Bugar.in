@@ -24,5 +24,23 @@ return [
 
     // Flag enforcement no-show (default false)
     'no_show_enforcement' => (bool) env('SCHEDULE_NO_SHOW_ENFORCEMENT', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Aturan Check-in QR & Kehadiran Sesi
+    |--------------------------------------------------------------------------
+    */
+
+    // Waktu jendela check-in sebelum jadwal dimulai (menit)
+    'checkin_window_before_minutes' => 30,
+
+    // Durasi kedaluwarsa token QR check-in di cache (detik)
+    'checkin_token_ttl_seconds' => 90,
+
+    // Interval rotasi token QR di antarmuka pengguna (detik)
+    'checkin_token_rotate_seconds' => 45,
+
+    // Jumlah Gerak Poin yang didapatkan peserta saat check-in terverifikasi
+    'attendance_points' => 30,
 ];
 

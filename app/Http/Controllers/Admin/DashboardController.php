@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Community;
 use App\Models\Event;
 use App\Models\Participant;
+use App\Models\Report;
 use App\Models\Schedule;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -70,6 +71,11 @@ class DashboardController extends Controller
         $auditLogs = AuditLog::with(['user', 'auditable'])
             ->latest()
             ->paginate(6);
+        // 7. Laporan Pengguna Terbaru (List Laporan Terbaru Dashboard)
+        $recentReports = Report::with(['reporter', 'reportable'])
+            ->latest()
+            ->take(5)
+            ->get();
 
         return view('admin.dashboard', compact(
             'stats',
@@ -79,6 +85,7 @@ class DashboardController extends Controller
             'recentUsers',
             'sportDistribution',
             'auditLogs'
+            'recentReports'
         ));
     }
 
