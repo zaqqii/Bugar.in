@@ -199,9 +199,37 @@
                         </svg>
                     </a>
                 </div>
-            @else
+            @endif
+
+            @php
+                $evidenceImages = $report->evidence_images;
+                if (is_string($evidenceImages)) {
+                    $decoded = json_decode($evidenceImages, true);
+                    $evidenceImages = is_array($decoded) ? $decoded : (filled($evidenceImages) ? [$evidenceImages] : []);
+                }
+            @endphp
+
+            @if(!empty($evidenceImages) && is_iterable($evidenceImages))
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                    @foreach($evidenceImages as $imgPath)
+                        @php
+                            $fullUrl = \Illuminate\Support\Str::startsWith($imgPath, ['http://', 'https://'])
+                                ? $imgPath
+                                : asset('media/' . ltrim($imgPath, '/'));
+                        @endphp
+                        <a href="{{ $fullUrl }}" target="_blank" class="block rounded-xl overflow-hidden border border-slate-800 bg-slate-950 group relative">
+                            <img src="{{ $fullUrl }}" alt="Bukti laporan" class="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-200">
+                            <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-semibold">
+                                Perbesar &nearr;
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+
+            @if(!$report->evidence && empty($evidenceImages))
                 <div class="p-3 rounded-xl bg-slate-950/40 border border-dashed border-slate-800 text-xs text-slate-500 italic">
-                    Tidak ada bukti tautan tambahan.
+                    Tidak ada bukti lampiran tambahan.
                 </div>
             @endif
         </div>

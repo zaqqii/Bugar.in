@@ -73,6 +73,7 @@ class Report extends Model
 
     protected $casts = [
         'handled_at' => 'datetime',
+        'evidence_images' => 'array',
     ];
 
     /**
