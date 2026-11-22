@@ -3,7 +3,7 @@
 @section('title', 'Detail laporan #' . $report->id . ' — Console admin Bugar.in')
 
 @section('content')
-<div class="space-y-6" x-data="{ showDismissModal: false, showWarnModal: false, showSancModal: false }">
+<div class="space-y-6" x-data="{ showDismissModal: false, showWarnModal: false, showSancModal: false, showResolveModal: false }">
 
     {{-- Header & navigasi --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -275,19 +275,17 @@
             </div>
 
             <div class="flex flex-col sm:flex-row gap-3">
-                {{-- Form Selesaikan / Setujui --}}
-                <form method="POST" action="{{ route('admin.reports.resolve', $report->id) }}" class="flex-1"
-                      onsubmit="return confirm('Setujui laporan ini? Sistem akan mengirimkan pemberitahuan default ke pelapor.');">
-                    @csrf
-                    <input type="hidden" name="admin_notes" value="">
-                    <button type="submit"
+                {{-- Tombol Setujui --}}
+                <div class="flex-1">
+                    <button type="button"
+                            @click="showResolveModal = true"
                             class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all inline-flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20 cursor-pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                         </svg>
                         <span>Setujui laporan (terbukti valid)</span>
                     </button>
-                </form>
+                </div>
 
                 {{-- Tombol Tolak --}}
                 <div class="flex-1">
@@ -388,6 +386,54 @@
             @endif
         </div>
     @endif
+
+    {{-- MODAL 0: SETUJUI LAPORAN --}}
+    <div x-show="showResolveModal"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs"
+         style="display: none;"
+         x-transition>
+        <div @click.away="showResolveModal = false"
+             class="w-full max-w-md p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider">Setujui laporan #{{ $report->id }}</h3>
+                </div>
+                <button type="button" @click="showResolveModal = false" class="text-slate-400 hover:text-white text-base">&times;</button>
+            </div>
+
+            <form method="POST" action="{{ route('admin.reports.resolve', $report->id) }}" class="space-y-3">
+                @csrf
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Laporan ini akan ditandai valid dan selesai. Anda dapat menambahkan catatan investigasi untuk pelapor (opsional).
+                </p>
+
+                <div>
+                    <label for="resolve_admin_notes" class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                        Catatan admin (opsional)
+                    </label>
+                    <textarea id="resolve_admin_notes" name="admin_notes" rows="3" maxlength="1000"
+                              placeholder="Biarkan kosong untuk menggunakan pesan standar sistem..."
+                              class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs placeholder:text-slate-600 focus:outline-hidden focus:border-emerald-500 transition-colors resize-none"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-1">
+                    <button type="button" @click="showResolveModal = false"
+                            class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all cursor-pointer">
+                        Ya, setujui laporan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     {{-- MODAL 1: TOLAK LAPORAN --}}
     <div x-show="showDismissModal"
