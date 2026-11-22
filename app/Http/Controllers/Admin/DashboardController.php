@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Community;
 use App\Models\Event;
 use App\Models\Participant;
+use App\Models\Report;
 use App\Models\Schedule;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -64,13 +65,20 @@ class DashboardController extends Controller
             ->take(6)
             ->get();
 
+        // 7. Laporan Pengguna Terbaru (List Laporan Terbaru Dashboard)
+        $recentReports = Report::with(['reporter', 'reportable'])
+            ->latest()
+            ->take(5)
+            ->get();
+
         return view('admin.dashboard', compact(
             'stats',
             'pendingCommunities',
             'recentCommunities',
             'recentEvents',
             'recentUsers',
-            'sportDistribution'
+            'sportDistribution',
+            'recentReports'
         ));
     }
 

@@ -6,6 +6,8 @@ use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\Auth\PenyediaKomunitasAuthController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\PenyediaKomunitas\ReportController as PenyediaReportController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\User\DashboardController;
@@ -50,6 +52,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/communities/{id}/verify', [AdminDashboardController::class, 'approveVerification'])->name('communities.verify');
         Route::post('/communities/{id}/reject', [AdminDashboardController::class, 'rejectVerification'])->name('communities.reject');
         Route::post('/communities/{id}/toggle-status', [AdminDashboardController::class, 'toggleCommunityStatus'])->name('communities.toggle-status');
+
+        // Manajemen Laporan Pengguna (AD-05 Bagian Admin)
+        Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/{id}', [AdminReportController::class, 'show'])->name('reports.show');
+        Route::post('/reports/{id}/dismiss', [AdminReportController::class, 'dismiss'])->name('reports.dismiss');
+        Route::post('/reports/{id}/resolve', [AdminReportController::class, 'resolve'])->name('reports.resolve');
+        Route::post('/reports/{id}/warn-community', [AdminReportController::class, 'warnCommunity'])->name('reports.community.warn');
+        Route::post('/reports/community/{id}/toggle-status', [AdminReportController::class, 'toggleCommunityStatus'])->name('reports.community.toggle-status');
+        Route::post('/reports/user/{id}/toggle-status', [AdminReportController::class, 'toggleUserStatus'])->name('reports.user.toggle-status');
+
         Route::get('/communities', [CommunityManagementController::class, 'index'])->name('communities.index');
         Route::get('/communities/{community}', [CommunityManagementController::class, 'show'])->name('communities.show');
         Route::patch('/communities/{community}/toggle-active', [CommunityManagementController::class, 'toggleActive'])->name('communities.toggle-active');
@@ -204,6 +216,13 @@ Route::prefix('penyedia-komunitas')->name('penyedia-komunitas.')->middleware(['a
     Route::post('/events/{event}/cancel', [PenyediaEventController::class, 'cancel'])->name('events.cancel');
     Route::delete('/events/{event}', [PenyediaEventController::class, 'destroy'])->name('events.destroy');
     Route::view('/statistik', 'penyedia-komunitas.statistik.index')->name('statistik.index');
+
+    // Laporan Anggota Komunitas
+    Route::get('/laporan', [PenyediaReportController::class, 'index'])->name('laporan.index');
+    Route::get('/laporan/{id}', [PenyediaReportController::class, 'show'])->name('laporan.show');
+    Route::post('/laporan/{id}/dismiss', [PenyediaReportController::class, 'dismiss'])->name('laporan.dismiss');
+    Route::post('/laporan/{id}/forward', [PenyediaReportController::class, 'forwardToAdmin'])->name('laporan.forward');
+
     Route::get('/akun', [PenyediaAkunController::class, 'index'])->name('akun.index');
     Route::put('/akun/profil', [PenyediaAkunController::class, 'updateProfile'])->name('akun.update-profile');
     Route::put('/akun/komunitas', [PenyediaAkunController::class, 'updateCommunity'])->name('akun.update-community');
@@ -234,14 +253,21 @@ Route::get('/media/{path}', function (string $path) {
         ]);
     }
 
-    // 3. Tarik dari Cloudflare R2, simpan ke public/media/ agar request berikutnya instan
+    // 3. Tarik dari Cloudflare R2 (public atau private bucket), simpan ke public/media/ agar request berikutnya instan
     try {
+        $disk = null;
         if (\Illuminate\Support\Facades\Storage::disk('s3')->exists($path)) {
-            $file = \Illuminate\Support\Facades\Storage::disk('s3')->get($path);
+            $disk = 's3';
+        } elseif (\Illuminate\Support\Facades\Storage::disk('r2_private')->exists($path)) {
+            $disk = 'r2_private';
+        }
+
+        if ($disk) {
+            $file = \Illuminate\Support\Facades\Storage::disk($disk)->get($path);
             @mkdir(dirname($cachedFile), 0755, true);
             @file_put_contents($cachedFile, $file);
 
-            $mime = \Illuminate\Support\Facades\Storage::disk('s3')->mimeType($path) ?? 'image/jpeg';
+            $mime = \Illuminate\Support\Facades\Storage::disk($disk)->mimeType($path) ?? 'image/jpeg';
             return response($file, 200, [
                 'Content-Type' => $mime,
                 'Cache-Control' => 'public, max-age=604800, immutable',
