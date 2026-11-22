@@ -92,6 +92,7 @@ Route::prefix('auth/user')->name('auth.user.')->group(function () {
 });
 
 use App\Http\Controllers\User\ProfileController;
+use App\Http\Controllers\User\ReportController as UserReportController;
 use App\Http\Controllers\PenyediaKomunitas\EventController as PenyediaEventController;
 use App\Http\Controllers\PenyediaKomunitas\AkunController as PenyediaAkunController;
 use App\Http\Controllers\PenyediaKomunitas\JadwalController as PenyediaJadwalController;
@@ -139,6 +140,14 @@ Route::prefix('user')->name('user.')->middleware('auth')->group(function () {
     Route::post('/rewards/{reward}/redeem', [DashboardController::class, 'redeemReward'])->name('rewards.redeem');
     Route::post('/streak/check-in', [DashboardController::class, 'streakCheckIn'])->name('streak.check-in');
     Route::post('/announcements/{announcement}/read', [DashboardController::class, 'readAnnouncement'])->name('announcements.read');
+
+    // Fitur Pelaporan Sisi User (AD-05 Bagian A)
+    Route::get('/reports', [UserReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/community/{community}', [UserReportController::class, 'createCommunity'])->name('reports.community.create');
+    Route::post('/reports/community/{community}', [UserReportController::class, 'storeCommunity'])->middleware('throttle:6,1')->name('reports.community.store');
+    Route::get('/reports/user/{user}', [UserReportController::class, 'createUser'])->name('reports.user.create');
+    Route::post('/reports/user/{user}', [UserReportController::class, 'storeUser'])->middleware('throttle:6,1')->name('reports.user.store');
+
     Route::prefix('edukasi')->name('edukasi.')->group(function () {
         Route::get('/', [EducationController::class, 'index'])->name('index');
         Route::get('/{content:slug}', [EducationController::class, 'show'])->name('show');
