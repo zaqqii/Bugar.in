@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\PenyediaKomunitasAuthController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\PenyediaKomunitas\ReportController as PenyediaReportController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\SocialAuthController;
@@ -59,6 +60,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/reports/{id}/dismiss', [AdminReportController::class, 'dismiss'])->name('reports.dismiss');
         Route::post('/reports/{id}/resolve', [AdminReportController::class, 'resolve'])->name('reports.resolve');
         Route::post('/reports/{id}/warn-community', [AdminReportController::class, 'warnCommunity'])->name('reports.community.warn');
+        Route::post('/reports/{id}/status', [AdminReportController::class, 'updateStatus'])->name('reports.update-status');
+        Route::post('/reports/community/{id}/toggle-status', [AdminReportController::class, 'toggleCommunityStatus'])->name('reports.community.toggle-status');
+        Route::post('/reports/user/{id}/toggle-status', [AdminReportController::class, 'toggleUserStatus'])->name('reports.user.toggle-status');
+
+        // Audit Logs (AD-07)
+        Route::get('/audit-logs', [AdminAuditLogController::class, 'index'])->name('audit-logs.index');
+        Route::get('/audit-logs/recent-activity', [AdminAuditLogController::class, 'recentActivity'])->name('audit-logs.recent-activity');
+
         Route::post('/reports/community/{id}/toggle-status', [AdminReportController::class, 'toggleCommunityStatus'])->name('reports.community.toggle-status');
         Route::post('/reports/user/{id}/toggle-status', [AdminReportController::class, 'toggleUserStatus'])->name('reports.user.toggle-status');
 

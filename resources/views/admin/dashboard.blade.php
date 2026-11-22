@@ -499,5 +499,105 @@
 
     </div>
 
+    {{-- 6. Audit Log & Recent Activity Panel (AD-07 SPA / AJAX) --}}
+    <section id="recent-activity"
+             x-data="{
+                 filterAction: 'all',
+                 isLoading: false,
+                 async fetchLogs(url = null) {
+                     this.isLoading = true;
+                     const targetUrl = new URL(url || '{{ route('admin.audit-logs.recent-activity') }}', window.location.origin);
+                     if (this.filterAction !== 'all') {
+                         targetUrl.searchParams.set('action', this.filterAction);
+                     }
+                     try {
+                         const response = await fetch(targetUrl, {
+                             headers: {
+                                 'X-Requested-With': 'XMLHttpRequest',
+                                 'Accept': 'text/html'
+                             }
+                         });
+                         if (response.ok) {
+                             const html = await response.text();
+                             this.$refs.logContainer.innerHTML = html;
+                         }
+                     } catch (e) {
+                         console.error('Gagal mengambil data log audit:', e);
+                     } finally {
+                         this.isLoading = false;
+                     }
+                 }
+             }"
+             class="p-5 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+            <div>
+                <div class="flex items-center gap-2.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                    <h2 class="text-base sm:text-lg font-extrabold text-white tracking-tight">Aktivitas dan log audit terbaru</h2>
+                </div>
+                <p class="text-xs text-slate-400 mt-1">
+                    Jejak rekaman aktivitas administratif terkini pada platform Bugar.in.
+                </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                {{-- Filter Kategori Aksi Cepat (SPA / AJAX) --}}
+                <div class="inline-flex rounded-xl bg-slate-950 p-1 border border-slate-800 text-xs">
+                    <button type="button"
+                            @click="filterAction = 'all'; fetchLogs()"
+                            :class="filterAction === 'all' ? 'bg-cyan-600 text-white shadow-xs font-bold' : 'text-slate-400 hover:text-white'"
+                            class="px-2.5 py-1 rounded-lg transition-all cursor-pointer">
+                        Semua
+                    </button>
+                    <button type="button"
+                            @click="filterAction = 'community'; fetchLogs()"
+                            :class="filterAction === 'community' ? 'bg-cyan-600 text-white shadow-xs font-bold' : 'text-slate-400 hover:text-white'"
+                            class="px-2.5 py-1 rounded-lg transition-all cursor-pointer">
+                        Komunitas
+                    </button>
+                    <button type="button"
+                            @click="filterAction = 'report'; fetchLogs()"
+                            :class="filterAction === 'report' ? 'bg-cyan-600 text-white shadow-xs font-bold' : 'text-slate-400 hover:text-white'"
+                            class="px-2.5 py-1 rounded-lg transition-all cursor-pointer">
+                        Laporan
+                    </button>
+                    <button type="button"
+                            @click="filterAction = 'user'; fetchLogs()"
+                            :class="filterAction === 'user' ? 'bg-cyan-600 text-white shadow-xs font-bold' : 'text-slate-400 hover:text-white'"
+                            class="px-2.5 py-1 rounded-lg transition-all cursor-pointer">
+                        Pengguna
+                    </button>
+                </div>
+
+                <a href="{{ route('admin.audit-logs.index') }}"
+                   class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all inline-flex items-center gap-1.5">
+                    <span>Lihat log lengkap</span>
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        {{-- Log Container dengan Animasi Loading --}}
+        <div class="relative min-h-[160px]">
+            <div x-show="isLoading"
+                 class="absolute inset-0 bg-slate-900/70 backdrop-blur-2xs rounded-2xl flex items-center justify-center z-10"
+                 style="display: none;">
+                <div class="flex items-center gap-2 text-xs font-mono text-cyan-400">
+                    <svg class="animate-spin h-4 w-4 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span>Memperbarui data...</span>
+                </div>
+            </div>
+
+            <div x-ref="logContainer" class="space-y-2.5">
+                @include('admin.audit-logs._list', ['auditLogs' => $auditLogs])
+            </div>
+        </div>
+    </section>
+
 </div>
 @endsection

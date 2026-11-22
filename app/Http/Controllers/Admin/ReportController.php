@@ -7,6 +7,7 @@ use App\Models\Community;
 use App\Models\Report;
 use App\Models\User;
 use App\Models\UserAnnouncement;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -113,8 +114,8 @@ class ReportController extends Controller
         $report->handled_at = now();
         $report->save();
 
-        // TODO: Dependency ke modul Audit Log (AD-07) jika AuditLogger tersedia di environment:
-        // AuditLogger::record('report.dismissed', $report, ['status' => $oldStatus], ['status' => 'dismissed', 'reason' => $reason]);
+        // Audit Log (AD-07)
+        AuditLogger::record('report.dismissed', $report, ['status' => $oldStatus], ['status' => 'dismissed', 'reason' => $reason]);
 
         return back()->with('success', "Laporan #{$report->id} berhasil ditolak.");
     }
@@ -146,6 +147,8 @@ class ReportController extends Controller
             $adminNotes = $defaultNotification;
         }
 
+        $oldStatus = $report->status;
+
         // Assignment eksplisit
         $report->status = 'resolved';
         $report->admin_notes = $adminNotes;
@@ -153,8 +156,8 @@ class ReportController extends Controller
         $report->handled_at = now();
         $report->save();
 
-        // TODO: Dependency ke modul Audit Log (AD-07) jika AuditLogger tersedia di environment:
-        // AuditLogger::record('report.resolved', $report, ['status' => $report->getOriginal('status')], ['status' => 'resolved', 'notes' => $adminNotes]);
+        // Audit Log (AD-07)
+        AuditLogger::record('report.resolved', $report, ['status' => $oldStatus], ['status' => 'resolved', 'notes' => $adminNotes]);
 
         return back()->with('success', "Laporan #{$report->id} berhasil disetujui dan diselesaikan.");
     }
@@ -203,6 +206,12 @@ class ReportController extends Controller
             ]);
         }
 
+        // Audit Log (AD-07)
+        AuditLogger::record('community.warned', $community, null, [
+            'report_id' => $report->id,
+            'warning' => $finalWarningMessage,
+        ]);
+
         return back()->with('success', "Peringatan resmi berhasil dikirimkan ke komunitas '{$community->name}'.");
     }
 
@@ -234,8 +243,17 @@ class ReportController extends Controller
         }
 
         // Assignment eksplisit untuk is_active
+        $oldActive = $community->is_active;
         $community->is_active = !$community->is_active;
         $community->save();
+
+        // Audit Log (AD-07)
+        $action = $community->is_active ? 'community.activated' : 'community.suspended';
+        AuditLogger::record($action, $community, ['is_active' => $oldActive], [
+            'is_active' => $community->is_active,
+            'reason' => $request->input('reason'),
+            'report_id' => $reportId,
+        ]);
 
         $statusText = $community->is_active ? 'diaktifkan kembali' : 'dinonaktifkan sementara';
         return back()->with('success', "Komunitas '{$community->name}' berhasil {$statusText}.");
@@ -274,8 +292,17 @@ class ReportController extends Controller
         }
 
         // Assignment eksplisit untuk is_active
+        $oldActive = $user->is_active;
         $user->is_active = !$user->is_active;
         $user->save();
+
+        // Audit Log (AD-07)
+        $action = $user->is_active ? 'user.activated' : 'user.suspended';
+        AuditLogger::record($action, $user, ['is_active' => $oldActive], [
+            'is_active' => $user->is_active,
+            'reason' => $request->input('reason'),
+            'report_id' => $reportId,
+        ]);
 
         $statusText = $user->is_active ? 'diaktifkan kembali' : 'dinonaktifkan sementara';
         return back()->with('success', "Akun '{$user->name}' berhasil {$statusText}.");

@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Community;
 use App\Models\Event;
 use App\Models\Participant;
 use App\Models\Report;
 use App\Models\Schedule;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -65,6 +67,10 @@ class DashboardController extends Controller
             ->take(6)
             ->get();
 
+        // 7. Audit Log / Recent Activity Awal
+        $auditLogs = AuditLog::with(['user', 'auditable'])
+            ->latest()
+            ->paginate(6);
         // 7. Laporan Pengguna Terbaru (List Laporan Terbaru Dashboard)
         $recentReports = Report::with(['reporter', 'reportable'])
             ->latest()
@@ -78,6 +84,7 @@ class DashboardController extends Controller
             'recentEvents',
             'recentUsers',
             'sportDistribution',
+            'auditLogs'
             'recentReports'
         ));
     }
@@ -88,11 +95,15 @@ class DashboardController extends Controller
     public function approveVerification($id)
     {
         $community = Community::findOrFail($id);
-        $community->update([
-            'verification_status' => 'verified',
-            'verified_at' => now(),
-            'rejection_reason' => null,
-        ]);
+        $oldStatus = $community->verification_status;
+
+        $community->verification_status = 'verified';
+        $community->verified_at = now();
+        $community->rejection_reason = null;
+        $community->save();
+
+        // Audit Log
+        AuditLogger::record('community.verified', $community, ['status' => $oldStatus], ['status' => 'verified']);
 
         return back()->with('success', "Verifikasi untuk komunitas '{$community->name}' berhasil disetujui.");
     }
@@ -103,12 +114,15 @@ class DashboardController extends Controller
     public function rejectVerification(Request $request, $id)
     {
         $community = Community::findOrFail($id);
+        $oldStatus = $community->verification_status;
         $reason = $request->input('reason', 'Informasi profil atau dokumen komunitas belum memenuhi standar regulasi.');
 
-        $community->update([
-            'verification_status' => 'rejected',
-            'rejection_reason' => $reason,
-        ]);
+        $community->verification_status = 'rejected';
+        $community->rejection_reason = $reason;
+        $community->save();
+
+        // Audit Log
+        AuditLogger::record('community.rejected', $community, ['status' => $oldStatus], ['status' => 'rejected', 'reason' => $reason]);
 
         return back()->with('success', "Pengajuan verifikasi komunitas '{$community->name}' telah ditolak.");
     }
@@ -119,9 +133,13 @@ class DashboardController extends Controller
     public function toggleCommunityStatus($id)
     {
         $community = Community::findOrFail($id);
-        $community->update([
-            'is_active' => !$community->is_active,
-        ]);
+        $oldActive = $community->is_active;
+
+        $community->is_active = !$community->is_active;
+        $community->save();
+
+        $action = $community->is_active ? 'community.activated' : 'community.suspended';
+        AuditLogger::record($action, $community, ['is_active' => $oldActive], ['is_active' => $community->is_active]);
 
         $statusText = $community->is_active ? 'diaktifkan kembali' : 'dinonaktifkan sementara';
         return back()->with('success', "Status komunitas '{$community->name}' berhasil {$statusText}.");
