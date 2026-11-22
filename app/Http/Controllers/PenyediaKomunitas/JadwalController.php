@@ -23,6 +23,15 @@ use Illuminate\Support\Str;
 
 class JadwalController extends Controller
 {
+    private function timezoneLabel(string $timezone): string
+    {
+        return match ($timezone) {
+            'Asia/Makassar', 'Asia/Ujung_Pandang' => 'WITA',
+            'Asia/Jayapura' => 'WIT',
+            default => 'WIB',
+        };
+    }
+
     /**
      * Tampilkan daftar jadwal komunitas penyedia.
      */
@@ -48,6 +57,7 @@ class JadwalController extends Controller
                 'selectedTab' => 'upcoming',
                 'selectedLevel' => 'all',
                 'selectedStatus' => 'all',
+                'scheduleTimezone' => $this->timezoneLabel(config('app.timezone', 'Asia/Jakarta')),
             ]);
         }
 
@@ -147,6 +157,7 @@ class JadwalController extends Controller
             'selectedTab' => $selectedTab,
             'selectedLevel' => $selectedLevel,
             'selectedStatus' => $selectedStatus,
+            'scheduleTimezone' => $this->timezoneLabel($tz),
         ]);
     }
 
@@ -333,6 +344,7 @@ class JadwalController extends Controller
             'attendanceStats'        => $attendanceStats,
             'statusCounts'           => $statusCounts,
             'filterStatus'           => $filterStatus,
+            'scheduleTimezone'       => $this->timezoneLabel(config('app.timezone', 'Asia/Jakarta')),
         ]);
     }
 
@@ -798,7 +810,7 @@ class JadwalController extends Controller
             'totalCount',
             'attendedCount',
             'registeredCount'
-        ));
+        ) + ['scheduleTimezone' => $this->timezoneLabel($tz)]);
     }
 
     /**

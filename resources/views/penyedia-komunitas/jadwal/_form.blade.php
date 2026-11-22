@@ -164,7 +164,7 @@
             {{-- Jam Mulai --}}
             <div>
                 <label for="start_time" class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                    Jam Mulai (WIB) <span class="text-rose-500">*</span>
+                    Jam Mulai ({{ match(config('app.timezone', 'Asia/Jakarta')) { 'Asia/Makassar', 'Asia/Ujung_Pandang' => 'WITA', 'Asia/Jayapura' => 'WIT', default => 'WIB' } }}) <span class="text-rose-500">*</span>
                 </label>
                 @if($isTimeLocked)
                     <input type="time"
@@ -189,7 +189,7 @@
             {{-- Jam Selesai --}}
             <div>
                 <label for="end_time" class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                    Jam Selesai (WIB) <span class="text-rose-500">*</span>
+                    Jam Selesai ({{ match(config('app.timezone', 'Asia/Jakarta')) { 'Asia/Makassar', 'Asia/Ujung_Pandang' => 'WITA', 'Asia/Jayapura' => 'WIT', default => 'WIB' } }}) <span class="text-rose-500">*</span>
                 </label>
                 @if($isTimeLocked)
                     <input type="time"

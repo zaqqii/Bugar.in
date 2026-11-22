@@ -142,6 +142,7 @@ class DashboardController extends Controller
     private function formatEventRow(Event $event): array
     {
         $tz = config('app.timezone', 'Asia/Jakarta');
+        $timezoneLabel = $this->eventTimezone($event);
         $filled = $event->participants_count;
         $capacity = $event->capacity;
         $isFull = $capacity !== null && $filled >= $capacity;
@@ -156,7 +157,7 @@ class DashboardController extends Controller
             'date_month' => $date->isoFormat('MMM'),
             'date_day' => $date->format('d'),
             'title' => $event->title,
-            'time_label' => $date->isoFormat('dddd') . ', ' . $startTime . ' WIB',
+            'time_label' => $date->isoFormat('dddd') . ', ' . $startTime . ' ' . $timezoneLabel,
             'location' => $event->location,
             'slots_filled' => $filled,
             'slots_total' => $capacity ?? '∞',
@@ -173,6 +174,7 @@ class DashboardController extends Controller
     private function formatScheduleRow(Schedule $schedule): array
     {
         $tz = config('app.timezone', 'Asia/Jakarta');
+        $timezoneLabel = $this->timezoneLabel($tz);
         $filled = $schedule->filledCount();
         $capacity = $schedule->capacity;
         $isFull = $capacity !== null && $filled >= $capacity;
@@ -193,7 +195,7 @@ class DashboardController extends Controller
             'date_month' => $date->isoFormat('MMM'),
             'date_day' => $date->format('d'),
             'title' => $schedule->title,
-            'time_label' => $schedule->dayLabel() . ', ' . $startTime . ' WIB',
+            'time_label' => $schedule->dayLabel() . ', ' . $startTime . ' ' . $timezoneLabel,
             'location' => $schedule->location ?? '-',
             'slots_filled' => $filled,
             'slots_total' => $capacity ?? '∞',
@@ -224,5 +226,23 @@ class DashboardController extends Controller
         $today = Carbon::now($tz)->startOfDay();
 
         return $today->dayOfWeek === $targetDow ? $today : $today->next($targetDow);
+    }
+
+    private function eventTimezone(Event $event): string
+    {
+        if (preg_match('/(?:^|\n)Zona Waktu Acara:\s*(WIB|WITA|WIT)(?:\n|$)/', (string) $event->requirements, $matches)) {
+            return $matches[1];
+        }
+
+        return in_array($event->timezone, ['WIB', 'WITA', 'WIT'], true) ? $event->timezone : 'WIB';
+    }
+
+    private function timezoneLabel(string $timezone): string
+    {
+        return match ($timezone) {
+            'Asia/Makassar', 'Asia/Ujung_Pandang' => 'WITA',
+            'Asia/Jayapura' => 'WIT',
+            default => 'WIB',
+        };
     }
 }
