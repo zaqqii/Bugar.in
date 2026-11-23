@@ -31,8 +31,6 @@ class UserController extends Controller
             'data' => [],
         ];
         
-        // Mengatur rentang bulan dengan November di posisi tengah:
-        // 3 bulan sebelum (Ags, Sep, Okt), November di tengah, dan 3 bulan sesudah (Des, Jan, Feb)
         $centerDate = now()->copy();
         for ($i = -3; $i <= 3; $i++) {
             $date = $centerDate->copy()->addMonths($i);
