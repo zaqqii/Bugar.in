@@ -245,3 +245,10 @@ Sidebar: 260px fixed, main area flex-1
 - Gunakan font Plus Jakarta Sans (sudah di-load di layout).
 - Pertahankan class `glass-card`, `glass-input`, `sidebar-glass` untuk konsistensi.
 - Setiap perubahan UI signifikan: update file ini di commit yang sama.
+
+## 9. Label Waktu dan Zona Waktu
+
+- Tampilkan singkatan zona waktu di dekat jam kegiatan agar waktu lokal mudah dipahami.
+- Untuk event, gunakan zona waktu yang dipilih dan disimpan bersama data event.
+- Untuk jadwal rutin, gunakan zona waktu aplikasi karena schema jadwal belum menyediakan kolom zona waktu.
+- Cocokkan label WIB/WITA/WIT dari zona waktu aplikasi; jangan mengubah penyimpanan waktu atau menebak zona dari nama lokasi.

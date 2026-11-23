@@ -176,7 +176,7 @@
                         {{ $schedule->date ? $schedule->date->locale('id')->isoFormat('dddd, D MMMM Y') : $schedule->dayLabel() }}
                     </span>
                     <span class="text-slate-500 block">
-                        {{ substr($schedule->start_time, 0, 5) }} - {{ substr($schedule->end_time, 0, 5) }} WIB
+                        {{ substr($schedule->start_time, 0, 5) }} - {{ substr($schedule->end_time, 0, 5) }} {{ $scheduleTimezone }}
                     </span>
                 </div>
             </div>
@@ -393,7 +393,7 @@
                                             <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
-                                            {{ $checkInAt }} WIB
+                                            {{ $checkInAt }} {{ $scheduleTimezone }}
                                         </span>
                                     @else
                                         <span class="text-slate-300 font-medium">—</span>
@@ -409,7 +409,7 @@
                                     @endif
                                 </td>
                                 <td class="py-3.5 px-5 text-slate-500">
-                                    {{ $participant->registered_at ? $participant->registered_at->translatedFormat('d M Y, H:i') : '-' }} WIB
+                                    {{ $participant->registered_at ? $participant->registered_at->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d M Y, H:i') : '-' }} {{ $scheduleTimezone }}
                                 </td>
                                 <td class="py-3.5 px-5 text-right">
                                     <div class="flex items-center justify-end gap-1.5">

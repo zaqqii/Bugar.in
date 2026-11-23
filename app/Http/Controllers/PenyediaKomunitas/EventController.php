@@ -77,6 +77,10 @@ class EventController extends Controller
                         ->paginate(10)
                         ->withQueryString();
 
+        $events->getCollection()->each(function (Event $event): void {
+            $event->setAttribute('display_timezone', $this->parseEventFields($event)['timezone']);
+        });
+
         return view('penyedia-komunitas.events.index', compact(
             'community', 'events', 'counts', 'selectedStatus', 'search'
         ));
@@ -649,7 +653,7 @@ class EventController extends Controller
         }
 
         $requirements = $event->requirements ?? '';
-        $timezone = 'WIB';
+        $timezone = $event->timezone ?: 'WIB';
         $paymentMethod = '';
         $paymentAccount = '';
         $organizerContact = '';
@@ -677,7 +681,7 @@ class EventController extends Controller
             'description' => $description,
             'rundown' => $rundown,
             'requirements' => $requirements,
-            'timezone' => $timezone,
+            'timezone' => in_array($timezone, ['WIB', 'WITA', 'WIT'], true) ? $timezone : 'WIB',
             'payment_method' => $paymentMethod,
             'payment_account' => $paymentAccount,
             'organizer_contact' => $organizerContact,

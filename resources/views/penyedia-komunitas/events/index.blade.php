@@ -479,7 +479,7 @@
                                             @if($event->end_time)
                                                 <span>- {{ substr($event->end_time, 0, 5) }}</span>
                                             @endif
-                                            <span>WIB</span>
+                                            <span>{{ $event->display_timezone ?? 'WIB' }}</span>
                                         </div>
                                         @if($event->registration_close_at)
                                             <div class="text-[10px] text-slate-400 pl-6 mt-0.5">
