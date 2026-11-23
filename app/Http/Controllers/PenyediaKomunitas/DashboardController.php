@@ -49,70 +49,87 @@ class DashboardController extends Controller
             ]);
         }
 
-        $activeParticipantsThisMonth = Participant::whereHasMorph(
-            'participatable',
-            [Event::class],
-            fn($q) => $q->where('community_id', $community->id)
-        )
-            ->whereYear('registered_at', now()->year)
-            ->whereMonth('registered_at', now()->month)
-            ->whereIn('status', ['registered', 'attended'])
-            ->count();
-
-        $totalActiveEvents = $community->events()
-            ->whereIn('status', ['published', 'registration_closed', 'ongoing'])
-            ->count();
-
-        $stats = [
-            'active_members' => $community->active_members_count ?? 0,
-            'followers' => $community->followers_count,
-            'active_participants_month' => $activeParticipantsThisMonth,
-            'total_active_events' => $totalActiveEvents,
-            'average_rating' => $community->average_rating,
-            'ratings_count' => $community->ratings_count,
-        ];
-
         $tz = config('app.timezone', 'Asia/Jakarta');
         $now = Carbon::now($tz);
         $todayStr = $now->toDateString();
         $nowTimeStr = $now->format('H:i:s');
 
-        $upcomingEvents = $community->events()
-            ->whereIn('status', ['published', 'registration_closed', 'ongoing'])
-            ->where(function ($q) use ($todayStr, $nowTimeStr) {
+        $eventUpcomingWindow = function ($query) use ($todayStr, $nowTimeStr) {
+            $query->where(function ($q) use ($todayStr, $nowTimeStr) {
                 $q->whereDate('event_date', '>', $todayStr)
-                  ->orWhere(function ($sub) use ($todayStr, $nowTimeStr) {
-                      $sub->whereDate('event_date', '=', $todayStr)
-                          ->where(function ($timeSub) use ($nowTimeStr) {
-                              $timeSub->where('status', 'ongoing')
-                                  ->orWhere(function ($t) use ($nowTimeStr) {
-                                      $t->whereNotNull('end_time')
-                                        ->where('end_time', '>=', $nowTimeStr);
-                                  })
-                                  ->orWhere(function ($t) use ($nowTimeStr) {
-                                      $t->whereNull('end_time')
-                                        ->where('start_time', '>=', $nowTimeStr);
-                                  });
-                          });
-                  });
+                    ->orWhere(function ($sub) use ($todayStr, $nowTimeStr) {
+                        $sub->whereDate('event_date', '=', $todayStr)
+                            ->where(function ($timeSub) use ($nowTimeStr) {
+                                $timeSub->where('status', 'ongoing')
+                                    ->orWhere(function ($t) use ($nowTimeStr) {
+                                        $t->whereNotNull('end_time')->where('end_time', '>=', $nowTimeStr);
+                                    })
+                                    ->orWhere(function ($t) use ($nowTimeStr) {
+                                        $t->whereNull('end_time')->where('start_time', '>=', $nowTimeStr);
+                                    });
+                            });
+                    });
+            });
+        };
+
+        $scheduleUpcomingWindow = function ($query) use ($todayStr, $nowTimeStr) {
+            $query->where(function ($q) use ($todayStr, $nowTimeStr) {
+                $q->whereDate('date', '>', $todayStr)
+                    ->orWhere(function ($sub) use ($todayStr, $nowTimeStr) {
+                        $sub->whereDate('date', '=', $todayStr)
+                            ->where('end_time', '>=', $nowTimeStr);
+                    });
+            });
+        };
+
+        $upcomingEventsQuery = $community->events()
+            ->where('is_active', true)
+            ->whereIn('status', ['published', 'registration_closed', 'ongoing']);
+        $eventUpcomingWindow($upcomingEventsQuery);
+
+        $upcomingSchedulesQuery = $community->schedules()
+            ->where('is_active', true)
+            ->whereNull('cancelled_at')
+            ->whereIn('status', ['open', 'almost_full', 'full']);
+        $scheduleUpcomingWindow($upcomingSchedulesQuery);
+
+        $totalUpcomingActivities = (clone $upcomingEventsQuery)->count()
+            + (clone $upcomingSchedulesQuery)->count();
+
+        $attendedParticipantsTotal = Participant::query()
+            ->where('status', 'attended')
+            ->where(function ($query) use ($community) {
+                $query->whereHasMorph(
+                    'participatable',
+                    [Event::class],
+                    fn($eventQuery) => $eventQuery->where('community_id', $community->id)
+                )->orWhereHasMorph(
+                    'participatable',
+                    [Schedule::class],
+                    fn($scheduleQuery) => $scheduleQuery->where('community_id', $community->id)
+                );
             })
+            ->count();
+
+        $followersCount = $community->followers()->count();
+
+        $stats = [
+            'active_members' => $community->active_members_count ?? 0,
+            'followers' => $followersCount,
+            'attended_participants' => $attendedParticipantsTotal,
+            'upcoming_activities' => $totalUpcomingActivities,
+            'average_rating' => $community->average_rating,
+            'ratings_count' => $community->ratings_count,
+        ];
+
+        $upcomingEvents = (clone $upcomingEventsQuery)
             ->orderBy('event_date', 'asc')
             ->orderBy('start_time', 'asc')
             ->limit(5)
             ->get()
             ->map(fn(Event $event) => $this->formatEventRow($event));
 
-        $upcomingSchedules = $community->schedules()
-            ->where('is_active', true)
-            ->whereNull('cancelled_at')
-            ->whereIn('status', ['open', 'almost_full', 'full'])
-            ->where(function ($q) use ($todayStr, $nowTimeStr) {
-                $q->whereDate('date', '>', $todayStr)
-                  ->orWhere(function ($sub) use ($todayStr, $nowTimeStr) {
-                      $sub->whereDate('date', '=', $todayStr)
-                          ->where('end_time', '>=', $nowTimeStr);
-                  });
-            })
+        $upcomingSchedules = (clone $upcomingSchedulesQuery)
             ->orderBy('date', 'asc')
             ->orderBy('start_time', 'asc')
             ->limit(5)
@@ -142,6 +159,7 @@ class DashboardController extends Controller
     private function formatEventRow(Event $event): array
     {
         $tz = config('app.timezone', 'Asia/Jakarta');
+        $timezoneLabel = $this->eventTimezone($event);
         $filled = $event->participants_count;
         $capacity = $event->capacity;
         $isFull = $capacity !== null && $filled >= $capacity;
@@ -156,7 +174,7 @@ class DashboardController extends Controller
             'date_month' => $date->isoFormat('MMM'),
             'date_day' => $date->format('d'),
             'title' => $event->title,
-            'time_label' => $date->isoFormat('dddd') . ', ' . $startTime . ' WIB',
+            'time_label' => $date->isoFormat('dddd') . ', ' . $startTime . ' ' . $timezoneLabel,
             'location' => $event->location,
             'slots_filled' => $filled,
             'slots_total' => $capacity ?? '∞',
@@ -173,6 +191,7 @@ class DashboardController extends Controller
     private function formatScheduleRow(Schedule $schedule): array
     {
         $tz = config('app.timezone', 'Asia/Jakarta');
+        $timezoneLabel = $this->timezoneLabel($tz);
         $filled = $schedule->filledCount();
         $capacity = $schedule->capacity;
         $isFull = $capacity !== null && $filled >= $capacity;
@@ -193,7 +212,7 @@ class DashboardController extends Controller
             'date_month' => $date->isoFormat('MMM'),
             'date_day' => $date->format('d'),
             'title' => $schedule->title,
-            'time_label' => $schedule->dayLabel() . ', ' . $startTime . ' WIB',
+            'time_label' => $schedule->dayLabel() . ', ' . $startTime . ' ' . $timezoneLabel,
             'location' => $schedule->location ?? '-',
             'slots_filled' => $filled,
             'slots_total' => $capacity ?? '∞',
@@ -224,5 +243,23 @@ class DashboardController extends Controller
         $today = Carbon::now($tz)->startOfDay();
 
         return $today->dayOfWeek === $targetDow ? $today : $today->next($targetDow);
+    }
+
+    private function eventTimezone(Event $event): string
+    {
+        if (preg_match('/(?:^|\n)Zona Waktu Acara:\s*(WIB|WITA|WIT)(?:\n|$)/', (string) $event->requirements, $matches)) {
+            return $matches[1];
+        }
+
+        return in_array($event->timezone, ['WIB', 'WITA', 'WIT'], true) ? $event->timezone : 'WIB';
+    }
+
+    private function timezoneLabel(string $timezone): string
+    {
+        return match ($timezone) {
+            'Asia/Makassar', 'Asia/Ujung_Pandang' => 'WITA',
+            'Asia/Jayapura' => 'WIT',
+            default => 'WIB',
+        };
     }
 }

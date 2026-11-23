@@ -79,6 +79,10 @@
             </div>
         @endif
 
+        @if(session('warning'))
+            <div role="status" class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">{{ session('warning') }}</div>
+        @endif
+
         {{-- PAGE HEADER --}}
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>

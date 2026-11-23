@@ -62,6 +62,10 @@
             </div>
         @endif
 
+        @if(session('warning'))
+            <div role="status" class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">{{ session('warning') }}</div>
+        @endif
+
         {{-- PAGE HEADER --}}
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
@@ -474,7 +478,7 @@
                                             @if($event->end_time)
                                                 <span>- {{ substr($event->end_time, 0, 5) }}</span>
                                             @endif
-                                            <span>WIB</span>
+                                            <span>{{ $event->display_timezone ?? 'WIB' }}</span>
                                         </div>
                                         @if($event->registration_close_at)
                                             <div class="text-[10px] text-slate-400 pl-6 mt-0.5">

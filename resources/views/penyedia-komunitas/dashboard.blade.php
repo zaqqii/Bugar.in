@@ -100,7 +100,7 @@
                         <div>
                             <h4 class="text-sm font-bold text-slate-900">Verifikasikan Komunitas untuk Membuat Event Berbayar</h4>
                             <p class="text-xs text-slate-600 mt-0.5">
-                                Saat ini Anda baru dapat membuat jadwal rutin dan event biasa (gratis). Dapatkan verifikasi gratis (15 pengikut: saat ini <strong>{{ $community->followers_count ?? 0 }}/15</strong>) atau gunakan verifikasi berbayar.
+                                Saat ini Anda baru dapat membuat jadwal rutin dan event biasa (gratis). Dapatkan verifikasi gratis (15 pengikut: saat ini <strong>{{ $stats['followers'] }}/15</strong>) atau gunakan verifikasi berbayar.
                             </p>
                         </div>
                     </div>
@@ -196,10 +196,10 @@
             </x-penyedia-komunitas.stat-card>
 
             <x-penyedia-komunitas.stat-card
-                title="Peserta Kegiatan Aktif"
-                value="{{ number_format($stats['active_participants_month']) }}"
-                subvalue="peserta bulan ini"
-                badgeText="{{ number_format($stats['total_active_events']) }} event aktif"
+                title="Total Peserta Hadir"
+                value="{{ number_format($stats['attended_participants']) }}"
+                subvalue="kehadiran terverifikasi"
+                badgeText="{{ number_format($stats['upcoming_activities']) }} kegiatan mendatang"
                 badgeType="success"
                 iconBgClass="bg-cyan-100 text-cyan-600">
                 <x-slot name="icon">
