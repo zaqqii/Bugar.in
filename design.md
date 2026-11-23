@@ -179,6 +179,12 @@ Load dari Google Fonts. Selalu gunakan Plus Jakarta Sans untuk semua halaman use
 - Gunakan aksen Cyan untuk pengingat event dan Royal Blue untuk jadwal rutin.
 - Job dijalankan setiap hari pukul 08.00 WIB; scheduler Laravel dan queue worker harus berjalan agar pengingat dibuat otomatis.
 
+### 4.9 Validasi Waktu Kegiatan Penyedia
+
+- Jadwal dan event dalam komunitas yang sama diperiksa terhadap tanggal serta interval waktu yang beririsan.
+- Bentrok di lokasi yang sama menghentikan penyimpanan dan menampilkan pesan yang menjelaskan kegiatan pemicunya.
+- Jika lokasi berbeda, kegiatan tetap dapat disimpan dengan peringatan berwarna amber.
+
 ---
 
 ## 5. Spacing & Layout
