@@ -13,6 +13,7 @@ use App\Models\UserAnnouncement;
 use App\Services\AttendanceService;
 use App\Services\CheckinTokenService;
 use App\Support\NotificationType;
+use App\Support\ProviderActivityOverlap;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -234,7 +235,30 @@ class JadwalController extends Controller
             $datesToCreate[] = $startDate->toDateString();
         }
 
-        DB::transaction(function () use ($datesToCreate, $community, $validated, $capacity, $seriesId, $streakEnabled, $request) {
+        $overlapChecker = app(ProviderActivityOverlap::class);
+        $blockingOverlaps = [];
+        $overlapWarnings = [];
+
+        DB::transaction(function () use ($datesToCreate, $community, $validated, $capacity, $seriesId, $streakEnabled, $request, $overlapChecker, &$blockingOverlaps, &$overlapWarnings) {
+            Community::whereKey($community->id)->lockForUpdate()->firstOrFail();
+
+            foreach ($datesToCreate as $dateString) {
+                $overlaps = $overlapChecker->inspect(
+                    (int) $community->id,
+                    $dateString,
+                    $validated['start_time'],
+                    $validated['end_time'],
+                    $validated['location'],
+                );
+
+                $blockingOverlaps = array_merge($blockingOverlaps, $overlaps['blocking']);
+                $overlapWarnings = array_merge($overlapWarnings, $overlaps['warnings']);
+            }
+
+            if ($blockingOverlaps !== []) {
+                return;
+            }
+
             foreach ($datesToCreate as $dateString) {
                 $schedule = Schedule::create([
                     'community_id' => $community->id,
@@ -258,13 +282,20 @@ class JadwalController extends Controller
             }
         });
 
+        if ($blockingOverlaps !== []) {
+            return back()->withInput()->withErrors(['date' => implode(' ', array_unique($blockingOverlaps))]);
+        }
+
         $countCreated = count($datesToCreate);
         $message = $countCreated > 1
             ? "Berhasil membuat {$countCreated} sesi jadwal rutin mingguan untuk bulan ini!"
             : "Jadwal '{$validated['title']}' berhasil dibuat!";
 
-        return redirect()->route('penyedia-komunitas.jadwal.index')
-            ->with('success', $message);
+        $redirect = redirect()->route('penyedia-komunitas.jadwal.index')->with('success', $message);
+
+        return $overlapWarnings !== []
+            ? $redirect->with('warning', implode(' ', array_unique($overlapWarnings)))
+            : $redirect;
     }
 
     /**
@@ -432,11 +463,44 @@ class JadwalController extends Controller
             $updateData['end_time'] = $validated['end_time'];
         }
 
-        $schedule->update($updateData);
-        $schedule->syncStatus();
+        $date = isset($updateData['date']) ? $updateData['date'] : $schedule->date->format('Y-m-d');
+        $startTime = $updateData['start_time'] ?? $schedule->start_time;
+        $endTime = $updateData['end_time'] ?? $schedule->end_time;
+        $overlapChecker = app(ProviderActivityOverlap::class);
+        $overlapWarnings = [];
+        $blockingOverlaps = [];
 
-        return redirect()->route('penyedia-komunitas.jadwal.index')
+        DB::transaction(function () use ($community, $schedule, $updateData, $date, $startTime, $endTime, $overlapChecker, &$overlapWarnings, &$blockingOverlaps) {
+            Community::whereKey($community->id)->lockForUpdate()->firstOrFail();
+            $overlaps = $overlapChecker->inspect(
+                (int) $community->id,
+                $date,
+                $startTime,
+                $endTime,
+                $updateData['location'],
+                ignoreScheduleId: (int) $schedule->id,
+            );
+            $blockingOverlaps = $overlaps['blocking'];
+            $overlapWarnings = $overlaps['warnings'];
+
+            if ($blockingOverlaps !== []) {
+                return;
+            }
+
+            $schedule->update($updateData);
+            $schedule->syncStatus();
+        });
+
+        if ($blockingOverlaps !== []) {
+            return back()->withInput()->withErrors(['date' => implode(' ', $blockingOverlaps)]);
+        }
+
+        $redirect = redirect()->route('penyedia-komunitas.jadwal.index')
             ->with('success', 'Jadwal "' . $schedule->title . '" berhasil diperbarui!');
+
+        return $overlapWarnings !== []
+            ? $redirect->with('warning', implode(' ', $overlapWarnings))
+            : $redirect;
     }
 
     /**
