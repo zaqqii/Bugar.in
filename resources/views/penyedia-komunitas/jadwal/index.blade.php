@@ -290,217 +290,222 @@
                 {{-- Satu Grid Datar: 3 Kolom (3x3 default, sisanya x-show) --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach($schedules as $i => $schedule)
-                        @php
-                            $regCount = $schedule->registered_participants_count ?? $schedule->activeParticipantsCount();
-                            $capacity = $schedule->capacity;
-                            $percent = $capacity ? (int) min(100, round(($regCount / $capacity) * 100)) : 0;
-                            $isFinished = $schedule->isFinished();
-                            $isCancelled = $schedule->isCancelled();
-                            $schDateFormatted = $schedule->date ? $schedule->date->locale('id')->isoFormat('dddd, D MMMM Y') : 'Tanggal Belum Ditentukan';
-                            $isToday = $schedule->date ? $schedule->date->isToday() : false;
-                        @endphp
-                        <div @if($i >= 9) x-show="expanded" x-transition style="display:none;" @endif
-                             class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between {{ !$schedule->is_active || $isCancelled ? 'opacity-75 bg-slate-50/60' : '' }}">
-                            <div class="space-y-3">
-                                {{-- Date Label Header di tiap kartu --}}
-                                <div class="flex items-center justify-between gap-2 flex-wrap">
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold {{ $isToday ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700' }}">
-                                        <span>📅</span>
-                                        <span>{{ $schDateFormatted }}</span>
-                                        @if($isToday)
-                                            <span class="ml-1 text-[10px] uppercase font-extrabold text-blue-200">(Hari Ini)</span>
-                                        @endif
-                                    </span>
-                                </div>
-
-                                {{-- Top Row: Time & Badges --}}
-                                <div class="flex items-start justify-between gap-2 flex-wrap">
-                                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <span>{{ substr($schedule->start_time, 0, 5) }} - {{ substr($schedule->end_time, 0, 5) }} {{ $scheduleTimezone }}</span>
-                                    </div>
-
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        {{-- Level Badge --}}
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border {{ $schedule->levelBadgeClass() }}">
-                                            {{ $schedule->levelLabel() }}
-                                        </span>
-
-                                        {{-- Seri Badge --}}
-                                        @if($schedule->series_id)
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">
-                                                🔗 Seri
-                                            </span>
-                                        @endif
-
-                                        {{-- Streak Badge --}}
-                                        @if($schedule->streak_enabled)
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
-                                                🔥 Streak
-                                            </span>
-                                        @endif
-
-                                        {{-- Dibatalkan / Selesai / Status Badge --}}
-                                        @if($isCancelled)
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold">
-                                                Dibatalkan
-                                            </span>
-                                        @elseif($isFinished)
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold">
-                                                Selesai
-                                            </span>
-                                        @elseif(!$schedule->is_active)
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-semibold">
-                                                Nonaktif
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold border border-emerald-200">
-                                                Aktif
-                                            </span>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                {{-- Title & Sport --}}
-                                <div>
-                                    <div class="inline-block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                                        {{ $community->sport_category ?? 'Olahraga' }}
-                                    </div>
-                                    <h3 class="font-extrabold text-slate-900 text-base line-clamp-2 break-words" title="{{ $schedule->title }}">
-                                        {{ $schedule->title }}
-                                    </h3>
-                                </div>
-
-                                {{-- Description --}}
-                                @if($schedule->description)
-                                    <p class="text-xs text-slate-500 line-clamp-2 break-words">
-                                        {{ $schedule->description }}
-                                    </p>
-                                @endif
-
-                                {{-- Location --}}
-                                <div class="flex items-center gap-1.5 text-xs text-slate-600">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                    </svg>
-                                    <span class="truncate">{{ $schedule->location }}</span>
-                                </div>
-
-                                {{-- Quota / Kapasitas Progress --}}
-                                <div class="pt-2">
-                                    <div class="flex items-center justify-between text-xs mb-1">
-                                        <span class="font-bold text-slate-600">Peserta Terdaftar</span>
-                                        <span class="font-bold {{ $capacity && $regCount >= $capacity ? 'text-rose-600' : 'text-slate-900' }}">
-                                            {{ $regCount }} {{ $capacity ? '/ ' . $capacity . ' peserta' : 'peserta (Tanpa batas)' }}
-                                        </span>
-                                    </div>
-                                    @if($capacity)
-                                        <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                            <div class="h-full rounded-full transition-all duration-300 {{ $percent >= 100 ? 'bg-rose-500' : ($percent >= 80 ? 'bg-amber-500' : 'bg-blue-600') }}"
-                                                 style="width: {{ $percent }}%"></div>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-
-                            {{-- Bottom Actions Toolbar --}}
-                            <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap text-xs">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <a href="{{ route('penyedia-komunitas.jadwal.show', $schedule) }}"
-                                       class="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold transition">
-                                        Detail & Peserta
-                                    </a>
-
-                                    {{-- Tombol Check-in QR (Hanya aktif untuk sesi hari ini) --}}
                                     @php
-                                        $tz = config('app.timezone', 'Asia/Jakarta');
-                                        $isTodaySess = $schedule->date && \Carbon\Carbon::parse($schedule->date, $tz)->isToday();
+                        $capacity = $schedule->capacity;
+                        $isFinished = $schedule->isFinished();
+                        $isCancelled = $schedule->isCancelled();
+                        $schDateFormatted = $schedule->date ? $schedule->date->locale('id')->isoFormat('dddd, D MMMM Y') : 'Tanggal Belum Ditentukan';
+                        $isToday = $schedule->date ? $schedule->date->isToday() : false;
                                     @endphp
-                                    @if($isTodaySess && !$isCancelled)
-                                        <a href="{{ route('penyedia-komunitas.jadwal.checkin', $schedule) }}"
-                                           class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-1 shadow-xs">
-                                            <span>📷 Check-in</span>
-                                        </a>
-                                    @else
-                                        <span title="{{ $isCancelled ? 'Sesi dibatalkan' : ($isFinished ? 'Sesi telah selesai' : 'Check-in hanya aktif pada hari sesi berlangsung') }}"
-                                              class="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-400 font-medium cursor-not-allowed text-[11px] inline-flex items-center">
-                                            📷 Check-in
-                                        </span>
-                                    @endif
+                                    <div @if($i >= 9) x-show="expanded" x-transition style="display:none;" @endif
+                                         class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between {{ !$schedule->is_active || $isCancelled ? 'opacity-75 bg-slate-50/60' : '' }}">
+                                        <div class="space-y-3">
+                                            {{-- Date Label Header di tiap kartu --}}
+                                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold {{ $isToday ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700' }}">
+                                                    <span>📅</span>
+                                                    <span>{{ $schDateFormatted }}</span>
+                                                    @if($isToday)
+                                                        <span class="ml-1 text-[10px] uppercase font-extrabold text-blue-200">(Hari Ini)</span>
+                                                    @endif
+                                                </span>
+                                            </div>
 
-                                    @if(!$isCancelled && !$isFinished)
-                                        <a href="{{ route('penyedia-komunitas.jadwal.edit', $schedule) }}"
-                                           class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold transition">
-                                            Edit
-                                        </a>
-                                    @endif
-                                </div>
-
-                                <div class="flex items-center gap-1.5">
-                                    {{-- Toggle Aktif / Nonaktif --}}
-                                    @if(!$isCancelled && !$isFinished)
-                                        <form method="POST" action="{{ route('penyedia-komunitas.jadwal.toggle-active', $schedule) }}">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit"
-                                                    title="{{ $schedule->is_active ? 'Nonaktifkan Sesi' : 'Aktifkan Sesi' }}"
-                                                    class="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition">
-                                                @if($schedule->is_active)
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
+                                            {{-- Top Row: Time & Badges --}}
+                                            <div class="flex items-start justify-between gap-2 flex-wrap">
+                                                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                     </svg>
-                                                @else
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                                    </svg>
-                                                @endif
-                                            </button>
-                                        </form>
+                                                    <span>{{ substr($schedule->start_time, 0, 5) }} - {{ substr($schedule->end_time, 0, 5) }} WIB</span>
+                                                </div>
 
-                                        {{-- Tombol Batalkan Sesi --}}
-                                        <form method="POST" action="{{ route('penyedia-komunitas.jadwal.cancel', $schedule) }}" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan sesi latihan ini? Seluruh peserta terdaftar akan dibatalkan.')">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit"
-                                                    title="Batalkan Sesi Ini"
-                                                    class="p-1.5 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 transition">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                    @if($schedule->capacity_is_full)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-extrabold">Penuh</span>
+                                                    @endif
+                                                    {{-- Level Badge --}}
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border {{ $schedule->levelBadgeClass() }}">
+                                                        {{ $schedule->levelLabel() }}
+                                                    </span>
+
+                                                    {{-- Seri Badge --}}
+                                                    @if($schedule->series_id)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">
+                                                            🔗 Seri
+                                                        </span>
+                                                    @endif
+
+                                                    {{-- Streak Badge --}}
+                                                    @if($schedule->streak_enabled)
+                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
+                                                            🔥 Streak
+                                                        </span>
+                                                    @endif
+
+                                                    {{-- Dibatalkan / Selesai / Status Badge --}}
+                                                    @if($isCancelled)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold">
+                                                            Dibatalkan
+                                                        </span>
+                                                    @elseif($isFinished)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold">
+                                                            Selesai
+                                                        </span>
+                                                    @elseif(!$schedule->is_active)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-semibold">
+                                                            Nonaktif
+                                                        </span>
+                                                    @else
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold border border-emerald-200">
+                                                            Aktif
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            </div>
+
+                                            {{-- Title & Sport --}}
+                                            <div>
+                                                <div class="inline-block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                                                    {{ $community->sport_category ?? 'Olahraga' }}
+                                                </div>
+                                                <h3 class="font-extrabold text-slate-900 text-base line-clamp-2 break-words" title="{{ $schedule->title }}">
+                                                    {{ $schedule->title }}
+                                                </h3>
+                                            </div>
+
+                                            {{-- Description --}}
+                                            @if($schedule->description)
+                                                <p class="text-xs text-slate-500 line-clamp-2 break-words">
+                                                    {{ $schedule->description }}
+                                                </p>
+                                            @endif
+
+                                            {{-- Location --}}
+                                            <div class="flex items-center gap-1.5 text-xs text-slate-600">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                                                 </svg>
-                                            </button>
-                                        </form>
+                                                <span class="truncate">{{ $schedule->location }}</span>
+                                            </div>
 
-                                        {{-- Tombol Batalkan Seluruh Seri --}}
-                                        @if($schedule->series_id)
-                                            <form method="POST" action="{{ route('penyedia-komunitas.jadwal.cancel-series', $schedule) }}" onsubmit="return confirm('Batalkan seluruh sesi mendatang dalam seri ini?')">
-                                                @csrf
-                                                @method('PATCH')
-                                                <button type="submit"
-                                                        title="Batalkan Seluruh Seri Mendatang"
-                                                        class="px-2 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 font-bold text-[10px] hover:bg-amber-100 transition">
-                                                    Batal Seri
-                                                </button>
-                                            </form>
-                                        @endif
-                                    @endif
+                                            {{-- Quota / Kapasitas Progress --}}
+                                            <div class="pt-2">
+                                                <div class="flex items-center justify-between text-xs mb-1">
+                                                    <span class="font-bold text-slate-600">Peserta Terdaftar</span>
+                                                    <span class="font-bold {{ $schedule->capacity_is_full ? 'text-rose-600' : 'text-slate-900' }}">
+                                                        {{ $schedule->capacity_filled }} {{ $capacity !== null ? '/ ' . $capacity . ' peserta' : 'peserta · tanpa batas' }}
+                                                    </span>
+                                                </div>
+                                                @if($capacity !== null)
+                                                    <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div class="h-full rounded-full transition-all duration-300 {{ $schedule->capacity_is_full ? 'bg-rose-500' : (($schedule->capacity_percentage ?? 0) >= 80 ? 'bg-amber-500' : 'bg-blue-600') }}"
+                                                             style="width: {{ $schedule->capacity_percentage }}%"></div>
+                                                    </div>
+                                                    <div class="mt-1 flex items-center justify-between text-[10px]">
+                                                        <span class="{{ $schedule->capacity_is_full ? 'font-bold text-rose-600' : 'text-slate-500' }}">{{ $schedule->capacity_is_full ? 'Penuh' : 'Sisa ' . $schedule->capacity_remaining . ' slot' }}</span>
+                                                        <span class="text-slate-400">{{ $schedule->capacity_percentage }}% terisi</span>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
 
-                                    {{-- Tombol Hapus --}}
-                                    @if($regCount === 0 && !$isCancelled)
-                                        <button type="button"
-                                                @click="confirmDelete('{{ route('penyedia-komunitas.jadwal.destroy', $schedule) }}', '{{ addslashes($schedule->title) }}')"
-                                                title="Hapus Jadwal"
-                                                class="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                                            </svg>
-                                        </button>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
+                                        {{-- Bottom Actions Toolbar --}}
+                                        <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap text-xs">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <a href="{{ route('penyedia-komunitas.jadwal.show', $schedule) }}"
+                                                   class="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold transition">
+                                                    Detail & Peserta
+                                                </a>
+
+                                                {{-- Tombol Check-in QR (Hanya aktif untuk sesi hari ini) --}}
+                                                @php
+                        $tz = config('app.timezone', 'Asia/Jakarta');
+                        $isTodaySess = $schedule->date && \Carbon\Carbon::parse($schedule->date, $tz)->isToday();
+                                                @endphp
+                                                @if($isTodaySess && !$isCancelled)
+                                                    <a href="{{ route('penyedia-komunitas.jadwal.checkin', $schedule) }}"
+                                                       class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-1 shadow-xs">
+                                                        <span>📷 Check-in</span>
+                                                    </a>
+                                                @else
+                                                    <span title="{{ $isCancelled ? 'Sesi dibatalkan' : ($isFinished ? 'Sesi telah selesai' : 'Check-in hanya aktif pada hari sesi berlangsung') }}"
+                                                          class="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-400 font-medium cursor-not-allowed text-[11px] inline-flex items-center">
+                                                        📷 Check-in
+                                                    </span>
+                                                @endif
+
+                                                @if(!$isCancelled && !$isFinished)
+                                                    <a href="{{ route('penyedia-komunitas.jadwal.edit', $schedule) }}"
+                                                       class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold transition">
+                                                        Edit
+                                                    </a>
+                                                @endif
+                                            </div>
+
+                                            <div class="flex items-center gap-1.5">
+                                                {{-- Toggle Aktif / Nonaktif --}}
+                                                @if(!$isCancelled && !$isFinished)
+                                                    <form method="POST" action="{{ route('penyedia-komunitas.jadwal.toggle-active', $schedule) }}">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <button type="submit"
+                                                                title="{{ $schedule->is_active ? 'Nonaktifkan Sesi' : 'Aktifkan Sesi' }}"
+                                                                class="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition">
+                                                            @if($schedule->is_active)
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
+                                                                </svg>
+                                                            @else
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                                </svg>
+                                                            @endif
+                                                        </button>
+                                                    </form>
+
+                                                    {{-- Tombol Batalkan Sesi --}}
+                                                    <form method="POST" action="{{ route('penyedia-komunitas.jadwal.cancel', $schedule) }}" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan sesi latihan ini? Seluruh peserta terdaftar akan dibatalkan.')">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <button type="submit"
+                                                                title="Batalkan Sesi Ini"
+                                                                class="p-1.5 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 transition">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                            </svg>
+                                                        </button>
+                                                    </form>
+
+                                                    {{-- Tombol Batalkan Seluruh Seri --}}
+                                                    @if($schedule->series_id)
+                                                        <form method="POST" action="{{ route('penyedia-komunitas.jadwal.cancel-series', $schedule) }}" onsubmit="return confirm('Batalkan seluruh sesi mendatang dalam seri ini?')">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <button type="submit"
+                                                                    title="Batalkan Seluruh Seri Mendatang"
+                                                                    class="px-2 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 font-bold text-[10px] hover:bg-amber-100 transition">
+                                                                Batal Seri
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                @endif
+
+                                                {{-- Tombol Hapus --}}
+                                                @if(($schedule->registered_participants_count ?? 0) === 0 && !$isCancelled)
+                                                    <button type="button"
+                                                            @click="confirmDelete('{{ route('penyedia-komunitas.jadwal.destroy', $schedule) }}', '{{ addslashes($schedule->title) }}')"
+                                                            title="Hapus Jadwal"
+                                                            class="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                        </svg>
+                                                    </button>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
                     @endforeach
                 </div>
 

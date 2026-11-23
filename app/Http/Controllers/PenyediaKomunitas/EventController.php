@@ -78,7 +78,13 @@ class EventController extends Controller
                         ->withQueryString();
 
         $events->getCollection()->each(function (Event $event): void {
-            $event->setAttribute('display_timezone', $this->parseEventFields($event)['timezone']);
+            $filled = (int) $event->participants_count;
+            $capacity = $event->capacity;
+
+            $event->setAttribute('capacity_filled', $filled);
+            $event->setAttribute('capacity_is_full', $event->isFull());
+            $event->setAttribute('capacity_percentage', $capacity === null ? null : $event->fillPercentage());
+            $event->setAttribute('capacity_remaining', $capacity === null ? null : max(0, $capacity - $filled));
         });
 
         return view('penyedia-komunitas.events.index', compact(

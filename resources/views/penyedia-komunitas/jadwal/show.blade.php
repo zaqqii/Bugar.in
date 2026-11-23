@@ -145,20 +145,17 @@
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 min-w-[200px] shrink-0 text-right sm:text-left">
                 <span class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kapasitas Terisi</span>
                 <div class="flex items-baseline gap-1 mt-1">
-                    <span class="text-2xl font-extrabold text-slate-900">{{ $activeParticipantsCount }}</span>
+                    <span class="text-2xl font-extrabold {{ $capacityDisplay['is_full'] ? 'text-rose-600' : 'text-slate-900' }}">{{ $capacityDisplay['filled'] }}</span>
                     <span class="text-xs text-slate-500 font-semibold">/ {{ $schedule->capacity ? $schedule->capacity . ' Peserta' : '∞ (Tanpa Batas)' }}</span>
                 </div>
-                @if($schedule->capacity)
-                    @php
-                        $fillRate = min(100, round(($activeParticipantsCount / $schedule->capacity) * 100));
-                    @endphp
+                @if($schedule->capacity !== null)
                     <div class="w-full h-1.5 bg-slate-200 rounded-full mt-2 overflow-hidden">
-                        <div class="h-full rounded-full {{ $fillRate >= 100 ? 'bg-rose-500' : ($fillRate >= 80 ? 'bg-amber-500' : 'bg-blue-600') }}"
-                             style="width: {{ $fillRate }}%"></div>
+                        <div class="h-full rounded-full {{ $capacityDisplay['is_full'] ? 'bg-rose-500' : ($capacityDisplay['percentage'] >= 80 ? 'bg-amber-500' : 'bg-blue-600') }}"
+                             style="width: {{ $capacityDisplay['percentage'] }}%"></div>
                     </div>
-                    <span class="block text-[10px] text-slate-400 mt-1">{{ $fillRate }}% Terisi (Sisa: {{ $schedule->remainingSlots() }})</span>
+                    <span class="block text-[10px] mt-1 {{ $capacityDisplay['is_full'] ? 'font-bold text-rose-600' : 'text-slate-500' }}">{{ $capacityDisplay['is_full'] ? 'Penuh' : 'Sisa ' . $capacityDisplay['remaining'] . ' slot' }} · {{ $capacityDisplay['percentage'] }}% terisi</span>
                 @else
-                    <span class="block text-[10px] text-emerald-600 font-bold mt-1">Pendaftaran Tanpa Batas</span>
+                    <span class="block text-[10px] text-emerald-600 font-bold mt-1">{{ $capacityDisplay['filled'] }} peserta · Pendaftaran tanpa batas</span>
                 @endif
             </div>
         </div>
