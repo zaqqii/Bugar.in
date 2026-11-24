@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -92,6 +93,50 @@ public function getQrisUrlAttribute()  { return $this->mediaUrl($this->qris_imag
     public function activeParticipantsCount(): int
     {
         return $this->participants()->whereIn('status', ['registered', 'waiting_payment'])->count();
+    }
+
+    public function endsAt(): ?Carbon
+    {
+        if (! $this->event_date || ! $this->start_time) {
+            return null;
+        }
+
+        $tz = config('app.timezone', 'Asia/Jakarta');
+        $dateStr = $this->event_date instanceof Carbon ? $this->event_date->format('Y-m-d') : (string) $this->event_date;
+        $timeStr = $this->end_time ?: '23:59:59';
+
+        return Carbon::parse("{$dateStr} {$timeStr}", $tz);
+    }
+
+    public function isFinished(): bool
+    {
+        $endsAt = $this->endsAt();
+        if (! $endsAt) {
+            return false;
+        }
+
+        return Carbon::now(config('app.timezone', 'Asia/Jakarta'))->gt($endsAt);
+    }
+
+    public function scopeNotFinished($query)
+    {
+        $tz = config('app.timezone', 'Asia/Jakarta');
+        $now = Carbon::now($tz);
+        $today = $now->toDateString();
+        $currentTime = $now->toTimeString();
+
+        return $query->where(function ($q) use ($today, $currentTime) {
+            $q->whereNull('event_date')
+              ->orWhereNull('start_time')
+              ->orWhereDate('event_date', '>', $today)
+              ->orWhere(function ($sub) use ($today, $currentTime) {
+                  $sub->whereDate('event_date', $today)
+                      ->where(function ($timeSub) use ($currentTime) {
+                          $timeSub->whereNull('end_time')
+                                  ->orWhere('end_time', '>=', $currentTime);
+                      });
+              });
+        });
     }
 
     public function canBeEdited(): bool

@@ -35,6 +35,10 @@ class DashboardController extends Controller
             abort(403);
         }
 
+        if (! $community->is_active) {
+            return back()->with('error', 'Komunitas ini sedang tidak aktif.');
+        }
+
         $community->followers()->syncWithoutDetaching([$user->id]);
         $followersCount = $community->followers()->count();
         $updateData = ['followers_count' => $followersCount];
@@ -197,6 +201,10 @@ class DashboardController extends Controller
             abort(403);
         }
 
+        if (! $user instanceof User) {
+            $user = User::find(Auth::id());
+        }
+
         return DB::transaction(function () use ($event, $user) {
             /** @var Event $lockedEvent */
             $lockedEvent = Event::where('id', $event->id)->lockForUpdate()->firstOrFail();
@@ -206,7 +214,17 @@ class DashboardController extends Controller
                 return back()->with('error', 'Pendaftaran untuk event ini tidak dibuka (status event: ' . ($lockedEvent->status) . ').');
             }
 
-            // 2. Tolak jika di luar jendela registration_open_at / registration_close_at (null-safe)
+            // 2. Tolak jika event sedang tidak aktif
+            if (! $lockedEvent->is_active) {
+                return back()->with('error', 'Event ini sedang tidak aktif atau tidak dibuka untuk pendaftaran.');
+            }
+
+            // 3. Tolak jika event sudah berakhir
+            if ($lockedEvent->isFinished()) {
+                return back()->with('error', 'Event ini sudah berakhir.');
+            }
+
+            // 4. Tolak jika di luar jendela registration_open_at / registration_close_at (null-safe)
             $now = now();
             if ($lockedEvent->registration_open_at && $now->lt($lockedEvent->registration_open_at)) {
                 return back()->with('error', 'Pendaftaran belum dibuka (dibuka pada ' . $lockedEvent->registration_open_at->translatedFormat('d M Y, H:i') . ').');
@@ -219,7 +237,23 @@ class DashboardController extends Controller
                 }
             }
 
-            // 3. Cek apakah sudah terdaftar aktif
+            // 5. Cek komunitas aktif
+            if (! $lockedEvent->community || ! $lockedEvent->community->is_active) {
+                return back()->with('error', 'Komunitas penyelenggara event ini sedang tidak aktif.');
+            }
+
+            // 6. Cek apakah user terkena join_blocked_until
+            if ($user->isJoinBlocked()) {
+                $until = $user->joinBlockedUntilFormatted() ?? $user->join_blocked_until->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d F Y, H:i');
+                return back()->with('error', "Pendaftaran event untuk akun Anda sedang dibatasi hingga {$until} WIB karena akumulasi ketidakhadiran (no-show).");
+            }
+
+            // 7. Cek apakah user diblokir oleh komunitas ini
+            if (CommunityBlock::where('community_id', $lockedEvent->community_id)->where('user_id', $user->id)->exists()) {
+                return back()->with('error', 'Anda tidak dapat bergabung karena telah diblokir dari komunitas ini.');
+            }
+
+            // 8. Cek apakah sudah terdaftar aktif
             $existing = Participant::where('user_id', $user->id)
                 ->where('participatable_type', Event::class)
                 ->where('participatable_id', $lockedEvent->id)
@@ -593,9 +627,24 @@ class DashboardController extends Controller
             fn($a, $b) => ($b->followers_count ?? 0) <=> ($a->followers_count ?? 0),
         ])->take(3)->values();
 
-        // Data Asli Event Mendatang dari Database (Hanya yang berstatus published, registration_closed, atau ongoing)
+        $joinedEventIds = ($user instanceof User)
+            ? Participant::where('user_id', $user->id)
+                ->where('participatable_type', Event::class)
+                ->whereIn('status', ['registered', 'waiting_payment', 'waiting_list', 'attended'])
+                ->pluck('participatable_id')
+                ->all()
+            : [];
+
+        // Data Asli Event Mendatang dari Database (Hanya yang belum berakhir, ATAU seluruh event yang diikuti user)
         $events = Event::where('is_active', true)
-            ->active()
+            ->where(function ($query) use ($joinedEventIds) {
+                $query->where(function ($q) {
+                    $q->active()->notFinished();
+                });
+                if (!empty($joinedEventIds)) {
+                    $query->orWhereIn('id', $joinedEventIds);
+                }
+            })
             ->with('community')
             ->withCount(['participants' => fn($q) => $q->whereIn('status', ['registered', 'waiting_payment', 'attended'])])
             ->orderBy('event_date', 'asc')
@@ -652,7 +701,7 @@ class DashboardController extends Controller
             'filled' => (int) ($event->participants_count ?? $event->activeParticipantsCount()),
             'remaining' => $event->capacity !== null ? max(0, (int) $event->capacity - (int) ($event->participants_count ?? $event->activeParticipantsCount())) : null,
             'status' => $event->status,
-            'is_finished' => $event->event_date ? Carbon::parse($event->event_date->toDateString() . ' ' . ($event->end_time ?? '23:59:59'), config('app.timezone', 'Asia/Jakarta'))->isPast() : false,
+            'is_finished' => $event->isFinished(),
             'streak_enabled' => false,
         ]);
 

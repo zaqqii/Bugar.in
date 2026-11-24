@@ -4,7 +4,9 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Community;
+use App\Models\CommunityBlock;
 use App\Models\CommunityMember;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -15,8 +17,11 @@ class CommunityController extends Controller
      */
     public function show($id)
     {
-        $community = Community::where('id', $id)
-            ->orWhere('slug', $id)
+        $community = Community::where(function ($q) use ($id) {
+                $q->where('id', $id)
+                  ->orWhere('slug', $id);
+            })
+            ->where('is_active', true)
             ->with(['owner', 'schedules' => function ($q) {
                 $today = Carbon::now(config('app.timezone', 'Asia/Jakarta'))->toDateString();
                 $q->where('is_active', true)
@@ -27,7 +32,8 @@ class CommunityController extends Controller
                   ->orderBy('start_time', 'asc');
             }, 'events' => function ($q) {
                 $q->where('is_active', true)
-                  ->whereIn('status', ['published', 'registration_closed', 'ongoing'])
+                  ->active()
+                  ->notFinished()
                   ->orderBy('event_date', 'asc');
             }, 'members.user'])
             ->withCount([
@@ -35,7 +41,8 @@ class CommunityController extends Controller
                 'followers',
                 'events' => function ($q) {
                     $q->where('is_active', true)
-                      ->whereIn('status', ['published', 'registration_closed', 'ongoing']);
+                      ->active()
+                      ->notFinished();
                 }
             ])
             ->firstOrFail();
@@ -77,21 +84,65 @@ class CommunityController extends Controller
 
     public function join($id)
     {
-        // Cek apakah user sudah pernah bergabung sebelumnya
-        $exists = CommunityMember::where('user_id', auth()->id())
-                                 ->where('community_id', $id)
-                                 ->exists();
+        $user = auth()->user();
 
-        if (!$exists) {
-            CommunityMember::create([
-                'user_id' => auth()->id(),
-                'community_id' => $id,
-                'status' => 'active',
-                'joined_at' => now(),
-            ]);
-            return back()->with('success', 'Berhasil bergabung dengan komunitas!');
+        if (! $user) {
+            abort(403);
         }
 
-        return back()->with('info', 'Kamu sudah menjadi anggota komunitas ini.');
+        if (! $user instanceof User) {
+            $user = User::find(auth()->id());
+        }
+
+        $community = Community::where(function ($q) use ($id) {
+            $q->where('id', $id)
+              ->orWhere('slug', $id);
+        })->first();
+
+        if (! $community || ! $community->is_active) {
+            abort(404);
+        }
+
+        // 1. Cek apakah user terkena join_blocked_until
+        if ($user->isJoinBlocked()) {
+            $until = $user->joinBlockedUntilFormatted() ?? $user->join_blocked_until->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d F Y, H:i');
+            return back()->with('error', "Pendaftaran bergabung komunitas untuk akun Anda sedang dibatasi hingga {$until} WIB karena akumulasi ketidakhadiran (no-show).");
+        }
+
+        // 2. Cek apakah user diblokir oleh komunitas ini
+        if ($community->isUserBlocked($user)) {
+            return back()->with('error', 'Anda tidak dapat bergabung karena telah diblokir dari komunitas ini.');
+        }
+
+        // 3. Cek status keanggotaan user di komunitas ini
+        $member = CommunityMember::where('user_id', $user->id)
+            ->where('community_id', $community->id)
+            ->first();
+
+        if ($member && $member->status === 'banned') {
+            return back()->with('error', 'Anda telah diblokir dari komunitas ini dan tidak dapat bergabung kembali.');
+        }
+
+        if ($member && $member->status === 'active') {
+            return back()->with('info', 'Kamu sudah menjadi anggota komunitas ini.');
+        }
+
+        if ($member && $member->status === 'left') {
+            $member->status = 'active';
+            $member->joined_at = now();
+            $member->left_at = null;
+            $member->save();
+
+            return back()->with('success', 'Berhasil bergabung kembali dengan komunitas!');
+        }
+
+        CommunityMember::create([
+            'user_id' => $user->id,
+            'community_id' => $community->id,
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        return back()->with('success', 'Berhasil bergabung dengan komunitas!');
     }
 }
