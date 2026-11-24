@@ -95,6 +95,62 @@ public function getQrisUrlAttribute()  { return $this->mediaUrl($this->qris_imag
         return $this->participants()->whereIn('status', ['registered', 'waiting_payment'])->count();
     }
 
+    public function timezoneName(): string
+    {
+        $tz = strtoupper(trim((string) ($this->timezone ?: 'WIB')));
+
+        return match ($tz) {
+            'WITA' => 'Asia/Makassar',
+            'WIT'  => 'Asia/Jayapura',
+            'WIB'  => 'Asia/Jakarta',
+            default => in_array($this->timezone, timezone_identifiers_list(), true)
+                ? $this->timezone
+                : config('app.timezone', 'Asia/Jakarta'),
+        };
+    }
+
+    public function timezoneLabel(): string
+    {
+        $tz = strtoupper(trim((string) ($this->timezone ?: 'WIB')));
+
+        return match ($tz) {
+            'WITA' => 'WITA',
+            'WIT'  => 'WIT',
+            default => 'WIB',
+        };
+    }
+
+    public function startsAt(): ?Carbon
+    {
+        if (! $this->event_date || ! $this->start_time) {
+            return null;
+        }
+
+        $tz = $this->timezoneName();
+        $dateStr = $this->event_date instanceof Carbon ? $this->event_date->format('Y-m-d') : (string) $this->event_date;
+        $timeStr = $this->start_time;
+
+        return Carbon::parse("{$dateStr} {$timeStr}", $tz);
+    }
+
+    public function overlapEndsAt(): ?Carbon
+    {
+        if (! $this->event_date || ! $this->start_time) {
+            return null;
+        }
+
+        $tz = $this->timezoneName();
+        $dateStr = $this->event_date instanceof Carbon ? $this->event_date->format('Y-m-d') : (string) $this->event_date;
+
+        if ($this->end_time) {
+            return Carbon::parse("{$dateStr} {$this->end_time}", $tz);
+        }
+
+        $defaultMinutes = (int) config('schedules.default_event_duration_minutes', 120);
+
+        return $this->startsAt()->copy()->addMinutes($defaultMinutes);
+    }
+
     public function endsAt(): ?Carbon
     {
         if (! $this->event_date || ! $this->start_time) {

@@ -42,6 +42,11 @@ class Participant extends Model
         return $query->whereIn('status', ['registered', 'attended', 'waiting_list', 'waiting_payment']);
     }
 
+    public function scopeActiveCommitment($query)
+    {
+        return $query->whereIn('status', ['registered', 'waiting_payment', 'attended']);
+    }
+
     public function scopeWaitingConfirmation($query)
     {
         return $query->whereIn('status', ['waiting_list', 'waiting_payment']);

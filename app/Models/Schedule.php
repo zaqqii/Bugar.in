@@ -130,6 +130,11 @@ class Schedule extends Model
         return Carbon::parse("{$dateStr} {$timeStr}", $tz);
     }
 
+    public function timezoneLabel(): string
+    {
+        return 'WIB';
+    }
+
     public function isStarted(): bool
     {
         return Carbon::now(config('app.timezone', 'Asia/Jakarta'))->gte($this->startsAt());
