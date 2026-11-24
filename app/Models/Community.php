@@ -106,6 +106,17 @@ class Community extends Model
         return $this->blocks()->where('user_id', $userId)->exists();
     }
 
+    public function isUserBanned(int|User $user): bool
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+        return $this->members()->where('user_id', $userId)->where('status', 'banned')->exists();
+    }
+
+    public function isUserBlockedOrBanned(int|User $user): bool
+    {
+        return $this->isUserBlocked($user) || $this->isUserBanned($user);
+    }
+
     public function scopeVerified($query)
     {
         return $query->where('verification_status', 'verified');

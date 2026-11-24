@@ -95,19 +95,19 @@
         <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-3 shadow-xs">
             <span class="text-xl">⚠️</span>
             <div>
-                <strong class="font-bold text-sm block mb-0.5">Pendaftaran Jadwal Dibatasi Sementara</strong>
-                Akun Anda sedang dibatasi dari mendaftar ke jadwal hingga <strong>{{ auth()->user()->join_blocked_until->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d F Y, H:i') }} WIB</strong> karena akumulasi ketidakhadiran (no-show).
+                <strong class="font-bold text-sm block mb-0.5">Pendaftaran Kegiatan Dibatasi Sementara</strong>
+                Akun Anda sedang dibatasi dari mendaftar kegiatan atau bergabung komunitas hingga <strong>{{ auth()->user()->join_blocked_until->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d F Y, H:i') }} WIB</strong> karena akumulasi ketidakhadiran (no-show).
             </div>
         </div>
     @endif
 
     {{-- Banner Jika User Diblokir di Komunitas Ini --}}
-    @if(auth()->check() && $community->isUserBlocked(auth()->user()))
+    @if(auth()->check() && $community->isUserBlockedOrBanned(auth()->user()))
         <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-3 shadow-xs">
             <span class="text-xl">🚫</span>
             <div>
                 <strong class="font-bold text-sm block mb-0.5">Akses Komunitas Dibatasi</strong>
-                Anda telah diblokir dari komunitas ini dan tidak dapat mendaftar ke jadwal kegiatan yang diselenggarakan oleh {{ $community->name }}.
+                Anda telah diblokir dari komunitas ini dan tidak dapat mendaftar ke kegiatan atau bergabung dengan {{ $community->name }}.
             </div>
         </div>
     @endif
@@ -255,6 +255,13 @@
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                             </svg>
                             <span>Anggota Aktif</span>
+                        </button>
+                    @elseif(auth()->check() && (auth()->user()->isJoinBlocked() || $community->isUserBlockedOrBanned(auth()->user())))
+                        <button type="button"
+                                disabled
+                                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 text-slate-400 border border-slate-200 text-xs sm:text-sm font-bold shadow-2xs cursor-not-allowed"
+                                title="Akses bergabung dibatasi">
+                            <span>Bergabung Dibatasi</span>
                         </button>
                     @elseif($isPublic)
                         <form method="POST" action="{{ route('user.communities.join', $community->id ?? 1) }}" class="m-0">

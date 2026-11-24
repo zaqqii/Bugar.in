@@ -118,6 +118,17 @@ class User extends Authenticatable
         return $this->join_blocked_until !== null && $this->join_blocked_until->isFuture();
     }
 
+    public function joinBlockedUntilFormatted(): ?string
+    {
+        if (! $this->join_blocked_until) {
+            return null;
+        }
+
+        return $this->join_blocked_until
+            ->timezone(config('app.timezone', 'Asia/Jakarta'))
+            ->translatedFormat('d F Y, H:i');
+    }
+
     public function isCommunityOwner(): bool
     {
         return $this->role === 'community_owner';
