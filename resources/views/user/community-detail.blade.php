@@ -625,13 +625,20 @@
                                     <div class="text-[11px] font-semibold text-slate-500">
                                         Kuota: <span class="font-bold text-slate-700">{{ $event->capacity ? $event->participants_count . ' / ' . $event->capacity . ' Peserta' : 'Bebas' }}</span>
                                     </div>
-                                    <form method="POST" action="{{ route('user.events.join', $event->id) }}">
-                                        @csrf
-                                        <button type="submit"
-                                                class="w-full md:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-2xs transition-all active:scale-95 cursor-pointer text-center">
-                                            Daftar Kegiatan
+                                    @if($event->isFull())
+                                        <button type="button" disabled
+                                                class="w-full md:w-auto px-4 py-2 rounded-xl bg-slate-100 text-slate-400 font-bold text-xs cursor-not-allowed text-center">
+                                            Penuh
                                         </button>
-                                    </form>
+                                    @else
+                                        <form method="POST" action="{{ route('user.events.join', $event->id) }}">
+                                            @csrf
+                                            <button type="submit"
+                                                    class="w-full md:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-2xs transition-all active:scale-95 cursor-pointer text-center">
+                                                Daftar Kegiatan
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </div>
                         @empty
@@ -829,10 +836,14 @@
                             </div>
                             <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                                 <span class="font-bold text-blue-600">{{ $eventDate->translatedFormat('d M Y') }}, {{ substr($event->start_time, 0, 5) }} WIB</span>
-                                <form method="POST" action="{{ route('user.events.join', $event->id) }}">
-                                    @csrf
-                                    <button type="submit" class="btn-primary text-xs py-1.5 px-3 rounded-lg">Ikuti Event</button>
-                                </form>
+                                @if($event->isFull())
+                                    <span class="text-xs font-bold text-slate-400 px-3 py-1.5 rounded-lg bg-slate-100">Penuh</span>
+                                @else
+                                    <form method="POST" action="{{ route('user.events.join', $event->id) }}">
+                                        @csrf
+                                        <button type="submit" class="btn-primary text-xs py-1.5 px-3 rounded-lg">Ikuti Event</button>
+                                    </form>
+                                @endif
                             </div>
                         </div>
                     @empty

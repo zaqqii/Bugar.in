@@ -129,6 +129,11 @@ class User extends Authenticatable
             ->translatedFormat('d F Y, H:i');
     }
 
+    public function hasActivityConflict(\Carbon\Carbon $start, \Carbon\Carbon $end, $exclude = null): ?array
+    {
+        return app(\App\Services\ActivityOverlapService::class)->userConflict($this, $start, $end, $exclude);
+    }
+
     public function isCommunityOwner(): bool
     {
         return $this->role === 'community_owner';

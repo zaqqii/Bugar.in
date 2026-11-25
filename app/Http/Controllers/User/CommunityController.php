@@ -9,6 +9,7 @@ use App\Models\CommunityMember;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CommunityController extends Controller
 {
@@ -114,35 +115,44 @@ class CommunityController extends Controller
             return back()->with('error', 'Anda tidak dapat bergabung karena telah diblokir dari komunitas ini.');
         }
 
-        // 3. Cek status keanggotaan user di komunitas ini
-        $member = CommunityMember::where('user_id', $user->id)
-            ->where('community_id', $community->id)
-            ->first();
+        return DB::transaction(function () use ($community, $user) {
+            $lockedCommunity = Community::where('id', $community->id)->lockForUpdate()->firstOrFail();
 
-        if ($member && $member->status === 'banned') {
-            return back()->with('error', 'Anda telah diblokir dari komunitas ini dan tidak dapat bergabung kembali.');
-        }
+            // 3. Cek status keanggotaan user di komunitas ini
+            $member = CommunityMember::where('user_id', $user->id)
+                ->where('community_id', $lockedCommunity->id)
+                ->lockForUpdate()
+                ->first();
 
-        if ($member && $member->status === 'active') {
-            return back()->with('info', 'Kamu sudah menjadi anggota komunitas ini.');
-        }
+            if ($member && $member->status === 'banned') {
+                return back()->with('error', 'Anda telah diblokir dari komunitas ini dan tidak dapat bergabung kembali.');
+            }
 
-        if ($member && $member->status === 'left') {
-            $member->status = 'active';
-            $member->joined_at = now();
-            $member->left_at = null;
-            $member->save();
+            if ($member && $member->status === 'active') {
+                return back()->with('info', 'Kamu sudah menjadi anggota komunitas ini.');
+            }
 
-            return back()->with('success', 'Berhasil bergabung kembali dengan komunitas!');
-        }
+            if ($member && $member->status === 'left') {
+                $member->status = 'active';
+                $member->joined_at = now();
+                $member->left_at = null;
+                $member->save();
 
-        CommunityMember::create([
-            'user_id' => $user->id,
-            'community_id' => $community->id,
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
+                $lockedCommunity->syncMembersCount();
 
-        return back()->with('success', 'Berhasil bergabung dengan komunitas!');
+                return back()->with('success', 'Berhasil bergabung kembali dengan komunitas!');
+            }
+
+            CommunityMember::create([
+                'user_id' => $user->id,
+                'community_id' => $lockedCommunity->id,
+                'status' => 'active',
+                'joined_at' => now(),
+            ]);
+
+            $lockedCommunity->syncMembersCount();
+
+            return back()->with('success', 'Berhasil bergabung dengan komunitas!');
+        });
     }
 }

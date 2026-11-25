@@ -1305,6 +1305,9 @@
                                         @endif
                                     </div>
                                 @else
+                                @if($event->isFull())
+                                    <span class="text-[11px] font-bold text-slate-400 px-3 py-1.5 rounded-lg bg-slate-100">Penuh</span>
+                                @else
                                     <form method="POST" action="{{ route('user.events.join', $event) }}">
                                         @csrf
                                         @if($event->registration_fee > 0)
@@ -1316,6 +1319,7 @@
                                             <button type="submit" class="btn-primary text-[11px] py-1.5 px-3">Daftar Event (Gratis)</button>
                                         @endif
                                     </form>
+                                @endif
                                 @endif
                             </div>
                             </div>

@@ -6,6 +6,23 @@ use Illuminate\Database\Eloquent\Model;
 
 class Participant extends Model
 {
+    /**
+     * Daftar status partisipan yang menempati/memegang kursi (slot kapasitas).
+     *
+     * Catatan Desain (Task PAY-01 & Roadmap Pembayaran):
+     * Status 'waiting_payment' saat ini tetap memegang kursi. Kelak ketika model Payment
+     * dan PaymentService diintegrasikan, evaluasi kedaluwarsa pembayaran (expires_at)
+     * akan ditambahkan di titik ini sehingga 'waiting_payment' yang telah expired
+     * tidak lagi memegang kursi.
+     */
+    public const SEAT_STATUSES = ['registered', 'waiting_payment', 'attended'];
+
+    /**
+     * Daftar status partisipan yang dapat dibatalkan oleh pengguna.
+     * Status 'attended' (sudah hadir) tidak dapat dibatalkan.
+     */
+    public const CANCELLABLE_STATUSES = ['registered', 'waiting_payment', 'waiting_list'];
+
     protected $fillable = [
         'user_id',
         'participatable_type',
@@ -40,6 +57,16 @@ class Participant extends Model
     public function scopeActive($query)
     {
         return $query->whereIn('status', ['registered', 'attended', 'waiting_list', 'waiting_payment']);
+    }
+
+    public function scopeHoldingSeat($query)
+    {
+        return $query->whereIn('status', self::SEAT_STATUSES);
+    }
+
+    public function scopeActiveCommitment($query)
+    {
+        return $query->whereIn('status', self::SEAT_STATUSES);
     }
 
     public function scopeWaitingConfirmation($query)

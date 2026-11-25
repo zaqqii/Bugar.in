@@ -65,6 +65,24 @@ class Community extends Model
         return ($this->followers_count ?? 0) >= 15;
     }
 
+    public function syncMembersCount(): int
+    {
+        $count = $this->members()->where('status', 'active')->count();
+        $this->members_count = $count;
+        $this->save();
+
+        return $count;
+    }
+
+    public function syncFollowersCount(): int
+    {
+        $count = $this->followers()->count();
+        $this->followers_count = $count;
+        $this->save();
+
+        return $count;
+    }
+
     public function followersNeededForVerification(): int
     {
         return max(0, 15 - (int) ($this->followers_count ?? 0));
