@@ -78,16 +78,6 @@ class Community extends Model
     {
         $count = $this->followers()->count();
         $this->followers_count = $count;
-
-        // Otomatis verifikasi jika mencapai minimal 15 pengikut
-        if ($count >= 15 && $this->verification_status !== 'verified') {
-            $this->verification_status = 'verified';
-            $this->verified_at = now();
-            if (\Illuminate\Support\Facades\Schema::hasColumn('communities', 'verification_type')) {
-                $this->verification_type = 'free_followers';
-            }
-        }
-
         $this->save();
 
         return $count;

@@ -17,6 +17,12 @@ class Participant extends Model
      */
     public const SEAT_STATUSES = ['registered', 'waiting_payment', 'attended'];
 
+    /**
+     * Daftar status partisipan yang dapat dibatalkan oleh pengguna.
+     * Status 'attended' (sudah hadir) tidak dapat dibatalkan.
+     */
+    public const CANCELLABLE_STATUSES = ['registered', 'waiting_payment', 'waiting_list'];
+
     protected $fillable = [
         'user_id',
         'participatable_type',

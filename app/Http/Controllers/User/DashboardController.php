@@ -331,7 +331,7 @@ class DashboardController extends Controller
         $unlockedParticipant = Participant::where('user_id', $user->id)
             ->where('participatable_type', $morphType)
             ->where('participatable_id', $id)
-            ->whereIn('status', array_merge(Participant::SEAT_STATUSES, ['waiting_list']))
+            ->whereIn('status', Participant::CANCELLABLE_STATUSES)
             ->first();
 
         if (! $unlockedParticipant) {
@@ -361,7 +361,7 @@ class DashboardController extends Controller
             // 4. Ambil ulang baris participant dengan lock (urutan lock baku #3)
             $participant = Participant::where('id', $unlockedParticipant->id)
                 ->where('user_id', $user->id)
-                ->whereIn('status', array_merge(Participant::SEAT_STATUSES, ['waiting_list']))
+                ->whereIn('status', Participant::CANCELLABLE_STATUSES)
                 ->lockForUpdate()
                 ->first();
 
