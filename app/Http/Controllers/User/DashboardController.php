@@ -43,20 +43,11 @@ class DashboardController extends Controller
             return back()->with('error', 'Komunitas ini sedang tidak aktif.');
         }
 
-        $community->followers()->syncWithoutDetaching([$user->id]);
-        $followersCount = $community->followers()->count();
-        $updateData = ['followers_count' => $followersCount];
-
-        // Otomatis verifikasi jika mencapai minimal 15 pengikut
-        if ($followersCount >= 15 && $community->verification_status !== 'verified') {
-            $updateData['verification_status'] = 'verified';
-            $updateData['verified_at'] = now();
-            if (\Illuminate\Support\Facades\Schema::hasColumn('communities', 'verification_type')) {
-                $updateData['verification_type'] = 'free_followers';
-            }
-        }
-
-        $community->update($updateData);
+        DB::transaction(function () use ($community, $user) {
+            $lockedCommunity = Community::where('id', $community->id)->lockForUpdate()->firstOrFail();
+            $lockedCommunity->followers()->syncWithoutDetaching([$user->id]);
+            $lockedCommunity->syncFollowersCount();
+        });
 
         return back()->with('success', 'Berhasil mengikuti komunitas.');
     }
@@ -69,10 +60,11 @@ class DashboardController extends Controller
             abort(403);
         }
 
-        $community->followers()->detach($user->id);
-        $community->update([
-            'followers_count' => $community->followers()->count(),
-        ]);
+        DB::transaction(function () use ($community, $user) {
+            $lockedCommunity = Community::where('id', $community->id)->lockForUpdate()->firstOrFail();
+            $lockedCommunity->followers()->detach($user->id);
+            $lockedCommunity->syncFollowersCount();
+        });
 
         return back()->with('success', 'Anda batal mengikuti komunitas.');
     }
@@ -131,7 +123,7 @@ class DashboardController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            if ($existing && in_array($existing->status, ['registered', 'attended'], true)) {
+            if ($existing && in_array($existing->status, Participant::SEAT_STATUSES, true)) {
                 return back()->with('info', 'Kamu sudah terdaftar di sesi latihan ini.');
             }
 
@@ -152,9 +144,8 @@ class DashboardController extends Controller
                 return back()->with('error', "Kamu telah mencapai batas maksimal ({$maxActiveBookings}) pendaftaran jadwal aktif mendatang.");
             }
 
-            // 8. Cek kuota / kapasitas (hanya jika capacity tidak NULL)
-            $activeParticipantsCount = $lockedSchedule->activeParticipantsCount();
-            if ($lockedSchedule->capacity !== null && $activeParticipantsCount >= $lockedSchedule->capacity) {
+            // 8. Cek kuota / kapasitas: kegiatan penuh DITOLAK
+            if ($lockedSchedule->isFull()) {
                 return back()->with('error', 'Mohon maaf, kuota peserta untuk sesi latihan ini sudah penuh.');
             }
 
@@ -266,7 +257,7 @@ class DashboardController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            if ($existing && in_array($existing->status, ['registered', 'waiting_payment', 'waiting_list', 'attended'], true)) {
+            if ($existing && in_array($existing->status, array_merge(Participant::SEAT_STATUSES, ['waiting_list']), true)) {
                 $label = $existing->statusLabel();
                 return back()->with('info', "Kamu sudah terdaftar di event ini. Status saat ini: {$label}.");
             }
@@ -287,20 +278,13 @@ class DashboardController extends Controller
                 }
             }
 
-            // 10. Hitung kursi terpakai dari participant berstatus registered dan waiting_payment
-            $usedSeats = Participant::where('participatable_type', Event::class)
-                ->where('participatable_id', $lockedEvent->id)
-                ->whereIn('status', ['registered', 'waiting_payment'])
-                ->count();
-
-            $isFull = $lockedEvent->capacity !== null && $usedSeats >= $lockedEvent->capacity;
-
-            // 11. Tentukan status baru
-            if ($isFull) {
-                $newStatus = 'waiting_list';
-            } else {
-                $newStatus = (float) $lockedEvent->registration_fee > 0 ? 'waiting_payment' : 'registered';
+            // 10. Cek kuota / kapasitas: kegiatan penuh DITOLAK (tidak ada waiting_list di MVP)
+            if ($lockedEvent->isFull()) {
+                return back()->with('error', 'Mohon maaf, kuota peserta untuk event ini sudah penuh.');
             }
+
+            // 11. Tentukan status baru (hanya waiting_payment atau registered)
+            $newStatus = (float) $lockedEvent->registration_fee > 0 ? 'waiting_payment' : 'registered';
 
             // 12. Simpan / Perbarui pendaftaran
             if ($existing) {
@@ -319,14 +303,10 @@ class DashboardController extends Controller
                 ]);
             }
 
-            // 13. Increment events.participants_count hanya untuk status yang memakai kursi
-            if (in_array($newStatus, ['registered', 'waiting_payment'], true)) {
-                $lockedEvent->increment('participants_count');
-            }
+            // 13. Sinkronkan counter participants_count langsung dari hasil hitung riil kursi
+            $lockedEvent->syncParticipantsCount();
 
-            if ($newStatus === 'waiting_list') {
-                return back()->with('info', 'Kuota kursi event sudah penuh. Kamu dimasukkan ke dalam Waiting List (Daftar Tunggu).');
-            } elseif ($newStatus === 'waiting_payment') {
+            if ($newStatus === 'waiting_payment') {
                 $fee = 'Rp ' . number_format($lockedEvent->registration_fee, 0, ',', '.');
                 return back()->with('success', "Pendaftaran event berhasil! Silakan selesaikan pembayaran sebesar {$fee} kepada penyelenggara. Status: Menunggu Pembayaran.");
             } else {
@@ -347,11 +327,41 @@ class DashboardController extends Controller
 
         $morphType = $type === 'event' ? Event::class : Schedule::class;
 
-        return DB::transaction(function () use ($user, $morphType, $id, $type) {
-            $participant = Participant::where('user_id', $user->id)
-                ->where('participatable_type', $morphType)
-                ->where('participatable_id', $id)
-                ->whereIn('status', ['waiting_list', 'waiting_payment', 'registered'])
+        // 1. Baca participant tanpa lock terlebih dahulu untuk memvalidasi keberadaan target kegiatan
+        $unlockedParticipant = Participant::where('user_id', $user->id)
+            ->where('participatable_type', $morphType)
+            ->where('participatable_id', $id)
+            ->whereIn('status', array_merge(Participant::SEAT_STATUSES, ['waiting_list']))
+            ->first();
+
+        if (! $unlockedParticipant) {
+            return back()->with('info', 'Tidak ada pendaftaran aktif yang dapat dibatalkan.');
+        }
+
+        return DB::transaction(function () use ($user, $morphType, $id, $type, $unlockedParticipant) {
+            // 2. Kunci baris user terlebih dahulu (urutan lock baku #1)
+            /** @var User $lockedUser */
+            $lockedUser = User::whereKey($user->id)->lockForUpdate()->first();
+
+            // 3. Kunci baris kegiatan (urutan lock baku #2)
+            $lockedActivity = null;
+            if ($morphType === Schedule::class || $type === 'schedule') {
+                $lockedActivity = Schedule::where('id', $id)->lockForUpdate()->first();
+                if ($lockedActivity) {
+                    $deadlineHours = (int) config('schedules.cancel_deadline_hours', 2);
+                    $nowTz = Carbon::now(config('app.timezone', 'Asia/Jakarta'));
+                    if ($lockedActivity->startsAt()->isPast() || $nowTz->diffInMinutes($lockedActivity->startsAt(), false) < ($deadlineHours * 60)) {
+                        return back()->with('error', "Pembatalan jadwal hanya dapat dilakukan paling lambat {$deadlineHours} jam sebelum sesi dimulai.");
+                    }
+                }
+            } elseif ($morphType === Event::class || $type === 'event') {
+                $lockedActivity = Event::where('id', $id)->lockForUpdate()->first();
+            }
+
+            // 4. Ambil ulang baris participant dengan lock (urutan lock baku #3)
+            $participant = Participant::where('id', $unlockedParticipant->id)
+                ->where('user_id', $user->id)
+                ->whereIn('status', array_merge(Participant::SEAT_STATUSES, ['waiting_list']))
                 ->lockForUpdate()
                 ->first();
 
@@ -359,39 +369,17 @@ class DashboardController extends Controller
                 return back()->with('info', 'Tidak ada pendaftaran aktif yang dapat dibatalkan.');
             }
 
-            // Validasi batas waktu pembatalan untuk Schedule
-            if ($type === 'schedule' || $morphType === Schedule::class) {
-                $schedule = Schedule::where('id', $id)->lockForUpdate()->first();
-                if ($schedule) {
-                    $deadlineHours = (int) config('schedules.cancel_deadline_hours', 2);
-                    $nowTz = Carbon::now(config('app.timezone', 'Asia/Jakarta'));
-                    if ($schedule->startsAt()->isPast() || $nowTz->diffInMinutes($schedule->startsAt(), false) < ($deadlineHours * 60)) {
-                        return back()->with('error', "Pembatalan jadwal hanya dapat dilakukan paling lambat {$deadlineHours} jam sebelum sesi dimulai.");
-                    }
-                }
-            }
-
-            $oldStatus = $participant->status;
-
+            // 5. Ubah status menjadi cancelled
             $participant->update([
                 'status'       => 'cancelled',
                 'cancelled_at' => now(),
             ]);
 
-            // Jika pembatalan event dan sebelumnya memakai kursi, kurangi participants_count
-            if ($type === 'event' && in_array($oldStatus, ['registered', 'waiting_payment'], true)) {
-                $event = Event::where('id', $id)->lockForUpdate()->first();
-                if ($event && $event->participants_count > 0) {
-                    $event->decrement('participants_count');
-                }
-            }
-
-            // Jika pembatalan jadwal, sinkronkan status jadwal
-            if ($type === 'schedule' || $morphType === Schedule::class) {
-                $schedule = Schedule::where('id', $id)->lockForUpdate()->first();
-                if ($schedule) {
-                    $schedule->syncStatus();
-                }
+            // 6. Hitung ulang counter kursi event atau sinkronkan status jadwal
+            if ($lockedActivity instanceof Event) {
+                $lockedActivity->syncParticipantsCount();
+            } elseif ($lockedActivity instanceof Schedule) {
+                $lockedActivity->syncStatus();
             }
 
             return back()->with('success', 'Pendaftaran berhasil dibatalkan.');

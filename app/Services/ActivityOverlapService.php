@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Event;
+use App\Models\Participant;
 use App\Models\Schedule;
 use App\Models\User;
 use Carbon\Carbon;
@@ -68,7 +69,7 @@ class ActivityOverlapService
         // 1. Cek bentrok dengan Jadwal (Schedule)
         $schedulesQuery = Schedule::whereHas('participants', function ($q) use ($user) {
                 $q->where('user_id', $user->id)
-                  ->whereIn('status', ['registered', 'waiting_payment', 'attended']);
+                  ->whereIn('status', Participant::SEAT_STATUSES);
             })
             ->whereDate('date', '>=', $targetDateStart)
             ->whereDate('date', '<=', $targetDateEnd)
@@ -109,7 +110,7 @@ class ActivityOverlapService
         // 2. Cek bentrok dengan Event
         $eventsQuery = Event::whereHas('participants', function ($q) use ($user) {
                 $q->where('user_id', $user->id)
-                  ->whereIn('status', ['registered', 'waiting_payment', 'attended']);
+                  ->whereIn('status', Participant::SEAT_STATUSES);
             })
             ->whereDate('event_date', '>=', $targetDateStart)
             ->whereDate('event_date', '<=', $targetDateEnd)

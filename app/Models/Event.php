@@ -77,9 +77,39 @@ public function getQrisUrlAttribute()  { return $this->mediaUrl($this->qris_imag
         return $query->whereIn('status', ['published', 'registration_closed', 'ongoing']);
     }
 
+    /**
+     * Jumlah kursi terpakai pada event ini.
+     * Menggunakan Participant::SEAT_STATUSES (registered, waiting_payment, attended).
+     */
+    public function seatsTaken(): int
+    {
+        return $this->participants()->holdingSeat()->count();
+    }
+
+    /**
+     * Sisa kursi yang tersedia pada event ini.
+     * Mengembalikan null jika kapasitas tanpa batas (capacity === null).
+     */
+    public function remainingSeats(): ?int
+    {
+        if ($this->capacity === null) {
+            return null;
+        }
+
+        return max(0, $this->capacity - $this->seatsTaken());
+    }
+
+    /**
+     * Menentukan apakah event sudah penuh.
+     * Kapasitas null = tanpa batas (tidak pernah penuh).
+     */
     public function isFull(): bool
     {
-        return $this->capacity !== null && $this->participants_count >= $this->capacity;
+        if ($this->capacity === null) {
+            return false;
+        }
+
+        return $this->seatsTaken() >= $this->capacity;
     }
 
     public function fillPercentage(): int
@@ -87,12 +117,25 @@ public function getQrisUrlAttribute()  { return $this->mediaUrl($this->qris_imag
         if (!$this->capacity || $this->capacity === 0) {
             return 0;
         }
-        return (int) min(100, round(($this->participants_count / $this->capacity) * 100));
+        return (int) min(100, round(($this->seatsTaken() / $this->capacity) * 100));
     }
 
     public function activeParticipantsCount(): int
     {
-        return $this->participants()->whereIn('status', ['registered', 'waiting_payment'])->count();
+        return $this->seatsTaken();
+    }
+
+    /**
+     * Sinkronkan counter participants_count langsung dari jumlah riil kursi terpakai.
+     * Mengoreksi deviasi data secara otomatis tanpa bergantung pada increment/decrement.
+     */
+    public function syncParticipantsCount(): int
+    {
+        $count = $this->seatsTaken();
+        $this->participants_count = $count;
+        $this->save();
+
+        return $count;
     }
 
     public function timezoneName(): string
