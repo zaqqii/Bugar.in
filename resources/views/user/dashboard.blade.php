@@ -140,33 +140,320 @@
         get leaderboardTopThree() { return this.leaderboardRows.slice(0, 3); },
         get leaderboardCurrentUser() { return this.leaderboardRows.find(person => person.is_current_user) || null; },
 
-        // BMI Calculator state
+        // BMI Calculator state & Kemenkes RI gender-aware logic
         bmiHeight: 170,
         bmiWeight: 65,
         bmiGender: 'l',
         bmiAge: 24,
+        bmiSavedFlash: false,
+        bmiHistory: (() => {
+            try { return JSON.parse(localStorage.getItem('bugarin_bmi_history_v1') || '[]'); } catch (e) { return []; }
+        })(),
+
+        bmiBlockInvalidKeys(event, allowDecimal = true) {
+            if (['-', '+', 'e', 'E'].includes(event.key)) {
+                event.preventDefault();
+                return;
+            }
+            if (!allowDecimal && ['.', ','].includes(event.key)) {
+                event.preventDefault();
+            }
+        },
+
+        bmiSanitizeField(field, event, allowDecimal = true) {
+            let raw = event && event.target ? String(event.target.value) : String(this[field] ?? '');
+            if (raw.includes('-')) {
+                raw = raw.replace(/-/g, '');
+                if (event && event.target) event.target.value = raw;
+            }
+            if (raw === '') {
+                this[field] = '';
+                return;
+            }
+            const parsed = allowDecimal ? parseFloat(raw) : parseInt(raw, 10);
+            if (Number.isNaN(parsed)) {
+                this[field] = '';
+                return;
+            }
+            this[field] = parsed < 0 ? Math.abs(parsed) : parsed;
+        },
+
+        bmiStep(field, delta, min, max, decimals = 0) {
+            const raw = parseFloat(this[field]);
+            const current = (Number.isNaN(raw) || raw <= 0) ? min : raw;
+            const clamped = Math.min(max, Math.max(min, current + delta));
+            this[field] = Number(clamped.toFixed(decimals));
+        },
+
+        bmiResetDefault() {
+            if (this.bmiGender === 'l') {
+                this.bmiHeight = 170;
+                this.bmiWeight = 65;
+                this.bmiAge = 24;
+            } else {
+                this.bmiHeight = 160;
+                this.bmiWeight = 54;
+                this.bmiAge = 24;
+            }
+        },
+
+        get bmiErrors() {
+            const hRaw = this.bmiHeight;
+            const wRaw = this.bmiWeight;
+            const aRaw = this.bmiAge;
+            const h = Number(hRaw);
+            const w = Number(wRaw);
+            const a = Number(aRaw);
+
+            let height = '';
+            if (hRaw === '' || hRaw === null || Number.isNaN(h)) {
+                height = 'Tinggi badan wajib diisi (50–250 cm).';
+            } else if (h <= 0) {
+                height = 'Tinggi badan tidak boleh 0 atau minus.';
+            } else if (h < 50 || h > 250) {
+                height = 'Tinggi badan harus antara 50 hingga 250 cm.';
+            }
+
+            let weight = '';
+            if (wRaw === '' || wRaw === null || Number.isNaN(w)) {
+                weight = 'Berat badan wajib diisi (10–300 kg).';
+            } else if (w <= 0) {
+                weight = 'Berat badan tidak boleh 0 atau minus.';
+            } else if (w < 10 || w > 300) {
+                weight = 'Berat badan harus antara 10 hingga 300 kg.';
+            }
+
+            let age = '';
+            if (aRaw === '' || aRaw === null || Number.isNaN(a)) {
+                age = 'Usia wajib diisi (10–100 tahun).';
+            } else if (a <= 0) {
+                age = 'Usia tidak boleh 0 atau minus.';
+            } else if (a < 10 || a > 100) {
+                age = 'Usia harus antara 10 hingga 100 tahun.';
+            }
+
+            return { height, weight, age };
+        },
+
+        get bmiIsValid() {
+            return !this.bmiErrors.height && !this.bmiErrors.weight && !this.bmiErrors.age;
+        },
+
+        get bmiIsUnder18() {
+            return !this.bmiErrors.age && Number(this.bmiAge) < 18;
+        },
+
+        get bmiThresholds() {
+            if (this.bmiGender === 'p') {
+                return {
+                    genderLabel: 'Perempuan',
+                    underMax: 17.0,
+                    normalMin: 17.0,
+                    normalMax: 23.0,
+                    overMax: 27.0,
+                    underText: '< 17.0',
+                    normalText: '17.0 – 23.0',
+                    overText: '23.1 – 27.0',
+                    obeseText: '> 27.0',
+                    waistLimit: '< 80 cm',
+                    brocaFormulaText: '(TB - 100) - 15%',
+                };
+            }
+            return {
+                genderLabel: 'Laki-laki',
+                underMax: 18.0,
+                normalMin: 18.0,
+                normalMax: 25.0,
+                overMax: 27.0,
+                underText: '< 18.0',
+                normalText: '18.0 – 25.0',
+                overText: '25.1 – 27.0',
+                obeseText: '> 27.0',
+                waistLimit: '< 90 cm',
+                brocaFormulaText: '(TB - 100) - 10%',
+            };
+        },
+
+        get bmiNumeric() {
+            if (!this.bmiIsValid) return null;
+            const h = Number(this.bmiHeight) / 100;
+            const w = Number(this.bmiWeight);
+            if (h <= 0 || w <= 0) return null;
+            return Number((w / (h * h)).toFixed(1));
+        },
 
         get bmiValue() {
-            if (!this.bmiHeight || !this.bmiWeight) return 0;
-            let h = this.bmiHeight / 100;
-            return (this.bmiWeight / (h * h)).toFixed(1);
+            return this.bmiNumeric === null ? '--' : this.bmiNumeric.toFixed(1);
         },
 
         get bmiCategory() {
-            let v = parseFloat(this.bmiValue);
-            if (v === 0) return { label: 'Belum dihitung', color: 'text-stone-500', bg: 'bg-stone-100', desc: 'Masukkan tinggi dan berat badanmu' };
-            if (v < 18.5) return { label: 'Kurus (Underweight)', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', desc: 'Tingkatkan asupan nutrisi seimbang & latihan penguatan massa otot.' };
-            if (v <= 25.0) return { label: 'Normal (Ideal)', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', desc: 'Luar biasa! Pertahankan berat badan idealmu dengan olahraga rutin.' };
-            if (v <= 27.0) return { label: 'Gemuk (Overweight)', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', desc: 'Perbanyak aktivitas aerobik/kardio dan atur porsi makan sehat.' };
-            return { label: 'Obesitas', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', desc: 'Konsultasikan dengan dokter atau pelatih untuk program latihan bertahap.' };
+            const v = this.bmiNumeric;
+            if (v === null) {
+                return {
+                    key: 'invalid',
+                    label: 'Periksa Input',
+                    color: 'text-slate-600',
+                    bg: 'bg-slate-100',
+                    border: 'border-slate-200',
+                    desc: 'Pastikan tinggi badan, berat badan, dan usia bernilai lebih dari 0 sesuai rentang yang ditentukan.',
+                };
+            }
+            const t = this.bmiThresholds;
+            if (v < t.underMax) {
+                return {
+                    key: 'kurus',
+                    label: 'Kurus (Underweight)',
+                    color: 'text-amber-700',
+                    bg: 'bg-amber-50',
+                    border: 'border-amber-200',
+                    desc: this.bmiGender === 'l'
+                        ? 'IMT di bawah batas normal pria Kemenkes (< 18.0). Fokus pada surplus kalori bergizi seimbang dan latihan beban penguatan otot.'
+                        : 'IMT di bawah batas normal wanita Kemenkes (< 17.0). Tingkatkan asupan protein, lemak sehat, dan latihan kekuatan bertahap.',
+                };
+            }
+            if (v <= t.normalMax) {
+                return {
+                    key: 'normal',
+                    label: 'Normal (Ideal)',
+                    color: 'text-emerald-700',
+                    bg: 'bg-emerald-50',
+                    border: 'border-emerald-200',
+                    desc: this.bmiGender === 'l'
+                        ? 'Bagus! IMT Anda berada dalam rentang ideal pria standar Kemenkes (18.0 – 25.0). Pertahankan dengan rutin berolahraga.'
+                        : 'Bagus! IMT Anda berada dalam rentang ideal wanita standar Kemenkes (17.0 – 23.0). Pertahankan pola makan seimbang dan aktivitas fisik rutin.',
+                };
+            }
+            if (v <= t.overMax) {
+                return {
+                    key: 'gemuk',
+                    label: 'Gemuk (Overweight)',
+                    color: 'text-orange-700',
+                    bg: 'bg-orange-50',
+                    border: 'border-orange-200',
+                    desc: this.bmiGender === 'l'
+                        ? 'IMT berada di kategori kegemukan pria (25.1 – 27.0). Kombinasikan latihan kardio teratur dan defisit kalori ringan.'
+                        : 'IMT berada di kategori kegemukan wanita (23.1 – 27.0). Tingkatkan aktivitas aerobik rutin dan atur porsi karbohidrat serta gula.',
+                };
+            }
+            return {
+                key: 'obesitas',
+                label: 'Obesitas',
+                color: 'text-red-700',
+                bg: 'bg-red-50',
+                border: 'border-red-200',
+                desc: 'IMT melebihi 27.0 (Obesitas standar Kemenkes). Disarankan memulai latihan low-impact bertahap dan berkonsultasi dengan tenaga medis atau ahli gizi.',
+            };
+        },
+
+        get idealWeightBounds() {
+            if (this.bmiErrors.height) return null;
+            const h = Number(this.bmiHeight) / 100;
+            const t = this.bmiThresholds;
+            return {
+                min: Number((t.normalMin * h * h).toFixed(1)),
+                max: Number((t.normalMax * h * h).toFixed(1)),
+            };
         },
 
         get idealWeightRange() {
-            if (!this.bmiHeight) return '-';
-            let h = this.bmiHeight / 100;
-            let min = (18.5 * h * h).toFixed(1);
-            let max = (25.0 * h * h).toFixed(1);
-            return `${min} kg - ${max} kg`;
+            if (!this.idealWeightBounds) return '-';
+            return `${this.idealWeightBounds.min.toFixed(1)} – ${this.idealWeightBounds.max.toFixed(1)} kg`;
+        },
+
+        get brocaIdealWeight() {
+            if (this.bmiErrors.height) return '-';
+            const tb = Number(this.bmiHeight);
+            if (tb < 110) {
+                if (!this.idealWeightBounds) return '-';
+                return ((this.idealWeightBounds.min + this.idealWeightBounds.max) / 2).toFixed(1) + ' kg';
+            }
+            if (this.bmiGender === 'l') {
+                const val = tb < 160 ? (tb - 100) : (tb - 100) * 0.9;
+                return val.toFixed(1) + ' kg';
+            }
+            const val = tb < 150 ? (tb - 100) : (tb - 100) * 0.85;
+            return val.toFixed(1) + ' kg';
+        },
+
+        get bmiWeightDelta() {
+            if (!this.bmiIsValid || !this.idealWeightBounds) return null;
+            const w = Number(this.bmiWeight);
+            const { min, max } = this.idealWeightBounds;
+            if (w < min) {
+                return { tone: 'amber', text: `Perlu naik sekitar +${(min - w).toFixed(1)} kg untuk masuk batas ideal` };
+            }
+            if (w > max) {
+                return { tone: 'orange', text: `Perlu turun sekitar -${(w - max).toFixed(1)} kg untuk masuk batas ideal` };
+            }
+            return { tone: 'emerald', text: 'Berat badan sudah berada di rentang ideal Kemenkes' };
+        },
+
+        get bmiWaterRecommendation() {
+            const age = Number(this.bmiAge) || 24;
+            if (this.bmiGender === 'l') {
+                if (age < 13) return '~ 1.85 L / hari (± 8 gelas)';
+                if (age <= 15) return '~ 2.1 L / hari (± 9 gelas)';
+                if (age <= 18) return '~ 2.3 L / hari (± 9–10 gelas)';
+                if (age <= 64) return '~ 2.5 L / hari (± 10 gelas)';
+                return '~ 1.8 L / hari (± 7–8 gelas)';
+            }
+            if (age < 13) return '~ 1.85 L / hari (± 8 gelas)';
+            if (age <= 18) return '~ 2.1 L / hari (± 8–9 gelas)';
+            if (age <= 64) return '~ 2.35 L / hari (± 9–10 gelas)';
+            return '~ 1.55 L / hari (± 6–7 gelas)';
+        },
+
+        get bmiGaugeSegments() {
+            const t = this.bmiThresholds;
+            return {
+                kurus: ((t.underMax - 12) / 24) * 100,
+                normal: ((t.normalMax - t.underMax) / 24) * 100,
+                gemuk: ((t.overMax - t.normalMax) / 24) * 100,
+                obesitas: ((36 - t.overMax) / 24) * 100,
+            };
+        },
+
+        get bmiGaugePercent() {
+            if (this.bmiNumeric === null) return 0;
+            return Math.max(2, Math.min(98, ((this.bmiNumeric - 12) / 24) * 100));
+        },
+
+        saveBmiHistory() {
+            if (!this.bmiIsValid || this.bmiNumeric === null) return;
+            const entry = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
+                gender: this.bmiGender,
+                genderLabel: this.bmiThresholds.genderLabel,
+                height: Number(this.bmiHeight),
+                weight: Number(this.bmiWeight),
+                age: Number(this.bmiAge),
+                bmi: this.bmiNumeric.toFixed(1),
+                category: this.bmiCategory.label,
+                categoryKey: this.bmiCategory.key,
+            };
+            this.bmiHistory = [entry, ...this.bmiHistory].slice(0, 5);
+            try { localStorage.setItem('bugarin_bmi_history_v1', JSON.stringify(this.bmiHistory)); } catch (e) {}
+            this.bmiSavedFlash = true;
+            setTimeout(() => { this.bmiSavedFlash = false; }, 2000);
+        },
+
+        loadBmiHistory(item) {
+            if (!item) return;
+            this.bmiGender = item.gender || 'l';
+            this.bmiHeight = Number(item.height) || 170;
+            this.bmiWeight = Number(item.weight) || 65;
+            this.bmiAge = Number(item.age) || 24;
+        },
+
+        removeBmiHistory(id) {
+            this.bmiHistory = this.bmiHistory.filter(item => item.id !== id);
+            try { localStorage.setItem('bugarin_bmi_history_v1', JSON.stringify(this.bmiHistory)); } catch (e) {}
+        },
+
+        clearBmiHistory() {
+            this.bmiHistory = [];
+            try { localStorage.removeItem('bugarin_bmi_history_v1'); } catch (e) {}
         },
 
         streakMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -1202,7 +1489,7 @@
                     </div>
                     <div>
                         <h4 class="text-sm font-bold text-slate-900">Kalkulator Body Mass Index (BMI)</h4>
-                        <p class="text-xs text-slate-500 mt-0.5">Hitung status massa tubuh ideal dan dapatkan tips kebugaran.</p>
+                        <p class="text-xs text-slate-500 mt-0.5">Hitung status gizi standar Kemenkes RI (Laki-laki &amp; Perempuan) dan berat badan ideal.</p>
                     </div>
                 </div>
             </div>
@@ -1347,115 +1634,568 @@
         </section>
 
         {{-- ============================================================
-             5. MODUL 3: PENGHITUNG BMI (Humanized & Clean)
+             5. MODUL 3: PENGHITUNG BMI (Kemenkes RI & Mobile-Interactive)
              ============================================================ --}}
-        <section x-show="activeSection === 'bmi'" x-cloak class="space-y-6">
-            <div class="glass-card rounded-2xl p-6 sm:p-8 border border-blue-100 shadow-xs">
-                <div class="max-w-2xl mb-8">
-                    <span class="badge badge--green mb-2">Kesehatan &amp; Kebugaran</span>
-                    <h3 class="text-xl font-bold text-slate-900 tracking-tight mt-2">Kalkulator Body Mass Index (BMI)</h3>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
-                        Hitung indeks massa tubuhmu menggunakan standar Kementerian Kesehatan RI untuk mengetahui status gizi dan berat badan idealmu.
-                    </p>
+        <section x-show="activeSection === 'bmi'" x-cloak class="space-y-5 sm:space-y-6" aria-labelledby="bmi-heading">
+            <div class="glass-card rounded-2xl p-4 sm:p-6 lg:p-8 border border-blue-100 shadow-xs">
+
+                {{-- Header Card --}}
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5 sm:mb-7">
+                    <div class="max-w-2xl">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="badge badge--green">Standar Kemenkes RI</span>
+                            <span class="badge border"
+                                  :class="bmiGender === 'l' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-pink-50 text-pink-700 border-pink-200'"
+                                  x-text="'Mode: ' + bmiThresholds.genderLabel"></span>
+                        </div>
+                        <h3 id="bmi-heading" class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight mt-2.5">
+                            Kalkulator Body Mass Index (BMI)
+                        </h3>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+                            Evaluasi indeks massa tubuh (IMT), rentang berat ideal, dan kebutuhan cairan harian yang disesuaikan untuk
+                            <strong class="text-slate-700" x-text="bmiThresholds.genderLabel"></strong> menurut acuan Kementerian Kesehatan RI.
+                        </p>
+                    </div>
+
+                    <button type="button"
+                        @click="bmiResetDefault()"
+                        class="self-start inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-600 hover:text-blue-600 transition-colors cursor-pointer active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <span>Reset</span>
+                    </button>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    {{-- Form Input --}}
-                    <div class="lg:col-span-7 space-y-5">
+                {{-- Mobile Live Summary Strip (Langsung terlihat di HP tanpa harus scroll ke bawah) --}}
+                <div class="lg:hidden mb-5 rounded-2xl border bg-gradient-to-r p-3.5 flex items-center justify-between gap-3 transition-colors"
+                     :class="bmiGender === 'l' ? 'border-blue-100 from-blue-50/80 via-white to-blue-50/40' : 'border-pink-100 from-pink-50/80 via-white to-pink-50/40'">
+                    <div class="min-w-0">
+                        <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Skor IMT Saat Ini</span>
+                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                            <span class="text-2xl font-extrabold text-slate-900 tabular-nums" x-text="bmiValue"></span>
+                            <span class="text-[11px] font-medium text-slate-500">kg/m²</span>
+                        </div>
+                    </div>
+                    <div class="text-right flex flex-col items-end gap-1">
+                        <span :class="[bmiCategory.bg, bmiCategory.color, bmiCategory.border]"
+                            class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold border leading-tight"
+                            x-text="bmiCategory.label">
+                        </span>
+                        <span class="text-[10px] text-slate-500 font-medium" x-text="'Ideal: ' + idealWeightRange"></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7 items-start">
+
+                    {{-- ========================================================
+                         KOLOM KIRI: FORM INPUT INTERAKTIF & BATAS VALIDASI
+                         ======================================================== --}}
+                    <div class="lg:col-span-7 space-y-4 sm:space-y-5">
+
+                        {{-- 1. Selector Jenis Kelamin (Tulisan saja, tema Biru & Pink) --}}
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-bold text-slate-700">Jenis Kelamin</label>
+                                <span class="text-[11px] text-slate-400 font-medium">Batas IMT &amp; ideal berbeda</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2.5" role="group" aria-label="Pilih Jenis Kelamin">
+                                <button type="button"
+                                    @click="bmiGender = 'l'"
+                                    :aria-pressed="bmiGender === 'l'"
+                                    :class="bmiGender === 'l'
+                                        ? 'bg-blue-50 text-blue-700 border-blue-400 ring-2 ring-blue-100 shadow-sm'
+                                        : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-700'"
+                                    class="min-h-[52px] px-3 py-2.5 rounded-xl border transition-all cursor-pointer flex flex-col items-center justify-center text-center active:scale-[0.98]">
+                                    <span class="block text-xs sm:text-sm font-bold leading-tight">Laki-laki</span>
+                                    <span class="block text-[10px] opacity-80 mt-0.5 leading-tight">Ideal 18.0–25.0</span>
+                                </button>
+
+                                <button type="button"
+                                    @click="bmiGender = 'p'"
+                                    :aria-pressed="bmiGender === 'p'"
+                                    :class="bmiGender === 'p'
+                                        ? 'bg-pink-50 text-pink-700 border-pink-400 ring-2 ring-pink-100 shadow-sm'
+                                        : 'bg-white text-slate-600 border-slate-200 hover:border-pink-200 hover:text-pink-700'"
+                                    class="min-h-[52px] px-3 py-2.5 rounded-xl border transition-all cursor-pointer flex flex-col items-center justify-center text-center active:scale-[0.98]">
+                                    <span class="block text-xs sm:text-sm font-bold leading-tight">Perempuan</span>
+                                    <span class="block text-[10px] opacity-80 mt-0.5 leading-tight">Ideal 17.0–23.0</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- 2. Tinggi Badan (cm) & Berat Badan (kg) --}}
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
                             {{-- Tinggi Badan --}}
-                            <div class="space-y-1.5">
-                                <label class="block text-xs font-bold text-stone-700">Tinggi Badan (cm)</label>
-                                <input type="number"
-                                    x-model.number="bmiHeight"
-                                    min="100" max="250"
-                                    class="glass-input w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-stone-800">
+                            <div class="rounded-2xl border bg-slate-50/60 p-3.5 sm:p-4 space-y-3 transition-colors"
+                                 :class="bmiErrors.height ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200/80'">
+                                <div class="flex items-center justify-between gap-2">
+                                    <label for="bmi-height-input" class="text-xs font-bold text-slate-700">Tinggi Badan</label>
+                                    <span class="text-[11px] font-medium text-slate-400">50–250 cm</span>
+                                </div>
+
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button"
+                                        @click="bmiStep('bmiHeight', -1, 50, 250, 0)"
+                                        :disabled="Number(bmiHeight) <= 50"
+                                        aria-label="Kurangi tinggi badan 1 cm"
+                                        class="w-11 h-11 min-w-[44px] rounded-xl border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold text-base flex items-center justify-center transition-colors cursor-pointer active:scale-95">
+                                        &minus;
+                                    </button>
+                                    <div class="relative flex-1">
+                                        <input id="bmi-height-input"
+                                            type="number"
+                                            inputmode="decimal"
+                                            min="50"
+                                            max="250"
+                                            step="1"
+                                            :value="bmiHeight"
+                                            @keydown="bmiBlockInvalidKeys($event, true)"
+                                            @input="bmiSanitizeField('bmiHeight', $event, true)"
+                                            aria-label="Tinggi badan dalam sentimeter"
+                                            class="bmi-number-input glass-input w-full h-11 pl-3 pr-9 text-center text-sm sm:text-base font-extrabold text-slate-900 tabular-nums"
+                                            :class="bmiErrors.height ? 'border-rose-400 focus:border-rose-500' : ''">
+                                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 pointer-events-none">cm</span>
+                                    </div>
+                                    <button type="button"
+                                        @click="bmiStep('bmiHeight', 1, 50, 250, 0)"
+                                        :disabled="Number(bmiHeight) >= 250"
+                                        aria-label="Tambah tinggi badan 1 cm"
+                                        class="w-11 h-11 min-w-[44px] rounded-xl border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold text-base flex items-center justify-center transition-colors cursor-pointer active:scale-95">
+                                        +
+                                    </button>
+                                </div>
+
+                                <div>
+                                    <input type="range"
+                                        min="50"
+                                        max="250"
+                                        step="1"
+                                        x-model.number="bmiHeight"
+                                        aria-label="Slider tinggi badan"
+                                        class="bmi-range"
+                                        :class="bmiGender === 'p' ? 'bmi-range--female' : ''">
+                                    <div class="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
+                                        <span>50 cm</span>
+                                        <span>150 cm</span>
+                                        <span>250 cm</span>
+                                    </div>
+                                </div>
+
+                                <p x-show="bmiErrors.height" x-cloak class="text-[11px] font-semibold text-rose-600 flex items-center gap-1">
+                                    <span>!</span>
+                                    <span x-text="bmiErrors.height"></span>
+                                </p>
                             </div>
 
                             {{-- Berat Badan --}}
-                            <div class="space-y-1.5">
-                                <label class="block text-xs font-bold text-stone-700">Berat Badan (kg)</label>
-                                <input type="number"
-                                    x-model.number="bmiWeight"
-                                    min="30" max="200"
-                                    class="glass-input w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-stone-800">
-                            </div>
+                            <div class="rounded-2xl border bg-slate-50/60 p-3.5 sm:p-4 space-y-3 transition-colors"
+                                 :class="bmiErrors.weight ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200/80'">
+                                <div class="flex items-center justify-between gap-2">
+                                    <label for="bmi-weight-input" class="text-xs font-bold text-slate-700">Berat Badan</label>
+                                    <span class="text-[11px] font-medium text-slate-400">10–300 kg</span>
+                                </div>
 
-                            {{-- Gender --}}
-                            <div class="space-y-1.5">
-                                <label class="block text-xs font-bold text-stone-700">Jenis Kelamin</label>
-                                <div class="grid grid-cols-2 gap-2">
+                                <div class="flex items-center gap-1.5">
                                     <button type="button"
-                                        @click="bmiGender = 'l'"
-                                        :class="bmiGender === 'l' ? 'bg-blue-50 text-blue-700 border-blue-300 font-bold shadow-2xs' : 'bg-white text-stone-600 border-stone-200'"
-                                        class="py-2.5 rounded-xl text-xs border transition-all cursor-pointer text-center">
-                                        Laki-laki
+                                        @click="bmiStep('bmiWeight', -0.5, 10, 300, 1)"
+                                        :disabled="Number(bmiWeight) <= 10"
+                                        aria-label="Kurangi berat badan 0.5 kg"
+                                        class="w-11 h-11 min-w-[44px] rounded-xl border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold text-base flex items-center justify-center transition-colors cursor-pointer active:scale-95">
+                                        &minus;
                                     </button>
+                                    <div class="relative flex-1">
+                                        <input id="bmi-weight-input"
+                                            type="number"
+                                            inputmode="decimal"
+                                            min="10"
+                                            max="300"
+                                            step="0.5"
+                                            :value="bmiWeight"
+                                            @keydown="bmiBlockInvalidKeys($event, true)"
+                                            @input="bmiSanitizeField('bmiWeight', $event, true)"
+                                            aria-label="Berat badan dalam kilogram"
+                                            class="bmi-number-input glass-input w-full h-11 pl-3 pr-9 text-center text-sm sm:text-base font-extrabold text-slate-900 tabular-nums"
+                                            :class="bmiErrors.weight ? 'border-rose-400 focus:border-rose-500' : ''">
+                                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 pointer-events-none">kg</span>
+                                    </div>
                                     <button type="button"
-                                        @click="bmiGender = 'p'"
-                                        :class="bmiGender === 'p' ? 'bg-blue-50 text-blue-700 border-blue-300 font-bold shadow-2xs' : 'bg-white text-stone-600 border-stone-200'"
-                                        class="py-2.5 rounded-xl text-xs border transition-all cursor-pointer text-center">
-                                        Perempuan
+                                        @click="bmiStep('bmiWeight', 0.5, 10, 300, 1)"
+                                        :disabled="Number(bmiWeight) >= 300"
+                                        aria-label="Tambah berat badan 0.5 kg"
+                                        class="w-11 h-11 min-w-[44px] rounded-xl border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold text-base flex items-center justify-center transition-colors cursor-pointer active:scale-95">
+                                        +
+                                    </button>
+                                </div>
+
+                                <div>
+                                    <input type="range"
+                                        min="10"
+                                        max="300"
+                                        step="0.5"
+                                        x-model.number="bmiWeight"
+                                        aria-label="Slider berat badan"
+                                        class="bmi-range"
+                                        :class="bmiGender === 'p' ? 'bmi-range--female' : ''">
+                                    <div class="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
+                                        <span>10 kg</span>
+                                        <span>150 kg</span>
+                                        <span>300 kg</span>
+                                    </div>
+                                </div>
+
+                                <p x-show="bmiErrors.weight" x-cloak class="text-[11px] font-semibold text-rose-600 flex items-center gap-1">
+                                    <span>!</span>
+                                    <span x-text="bmiErrors.weight"></span>
+                                </p>
+                            </div>
+                        </div>
+
+                        {{-- 3. Usia (Tahun) --}}
+                        <div class="rounded-2xl border bg-slate-50/60 p-3.5 sm:p-4 space-y-2.5 transition-colors"
+                             :class="bmiErrors.age ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200/80'">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                                <div>
+                                    <label for="bmi-age-input" class="text-xs font-bold text-slate-700">Usia (Tahun)</label>
+                                    <p class="text-[11px] text-slate-400">Digunakan untuk kebutuhan cairan AKG &amp; catatan usia (10–100 thn)</p>
+                                </div>
+
+                                <div class="flex items-center gap-1.5 sm:w-48">
+                                    <button type="button"
+                                        @click="bmiStep('bmiAge', -1, 10, 100, 0)"
+                                        :disabled="Number(bmiAge) <= 10"
+                                        aria-label="Kurangi usia 1 tahun"
+                                        class="w-11 h-11 min-w-[44px] rounded-xl border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold text-base flex items-center justify-center transition-colors cursor-pointer active:scale-95">
+                                        &minus;
+                                    </button>
+                                    <div class="relative flex-1">
+                                        <input id="bmi-age-input"
+                                            type="number"
+                                            inputmode="numeric"
+                                            min="10"
+                                            max="100"
+                                            step="1"
+                                            :value="bmiAge"
+                                            @keydown="bmiBlockInvalidKeys($event, false)"
+                                            @input="bmiSanitizeField('bmiAge', $event, false)"
+                                            aria-label="Usia dalam tahun"
+                                            class="bmi-number-input glass-input w-full h-11 pl-3 pr-9 text-center text-sm sm:text-base font-extrabold text-slate-900 tabular-nums"
+                                            :class="bmiErrors.age ? 'border-rose-400 focus:border-rose-500' : ''">
+                                        <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">thn</span>
+                                    </div>
+                                    <button type="button"
+                                        @click="bmiStep('bmiAge', 1, 10, 100, 0)"
+                                        :disabled="Number(bmiAge) >= 100"
+                                        aria-label="Tambah usia 1 tahun"
+                                        class="w-11 h-11 min-w-[44px] rounded-xl border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold text-base flex items-center justify-center transition-colors cursor-pointer active:scale-95">
+                                        +
                                     </button>
                                 </div>
                             </div>
 
-                            {{-- Usia --}}
-                            <div class="space-y-1.5">
-                                <label class="block text-xs font-bold text-stone-700">Usia (Tahun)</label>
-                                <input type="number"
-                                    x-model.number="bmiAge"
-                                    min="10" max="100"
-                                    class="glass-input w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-stone-800">
-                            </div>
+                            <p x-show="bmiErrors.age" x-cloak class="text-[11px] font-semibold text-rose-600 flex items-center gap-1">
+                                <span>!</span>
+                                <span x-text="bmiErrors.age"></span>
+                            </p>
+
+                            <p x-show="bmiIsUnder18" x-cloak class="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200/80 rounded-xl px-3 py-2">
+                                Catatan: Klasifikasi IMT dewasa Kemenkes ditujukan untuk usia &ge; 18 tahun. Untuk usia di bawah 18 tahun, penilaian gizi menggunakan kurva IMT menurut umur (IMT/U).
+                            </p>
                         </div>
 
-                        {{-- Standar Rujukan Box --}}
-                        <div class="p-4 rounded-xl bg-stone-50 border border-stone-200/70 text-xs text-stone-600 space-y-1.5">
-                            <div class="font-bold text-stone-800">Kategori Standar Kemenkes RI:</div>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
-                                <div class="p-2 rounded-lg bg-white border border-stone-200/80">&lt; 18.5: Kurus</div>
-                                <div class="p-2 rounded-lg bg-white border border-emerald-200 text-emerald-800 font-semibold">18.5 - 25.0: Normal</div>
-                                <div class="p-2 rounded-lg bg-white border border-stone-200/80">25.1 - 27.0: Gemuk</div>
-                                <div class="p-2 rounded-lg bg-white border border-stone-200/80">&gt; 27.0: Obesitas</div>
+                        {{-- 4. Kartu Referensi Kategori Kemenkes RI (Berubah Dinamis Sesuai Gender & Menyala Saat Aktif) --}}
+                        <div class="p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-2.5">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="text-xs font-bold text-slate-800">
+                                    Kategori Standar Kemenkes RI &mdash;
+                                    <span :class="bmiGender === 'l' ? 'text-blue-600' : 'text-pink-600'" x-text="bmiThresholds.genderLabel"></span>
+                                </div>
+                                <span class="text-[10px] font-medium text-slate-400">Otomatis mengikuti gender</span>
+                            </div>
+
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                                <div class="p-2.5 rounded-xl border transition-all"
+                                     :class="bmiCategory.key === 'kurus' ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-100 text-amber-900 font-bold' : 'bg-white border-slate-200/80 text-slate-600'">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold" x-text="bmiThresholds.underText"></span>
+                                        <span x-show="bmiCategory.key === 'kurus'" class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                    </div>
+                                    <div class="mt-0.5 text-[10px] opacity-85">Kurus</div>
+                                </div>
+
+                                <div class="p-2.5 rounded-xl border transition-all"
+                                     :class="bmiCategory.key === 'normal' ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-100 text-emerald-900 font-bold' : 'bg-white border-emerald-200/70 text-emerald-800'">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold" x-text="bmiThresholds.normalText"></span>
+                                        <span x-show="bmiCategory.key === 'normal'" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    </div>
+                                    <div class="mt-0.5 text-[10px] opacity-85">Normal (Ideal)</div>
+                                </div>
+
+                                <div class="p-2.5 rounded-xl border transition-all"
+                                     :class="bmiCategory.key === 'gemuk' ? 'bg-orange-50 border-orange-400 ring-2 ring-orange-100 text-orange-900 font-bold' : 'bg-white border-slate-200/80 text-slate-600'">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold" x-text="bmiThresholds.overText"></span>
+                                        <span x-show="bmiCategory.key === 'gemuk'" class="w-2 h-2 rounded-full bg-orange-500"></span>
+                                    </div>
+                                    <div class="mt-0.5 text-[10px] opacity-85">Gemuk</div>
+                                </div>
+
+                                <div class="p-2.5 rounded-xl border transition-all"
+                                     :class="bmiCategory.key === 'obesitas' ? 'bg-red-50 border-red-400 ring-2 ring-red-100 text-red-900 font-bold' : 'bg-white border-slate-200/80 text-slate-600'">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold" x-text="bmiThresholds.obeseText"></span>
+                                        <span x-show="bmiCategory.key === 'obesitas'" class="w-2 h-2 rounded-full bg-red-500"></span>
+                                    </div>
+                                    <div class="mt-0.5 text-[10px] opacity-85">Obesitas</div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {{-- Hasil Perhitungan --}}
-                    <div class="lg:col-span-5 rounded-2xl p-6 bg-gradient-to-br from-white via-blue-50/30 to-sky-50/20 border border-blue-100 shadow-xs flex flex-col justify-between">
-                        <div>
-                            <span class="text-xs font-bold text-stone-500 uppercase tracking-wider">Hasil BMI Anda</span>
-                            <div class="flex items-baseline gap-2 mt-2">
-                                <span class="text-4xl font-extrabold text-stone-900 tracking-tight" x-text="bmiValue"></span>
-                                <span class="text-xs text-stone-500">kg/m²</span>
+                    {{-- ========================================================
+                         KOLOM KANAN: PANEL HASIL INTERAKTIF & GAUGE
+                         ======================================================== --}}
+                    <div class="lg:col-span-5">
+                        <div class="rounded-2xl p-4 sm:p-6 bg-gradient-to-br border shadow-xs space-y-5 transition-colors"
+                             :class="bmiGender === 'l' ? 'from-white via-blue-50/35 to-sky-50/25 border-blue-100' : 'from-white via-pink-50/35 to-rose-50/20 border-pink-100'">
+
+                            {{-- Score + Badge --}}
+                            <div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Hasil Skrining IMT</span>
+                                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold"
+                                          :class="bmiGender === 'l' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'"
+                                          x-text="bmiThresholds.genderLabel"></span>
+                                </div>
+
+                                <div class="flex flex-wrap items-baseline justify-between gap-3 mt-2.5">
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight tabular-nums" x-text="bmiValue"></span>
+                                        <span class="text-xs font-semibold text-slate-500">kg/m&sup2;</span>
+                                    </div>
+
+                                    <span :class="[bmiCategory.bg, bmiCategory.color, bmiCategory.border]"
+                                        class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border"
+                                        x-text="bmiCategory.label">
+                                    </span>
+                                </div>
                             </div>
 
-                            <div class="mt-3">
-                                <span :class="[bmiCategory.bg, bmiCategory.color, bmiCategory.border]"
-                                    class="inline-block px-3 py-1 rounded-full text-xs font-bold border"
-                                    x-text="bmiCategory.label">
+                            {{-- Interactive Visual Gauge Bar (Segmen Berubah Saat Ganti Gender) --}}
+                            <div class="space-y-1.5">
+                                <div class="relative pt-3 pb-1">
+                                    {{-- Indicator Pin --}}
+                                    <div x-show="bmiIsValid"
+                                         x-cloak
+                                         class="absolute top-0 -translate-x-1/2 transition-all duration-300 ease-out z-10 flex flex-col items-center pointer-events-none"
+                                         :style="'left: ' + bmiGaugePercent + '%'">
+                                        <span class="w-3 h-3 rounded-full bg-slate-900 border-2 border-white shadow-sm"></span>
+                                        <span class="w-0.5 h-3 bg-slate-900/80"></span>
+                                    </div>
+
+                                    {{-- 4 Colored Segments --}}
+                                    <div class="h-3 w-full rounded-full overflow-hidden flex bg-slate-100 shadow-inner">
+                                        <div class="h-full bg-amber-400 transition-all duration-300" :style="'width: ' + bmiGaugeSegments.kurus + '%'" title="Kurus"></div>
+                                        <div class="h-full bg-emerald-500 transition-all duration-300" :style="'width: ' + bmiGaugeSegments.normal + '%'" title="Normal"></div>
+                                        <div class="h-full bg-orange-400 transition-all duration-300" :style="'width: ' + bmiGaugeSegments.gemuk + '%'" title="Gemuk"></div>
+                                        <div class="h-full bg-red-500 transition-all duration-300" :style="'width: ' + bmiGaugeSegments.obesitas + '%'" title="Obesitas"></div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between text-[10px] font-semibold text-slate-400 tabular-nums">
+                                    <span>12</span>
+                                    <span class="text-amber-700" x-text="bmiThresholds.underMax.toFixed(1)"></span>
+                                    <span class="text-emerald-700 font-bold" x-text="bmiThresholds.normalMax.toFixed(1)"></span>
+                                    <span class="text-orange-700" x-text="bmiThresholds.overMax.toFixed(1)"></span>
+                                    <span>36+</span>
+                                </div>
+                            </div>
+
+                            {{-- Selisih ke Berat Ideal --}}
+                            <div x-show="bmiWeightDelta" x-cloak
+                                 class="rounded-xl px-3.5 py-2.5 text-xs font-semibold border"
+                                 :class="{
+                                     'bg-emerald-50 border-emerald-200 text-emerald-800': bmiWeightDelta && bmiWeightDelta.tone === 'emerald',
+                                     'bg-amber-50 border-amber-200 text-amber-800': bmiWeightDelta && bmiWeightDelta.tone === 'amber',
+                                     'bg-orange-50 border-orange-200 text-orange-800': bmiWeightDelta && bmiWeightDelta.tone === 'orange'
+                                 }"
+                                 x-text="bmiWeightDelta ? bmiWeightDelta.text : ''">
+                            </div>
+
+                            {{-- Ringkasan Metrik Spesifik Gender Kemenkes --}}
+                            <div class="pt-4 border-t border-slate-200/70 space-y-2.5 text-xs">
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-slate-500">Rentang Berat Ideal (IMT):</span>
+                                    <span class="font-bold text-slate-900 tabular-nums text-right" x-text="idealWeightRange"></span>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-slate-500">
+                                        Target Ideal Broca <span class="text-[10px] text-slate-400" x-text="'(' + bmiThresholds.brocaFormulaText + ')'"></span>:
+                                    </span>
+                                    <span class="font-bold text-slate-900 tabular-nums text-right" x-text="brocaIdealWeight"></span>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-slate-500">Batas Lingkar Perut Sehat:</span>
+                                    <span class="font-bold text-slate-900 tabular-nums text-right" x-text="bmiThresholds.waistLimit"></span>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-slate-500">Kebutuhan Air Harian (AKG):</span>
+                                    <span class="font-bold text-slate-900 text-right" x-text="bmiWaterRecommendation"></span>
+                                </div>
+                            </div>
+
+                            {{-- Interactive Save Action --}}
+                            <div class="pt-1">
+                                <button type="button"
+                                    @click="saveBmiHistory()"
+                                    :disabled="!bmiIsValid"
+                                    class="w-full min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                                    :class="bmiSavedFlash
+                                        ? 'bg-emerald-600 text-white shadow-xs'
+                                        : (bmiGender === 'l' ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs' : 'bg-pink-600 hover:bg-pink-700 text-white shadow-xs')">
+                                    <span x-text="bmiSavedFlash ? '✓ Tersimpan di Tabel Riwayat' : 'Simpan Hasil Cek'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            {{-- ========================================================
+                 TABEL BESAR FULL-WIDTH: RIWAYAT HASIL CEK BMI
+                 ======================================================== --}}
+            <div class="glass-card rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-xs space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <h4 class="text-sm sm:text-base font-bold text-slate-900">Riwayat Hasil Cek BMI</h4>
+                        <span class="badge badge--blue" x-text="bmiHistory.length + ' tersimpan'"></span>
+                    </div>
+
+                    <button type="button"
+                        x-show="bmiHistory.length > 0"
+                        x-cloak
+                        @click="clearBmiHistory()"
+                        class="text-xs font-semibold text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-xl border border-rose-200/80 bg-rose-50/50 hover:bg-rose-50 transition-colors cursor-pointer">
+                        Hapus Semua
+                    </button>
+                </div>
+
+                {{-- Empty State --}}
+                <div x-show="bmiHistory.length === 0"
+                     class="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 py-8 px-4 text-center">
+                    <p class="text-xs sm:text-sm font-medium text-slate-500">
+                        Belum ada riwayat cek tersimpan. Tekan tombol <strong class="text-slate-700">Simpan Hasil Cek</strong> di atas untuk mencatat riwayat perhitungan BMI Anda.
+                    </p>
+                </div>
+
+                {{-- Desktop & Tablet Full Table --}}
+                <div x-show="bmiHistory.length > 0" x-cloak class="hidden sm:block overflow-x-auto rounded-xl border border-slate-200/80">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/90 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                <th class="py-3 px-4">Waktu Cek</th>
+                                <th class="py-3 px-4">Jenis Kelamin</th>
+                                <th class="py-3 px-4">Data Tubuh (TB / BB / Usia)</th>
+                                <th class="py-3 px-4">Skor IMT</th>
+                                <th class="py-3 px-4">Kategori Kemenkes</th>
+                                <th class="py-3 px-4 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-xs bg-white">
+                            <template x-for="item in bmiHistory" :key="item.id">
+                                <tr class="hover:bg-slate-50/70 transition-colors">
+                                    <td class="py-3 px-4 text-slate-500 whitespace-nowrap" x-text="item.date"></td>
+                                    <td class="py-3 px-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border"
+                                              :class="item.gender === 'p' ? 'bg-pink-50 text-pink-700 border-pink-200' : 'bg-blue-50 text-blue-700 border-blue-200'"
+                                              x-text="item.genderLabel">
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-4 text-slate-700 font-medium tabular-nums whitespace-nowrap"
+                                        x-text="item.height + ' cm  •  ' + item.weight + ' kg  •  ' + item.age + ' thn'"></td>
+                                    <td class="py-3 px-4 whitespace-nowrap">
+                                        <span class="text-sm font-extrabold text-slate-900 tabular-nums" x-text="item.bmi"></span>
+                                        <span class="text-[11px] text-slate-400">kg/m&sup2;</span>
+                                    </td>
+                                    <td class="py-3 px-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border"
+                                              :class="{
+                                                  'bg-amber-50 text-amber-700 border-amber-200': item.categoryKey === 'kurus',
+                                                  'bg-emerald-50 text-emerald-700 border-emerald-200': item.categoryKey === 'normal',
+                                                  'bg-orange-50 text-orange-700 border-orange-200': item.categoryKey === 'gemuk',
+                                                  'bg-red-50 text-red-700 border-red-200': item.categoryKey === 'obesitas'
+                                              }"
+                                              x-text="item.category">
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-4 text-right whitespace-nowrap">
+                                        <div class="inline-flex items-center gap-1.5">
+                                            <button type="button"
+                                                @click="loadBmiHistory(item)"
+                                                class="px-2.5 py-1.5 rounded-lg border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-700 text-[11px] font-bold transition-colors cursor-pointer">
+                                                Muat
+                                            </button>
+                                            <button type="button"
+                                                @click="removeBmiHistory(item.id)"
+                                                class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 text-[11px] font-bold transition-colors cursor-pointer">
+                                                Hapus
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- Mobile Full-Width Cards --}}
+                <div x-show="bmiHistory.length > 0" x-cloak class="sm:hidden space-y-2.5">
+                    <template x-for="item in bmiHistory" :key="item.id">
+                        <div class="rounded-xl border border-slate-200/80 bg-white p-3.5 space-y-2.5">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-base font-extrabold text-slate-900 tabular-nums" x-text="item.bmi"></span>
+                                        <span class="text-[11px] text-slate-400">kg/m&sup2;</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                                              :class="item.gender === 'p' ? 'bg-pink-50 text-pink-700 border-pink-200' : 'bg-blue-50 text-blue-700 border-blue-200'"
+                                              x-text="item.genderLabel"></span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500 mt-0.5 tabular-nums"
+                                       x-text="item.height + ' cm • ' + item.weight + ' kg • ' + item.age + ' thn'"></p>
+                                </div>
+
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0"
+                                      :class="{
+                                          'bg-amber-50 text-amber-700 border-amber-200': item.categoryKey === 'kurus',
+                                          'bg-emerald-50 text-emerald-700 border-emerald-200': item.categoryKey === 'normal',
+                                          'bg-orange-50 text-orange-700 border-orange-200': item.categoryKey === 'gemuk',
+                                          'bg-red-50 text-red-700 border-red-200': item.categoryKey === 'obesitas'
+                                      }"
+                                      x-text="item.category.split(' ')[0]">
                                 </span>
                             </div>
 
-                            <p class="text-xs text-stone-600 mt-4 leading-relaxed" x-text="bmiCategory.desc"></p>
-
-                            <div class="mt-6 pt-4 border-t border-slate-100 space-y-2 text-xs">
-                                <div class="flex justify-between text-stone-600">
-                                    <span>Rentang Berat Ideal Anda:</span>
-                                    <span class="font-bold text-stone-800" x-text="idealWeightRange"></span>
-                                </div>
-                                <div class="flex justify-between text-stone-600">
-                                    <span>Rekomendasi Air Harian:</span>
-                                    <span class="font-bold text-stone-800">~ 2.2 - 2.5 Liter</span>
+                            <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                                <span class="text-[10px] text-slate-400" x-text="item.date"></span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button"
+                                        @click="loadBmiHistory(item)"
+                                        class="min-h-[36px] px-3 py-1 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-[11px] font-bold cursor-pointer">
+                                        Muat
+                                    </button>
+                                    <button type="button"
+                                        @click="removeBmiHistory(item.id)"
+                                        class="min-h-[36px] px-3 py-1 rounded-lg border border-rose-200 bg-white text-rose-600 text-[11px] font-bold cursor-pointer">
+                                        Hapus
+                                    </button>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="mt-6 text-[11px] text-stone-400 italic">
-                            *Perhitungan ini merupakan perkiraan skrining gizi umum dan tidak menggantikan anjuran medis profesional.
-                        </div>
-                    </div>
+                    </template>
                 </div>
             </div>
         </section>
