@@ -55,7 +55,21 @@
             <span class="flex-1 leading-snug">Komunitas &amp; Kegiatan</span>
         </button>
 
-        {{-- 2. Eksplorasi Event --}}
+        {{-- 2. Eksplor Komunitas --}}
+        <button type="button"
+           @click="setSection('eksplor')"
+           :class="activeSection === 'eksplor' ? 'nav-item--active' : ''"
+           class="nav-item w-full"
+           id="nav-eksplor">
+            <span class="nav-icon" :class="activeSection === 'eksplor' ? 'nav-icon--active' : ''">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </span>
+            <span class="flex-1 leading-snug">Eksplore Komunitas</span>
+        </button>
+
+        {{-- 3. Eksplorasi Event --}}
         <button type="button"
            @click="setSection('events')"
            :class="activeSection === 'events' ? 'nav-item--active' : ''"
@@ -71,7 +85,7 @@
             <span class="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" aria-label="Ada event mendatang"></span>
         </button>
 
-        {{-- 3. Jadwal & Agenda --}}
+        {{-- 4. Jadwal & Agenda --}}
         <button type="button"
            @click="setSection('agenda')"
            :class="activeSection === 'agenda' ? 'nav-item--active' : ''"
@@ -85,7 +99,7 @@
             <span class="flex-1 leading-snug">Jadwal &amp; Agenda</span>
         </button>
 
-        {{-- 4. Leaderboard --}}
+        {{-- 5. Leaderboard --}}
         <button type="button"
            @click="setSection('leaderboard')"
            :class="activeSection === 'leaderboard' ? 'nav-item--active' : ''"
@@ -104,7 +118,7 @@
             Kebugaran &amp; Aktivitas
         </div>
 
-        {{-- 5. Penghitung BMI --}}
+        {{-- 6. Penghitung BMI --}}
         <button type="button"
            @click="setSection('bmi')"
            :class="activeSection === 'bmi' ? 'nav-item--active' : ''"
@@ -119,7 +133,7 @@
             <span class="flex-1 leading-snug">Penghitung BMI</span>
         </button>
 
-        {{-- 6. Streak & Poin --}}
+        {{-- 7. Streak & Poin --}}
         <button type="button"
            @click="setSection('streak')"
            :class="activeSection === 'streak' ? 'nav-item--active' : ''"
@@ -133,7 +147,7 @@
             <span class="flex-1 leading-snug">Streak &amp; Poin Olahraga</span>
         </button>
 
-        {{-- 7. Menu Edukasi --}}
+        {{-- 8. Menu Edukasi --}}
         <button type="button"
            @click="setSection('edukasi')"
            :class="activeSection === 'edukasi' ? 'nav-item--active' : ''"
@@ -147,7 +161,7 @@
             <span class="flex-1 leading-snug">Menu Edukasi</span>
         </button>
 
-        {{-- 8. Riwayat Aktivitas --}}
+        {{-- 9. Riwayat Aktivitas --}}
         <button type="button"
            @click="setSection('riwayat')"
            :class="activeSection === 'riwayat' ? 'nav-item--active' : ''"
@@ -161,7 +175,7 @@
             <span class="flex-1 leading-snug">Riwayat Aktivitas</span>
         </button>
 
-        {{-- 9. Laporan Saya (AD-05) --}}
+        {{-- 10. Laporan Saya (AD-05) --}}
         <a href="{{ route('user.reports.index') }}"
            class="nav-item w-full {{ request()->routeIs('user.reports.*') ? 'nav-item--active' : '' }}"
            id="nav-reports">
