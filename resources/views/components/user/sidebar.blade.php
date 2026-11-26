@@ -108,11 +108,12 @@
         <button type="button"
            @click="setSection('bmi')"
            :class="activeSection === 'bmi' ? 'nav-item--active' : ''"
-           class="nav-item w-full"
+           :aria-current="activeSection === 'bmi' ? 'page' : false"
+           class="nav-item w-full py-2.5 lg:py-2"
            id="nav-bmi">
             <span class="nav-icon" :class="activeSection === 'bmi' ? 'nav-icon--active' : ''">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 10h16M10 13h4M10 16h4M6 19h12a1 1 0 001-1V6a1 1 0 00-1-1H6a1 1 0 00-1 1v12a1 1 0 001 1z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V7a2 2 0 012-2zm4.5 9a3.5 3.5 0 017 0m-3.5 0l1.75-2.25"/>
                 </svg>
             </span>
             <span class="flex-1 leading-snug">Penghitung BMI</span>
