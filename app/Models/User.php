@@ -53,6 +53,10 @@ class User extends Authenticatable
             return $this->avatar;
         }
 
+        if (str_starts_with($this->avatar, '/storage/') || str_starts_with($this->avatar, 'storage/')) {
+            return asset(ltrim($this->avatar, '/'));
+        }
+
         return \Illuminate\Support\Facades\Storage::url($this->avatar);
     }
 
