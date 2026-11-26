@@ -30,7 +30,7 @@ class UserAuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'nama'      => ['required', 'string', 'max:255', 'unique:users,name'],
+            'nama'      => ['required', 'string', 'max:255', 'regex:/^[^\d]+$/', 'unique:users,name'],
             'username'  => ['required', 'string', 'max:50', 'unique:users,username', 'regex:/^[a-zA-Z0-9_.]+$/'],
             'email'     => ['required', 'email', 'max:255', 'unique:users,email'],
             'whatsapp'  => ['required', 'string', 'max:20'],
@@ -38,11 +38,13 @@ class UserAuthController extends Controller
             'terms'     => ['accepted'],
         ], [
             'nama.required'      => 'Nama lengkap wajib diisi.',
+            'nama.regex'         => 'Nama lengkap tidak boleh mengandung angka.',
             'nama.unique'        => 'Nama ini sudah digunakan, silakan pilih nama lain.',
             'username.required'  => 'Username wajib diisi.',
             'username.unique'    => 'Username ini sudah dipakai.',
             'username.regex'     => 'Username hanya boleh berisi huruf, angka, garis bawah (_), dan titik (.).',
             'email.required'     => 'Alamat email wajib diisi.',
+            'email.email'        => 'Format alamat email tidak valid.',
             'email.unique'       => 'Email ini sudah terdaftar, silakan masuk.',
             'whatsapp.required'  => 'Nomor WhatsApp wajib diisi.',
             'password.required'  => 'Kata sandi wajib diisi.',
@@ -60,11 +62,9 @@ class UserAuthController extends Controller
             'role'     => 'user',
         ]);
 
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->route('user.onboarding.sports')
-            ->with('success', 'Akun berhasil dibuat! Silakan tentukan cabang olahraga minatmu.');
+        return redirect()->route('auth.user.register')
+            ->with('registered_success', 'Pendaftaran berhasil! Akun kamu telah dibuat.')
+            ->with('registered_email', $user->email);
     }
 
     /**
@@ -98,7 +98,7 @@ class UserAuthController extends Controller
                 Auth::logout();
                 return back()->withErrors([
                     'login' => 'Akun ini bukan akun pengguna biasa.',
-                ])->withInput($request->only('login'));
+                ])->withInput($request->only('login', 'form_type'));
             }
 
             return redirect()->intended(route('user.dashboard'))
@@ -107,7 +107,7 @@ class UserAuthController extends Controller
 
         return back()->withErrors([
             'login' => 'Email/Username atau kata sandi yang kamu masukkan salah.',
-        ])->withInput($request->only('login'));
+        ])->withInput($request->only('login', 'form_type'));
     }
 
     /**
