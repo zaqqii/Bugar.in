@@ -2408,69 +2408,61 @@
             </div>
 
             {{-- Editorial 3-col: variasi ukuran dan warna kartu --}}
+            @php
+                $dashboardPublishedContents = \App\Models\Content::query()
+                    ->where('status', 'published')
+                    ->orderByDesc('published_at')
+                    ->limit(3)
+                    ->get();
+
+                $cardThemes = [
+                    ['border' => 'border-blue-100', 'bar' => 'from-blue-600 to-cyan-400', 'badge' => 'badge--blue', 'link' => 'text-blue-600'],
+                    ['border' => 'border-emerald-100', 'bar' => 'from-emerald-500 to-teal-400', 'badge' => 'badge--green', 'link' => 'text-emerald-600'],
+                    ['border' => 'border-amber-100', 'bar' => 'from-amber-500 to-orange-400', 'badge' => 'badge--amber', 'link' => 'text-amber-600'],
+                ];
+
+                $typeLabels = [
+                    'tip' => 'Tips',
+                    'article' => 'Artikel',
+                    'announcement' => 'Pengumuman',
+                    'news' => 'Berita',
+                ];
+            @endphp
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {{-- Artikel 1: Tips Latihan — Blue accent --}}
-                <div class="glass-card rounded-2xl overflow-hidden border border-blue-100 flex flex-col hover:-translate-y-1 transition-transform duration-200">
-                    <div class="h-3 bg-gradient-to-r from-blue-600 to-blue-400"></div>
-                    <div class="p-6 flex flex-col flex-1">
-                        <span class="badge badge--blue mb-3">Tips Latihan</span>
-                        <h4 class="text-base font-bold text-slate-900 leading-snug">
-                            Pentingnya Pemanasan Dinamis Sebelum Berolahraga
-                        </h4>
-                        <p class="text-xs text-slate-500 mt-2 leading-relaxed flex-1">
-                            Pemanasan dinamis membantu menaikkan suhu inti otot dan melumasi sendi untuk mencegah risiko cedera mendadak saat sesi berintensitas tinggi.
-                        </p>
-                        <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                            <span class="flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                3 Menit Baca
-                            </span>
-                            <a href="{{ route('user.edukasi.show', 'pemanasan-sebelum-lari-pagi') }}" class="text-blue-600 font-semibold hover:underline">Baca &rarr;</a>
+                @forelse($dashboardPublishedContents as $article)
+                    @php
+                        $theme = $cardThemes[$loop->index % count($cardThemes)];
+                        $typeLabel = $typeLabels[$article->type] ?? ucfirst($article->type);
+                    @endphp
+                    <div class="glass-card rounded-2xl overflow-hidden border {{ $theme['border'] }} flex flex-col hover:-translate-y-1 transition-transform duration-200">
+                        <div class="h-3 bg-gradient-to-r {{ $theme['bar'] }}"></div>
+                        <div class="p-6 flex flex-col flex-1">
+                            <span class="badge {{ $theme['badge'] }} mb-3 self-start">{{ $typeLabel }}</span>
+                            <h4 class="text-base font-bold text-slate-900 leading-snug">
+                                <a href="{{ route('user.edukasi.show', $article->slug) }}" class="hover:opacity-80 transition-opacity">
+                                    {{ $article->title }}
+                                </a>
+                            </h4>
+                            <p class="text-xs text-slate-500 mt-2 leading-relaxed flex-1">
+                                {{ $article->excerpt ?: \Illuminate\Support\Str::limit($article->body, 130) }}
+                            </p>
+                            <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                                <span>
+                                    {{ $article->published_at?->translatedFormat('d M Y') ?? 'Terbit' }}
+                                </span>
+                                <a href="{{ route('user.edukasi.show', $article->slug) }}"
+                                class="{{ $theme['link'] }} font-semibold hover:underline inline-flex items-center gap-1">
+                                    <span>Baca</span>
+                                    <span aria-hidden="true">&rarr;</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                {{-- Artikel 2: Nutrisi — Emerald accent, slightly taller --}}
-                <div class="glass-card rounded-2xl overflow-hidden border border-emerald-100 flex flex-col hover:-translate-y-1 transition-transform duration-200">
-                    <div class="h-3 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
-                    <div class="p-6 flex flex-col flex-1">
-                        <span class="badge badge--green mb-3">Nutrisi &amp; Hidrasi</span>
-                        <h4 class="text-base font-bold text-slate-900 leading-snug">
-                            Panduan Hidrasi yang Tepat untuk Iklim Tropis
-                        </h4>
-                        <p class="text-xs text-slate-500 mt-2 leading-relaxed flex-1">
-                            Keringat berlebih di Indonesia mempercepat kehilangan elektrolit. Minum 250ml air setiap 20 menit berolahraga untuk menjaga fokus dan stamina.
-                        </p>
-                        <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                            <span class="flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                4 Menit Baca
-                            </span>
-                            <a href="{{ route('user.edukasi.show', 'panduan-hidrasi-iklim-tropis') }}" class="text-emerald-600 font-semibold hover:underline">Baca &rarr;</a>
-                        </div>
+                @empty
+                    <div class="col-span-full glass-card rounded-2xl p-8 text-center text-xs text-slate-500">
+                        Belum ada konten edukasi yang diterbitkan.
                     </div>
-                </div>
-
-                {{-- Artikel 3: Pemulihan — Orange accent --}}
-                <div class="glass-card rounded-2xl overflow-hidden border border-orange-100 flex flex-col hover:-translate-y-1 transition-transform duration-200">
-                    <div class="h-3 bg-gradient-to-r from-orange-400 to-amber-400"></div>
-                    <div class="p-6 flex flex-col flex-1">
-                        <span class="badge badge--orange mb-3">Pemulihan Otot</span>
-                        <h4 class="text-base font-bold text-slate-900 leading-snug">
-                            Tidur dan Manajemen Rest Day Berkualitas
-                        </h4>
-                        <p class="text-xs text-slate-500 mt-2 leading-relaxed flex-1">
-                            Otot bertumbuh dan memperbaiki seratnya saat beristirahat. Pastikan tidur 7-8 jam per malam untuk menjaga performa konsisten jangka panjang.
-                        </p>
-                        <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                            <span class="flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                5 Menit Baca
-                            </span>
-                            <a href="{{ route('user.edukasi.show', 'tidur-dan-manajemen-rest-day') }}" class="text-orange-600 font-semibold hover:underline">Baca &rarr;</a>
-                        </div>
-                    </div>
-                </div>
+                @endforelse
             </div>
         </section>
 
