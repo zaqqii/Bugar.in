@@ -431,9 +431,10 @@ Unik: (`user_id`, `sport_category`). Belum ada indeks pada `last_activity_date`.
 | pointable_type, pointable_id | varchar(255), bigint | wajib, objek pemicu poin |
 | description | text | opsional |
 | balance_after | integer | wajib, saldo poin setelah transaksi |
+| dedupe_key | varchar(191) | opsional, unik; kunci idempotensi pemberian poin (migration `2026_11_26_020000_add_dedupe_key_to_points_histories_table`) |
 | created_at, updated_at | timestamp | |
 
-Belum ada UNIQUE di level database untuk mencegah poin ganda; idempotensi saat ini hanya lewat pengecekan di kode.
+Catatan desain `dedupe_key`: Kolom `dedupe_key` mencegah poin ganda akibat race condition atau double-submit (idempotensi). Format kunci: `login:{user_id}:{Y-m-d}` (zona Asia/Jakarta) untuk login harian, `attendance:{participant_id}` untuk kehadiran, dan `attendance-reversal:{participant_id}` untuk pembatalan/pembalikan kehadiran. Query insert menggunakan `ON CONFLICT DO NOTHING` (`insertOrIgnore`) pada transaksi terisolasi tanpa menangkap exception PostgreSQL.
 
 ### reports
 | Kolom | Tipe | Catatan |
