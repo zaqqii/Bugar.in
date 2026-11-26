@@ -331,7 +331,7 @@
                                 <!-- Email Akun -->
                                 <div>
                                     <div class="flex items-center justify-between mb-1.5">
-                                        <label for="email" class="block text-xs font-bold text-slate-700">Email Akun <span class="text-rose-500">*</span></label>
+                                        <label for="email" class="block text-xs font-bold text-slate-700">Email Akun</label>
                                         @if($user->email_verified_at)
                                             <span class="inline-flex items-center gap-1 text-xs font-bold text-cyan-600">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -348,12 +348,13 @@
                                             </svg>
                                         </div>
                                         <input type="email"
-                                               name="email"
                                                id="email"
-                                               x-model="form.email"
-                                               required
-                                               class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/70 border border-slate-200 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none">
+                                               value="{{ $user->email }}"
+                                               readonly
+                                               disabled
+                                               class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-sm font-semibold text-slate-500 cursor-not-allowed select-none outline-none">
                                     </div>
+                                    <p class="mt-1 text-[11px] text-slate-400">Email akun bersifat tetap dan tidak dapat diubah.</p>
                                 </div>
 
                                 <!-- Nomor WhatsApp / Telepon -->

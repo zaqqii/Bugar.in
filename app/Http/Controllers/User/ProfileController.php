@@ -135,7 +135,6 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'nullable|string|max:255|unique:users,username,' . $user->id,
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:25',
             'bio' => 'nullable|string|max:160',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
@@ -169,7 +168,6 @@ class ProfileController extends Controller
         $user->update([
             'name' => $validated['name'],
             'username' => $validated['username'] ?? null,
-            'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
             'bio' => $validated['bio'] ?? null,
             'avatar' => $validated['avatar'] ?? $user->avatar,
