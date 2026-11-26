@@ -88,7 +88,6 @@
                                 Jelajah Komunitas
                             </a>
                             <a href="{{ route('user.dashboard') }}" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Dashboard Saya</a>
-                            <a href="{{ route('landing') }}" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Beranda</a>
                         </nav>
                     </div>
 
@@ -291,7 +290,11 @@
                                         <div class="space-y-2 pt-3 border-t border-slate-100">
                                             <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kategori Olahraga</label>
                                             <div class="space-y-1.5 text-xs max-h-56 overflow-y-auto custom-scrollbar pr-1">
-                                                @foreach($sportCategories ?? [] as $cat)
+                                                @php
+                                                    [$otherCats, $regularCats] = collect($sportCategories ?? [])->partition(fn($cat) => strtolower(trim($cat)) === 'other');
+                                                    $sortedCategories = $regularCats->concat($otherCats);
+                                                @endphp
+                                                @foreach($sortedCategories as $cat)
                                                     @php $catLower = strtolower(trim($cat)); @endphp
                                                     <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-blue-50/50 cursor-pointer transition-colors text-slate-700">
                                                         <span class="flex items-center gap-2.5">
