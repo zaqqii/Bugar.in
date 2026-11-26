@@ -615,7 +615,11 @@
         @endif
         @if(session('success'))
             <div role="status" class="flex items-start gap-3 rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-sm font-semibold text-emerald-800 shadow-xs">
-                <span class="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">✓</span>
+                <span class="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </span>
                 <span>{{ session('success') }}</span>
             </div>
         @endif
@@ -633,7 +637,11 @@
 
         @if(Auth::user()->isJoinBlocked())
             <div role="alert" class="flex items-start gap-3 rounded-2xl bg-amber-50 border border-amber-200 p-4 sm:p-5 text-sm font-semibold text-amber-900 shadow-xs">
-                <span class="flex-shrink-0 text-2xl">⚠️</span>
+                <span class="flex-shrink-0 text-2xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </span>
                 <div>
                     <h4 class="font-bold text-sm sm:text-base text-amber-950">Pendaftaran Jadwal Sedang Dibatasi</h4>
                     <p class="mt-0.5 text-xs text-amber-800">
@@ -687,7 +695,11 @@
                 @endphp
                 <article class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50/90 via-white to-cyan-50/80 p-4 sm:p-5 shadow-xs">
                     <div class="flex min-w-0 flex-1 items-start gap-3.5">
-                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white font-bold text-lg shadow-xs" aria-hidden="true">⚡</span>
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-xs" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </span>
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2">
                                 <span class="rounded-full bg-blue-600 text-white px-2 py-0.5 text-[10px] font-bold">Hari Ini</span>
@@ -695,9 +707,25 @@
                                 <h3 class="text-sm sm:text-base font-extrabold text-slate-900 truncate">{{ $todayJoinedSchedule->title }}</h3>
                             </div>
                             <p class="mt-1 text-xs text-slate-600 flex flex-wrap items-center gap-x-3 gap-y-1">
-                                <span>⏰ {{ substr($todayJoinedSchedule->start_time, 0, 5) }} - {{ substr($todayJoinedSchedule->end_time, 0, 5) }} WIB</span>
-                                <span>📍 {{ $todayJoinedSchedule->location }}</span>
-                                <span>👥 {{ $todayJoinedSchedule->community?->name }}</span>
+                                <span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg> 
+                                    {{ substr($todayJoinedSchedule->start_time, 0, 5) }} - {{ substr($todayJoinedSchedule->end_time, 0, 5) }} WIB
+                                </span>
+                                <span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg> 
+                                    {{ $todayJoinedSchedule->location }}
+                                </span>
+                                <span> 
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                    {{ $todayJoinedSchedule->community?->name }}
+                                </span>
                             </p>
                         </div>
                     </div>
@@ -716,7 +744,17 @@
                     @foreach($announcements as $announcement)
                         <article class="flex flex-wrap items-start justify-between gap-3 rounded-xl border {{ $announcement->read_at ? 'border-slate-100 bg-white/70' : 'border-cyan-100 bg-white' }} p-4">
                             <div class="flex min-w-0 flex-1 items-start gap-3">
-                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $announcement->type === 'event_reminder' ? 'bg-cyan-100 text-cyan-700' : 'bg-blue-100 text-blue-700' }}" aria-hidden="true">{{ $announcement->type === 'event_reminder' ? '📅' : '🏃' }}</span>
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $announcement->type === 'event_reminder' ? 'bg-cyan-100 text-cyan-700' : 'bg-blue-100 text-blue-700' }}" aria-hidden="true">
+                                    @if($announcement->type === 'event_reminder')
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                    @else
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                        </svg>
+                                    @endif
+                                </span>
                                 <div class="min-w-0">
                                     <div class="flex flex-wrap items-center gap-2">
                                         <h3 class="text-sm font-bold text-slate-900">{{ $announcement->title }}</h3>
@@ -745,7 +783,12 @@
             <div class="relative overflow-hidden rounded-2xl border border-blue-200/80 bg-gradient-to-r from-white via-blue-50/70 to-cyan-50/40 p-6 sm:p-8 shadow-xs">
                 <div class="relative z-10 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
                     <div>
-                        <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-blue-600"><span aria-hidden="true">▦</span> Agenda Olahraga Terjadwal</span>
+                        <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-blue-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span>Agenda Olahraga Terjadwal</span>
+                        </span>
                         <h3 class="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">Jadwal &amp; Agenda Olahraga</h3>
                         <p class="mt-2 max-w-2xl text-sm sm:text-base text-slate-600">Temukan sesi latihan rutin, fun match, dan turnamen dari komunitas yang kamu ikuti.</p>
                     </div>
@@ -770,30 +813,59 @@
                         <div class="flex rounded-xl border border-blue-100 bg-white/90 p-1 sm:col-span-2 shadow-2xs gap-1">
                             <button type="button" @click="agendaScheduleFilter = 'all'"
                                 :class="agendaScheduleFilter === 'all' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'"
-                                class="flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all">
-                                🗓 Semua
+                                class="flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all inline-flex items-center justify-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span>Semua</span>
                             </button>
                             <button type="button" @click="agendaScheduleFilter = 'popular'"
                                 :class="agendaScheduleFilter === 'popular' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'"
-                                class="flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all">
-                                🔥 Terpopuler
+                                class="flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all inline-flex items-center justify-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                                </svg>
+                                <span>Terpopuler</span>
                             </button>
                             <button type="button" @click="agendaScheduleFilter = 'mine'"
                                 :class="agendaScheduleFilter === 'mine' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'"
-                                class="flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all">
-                                ✓ Diikuti Saya
+                                class="flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all inline-flex items-center justify-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span>Diikuti Saya</span>
                             </button>
                         </div>
 
-                        <div class="flex rounded-xl border border-blue-100 bg-white/90 p-1 sm:col-span-2 shadow-2xs">
-                            <button type="button" @click="agendaView = 'calendar'" :class="agendaView === 'calendar' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'" class="flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-all">▦ Kalender Bulan</button>
-                            <button type="button" @click="agendaView = 'list'" :class="agendaView === 'list' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'" class="flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-all">☷ Daftar List</button>
+                        <div class="flex rounded-xl border border-blue-100 bg-white/90 p-1 sm:col-span-2 shadow-2xs gap-1">
+                            <button type="button" @click="agendaView = 'calendar'" :class="agendaView === 'calendar' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'" class="flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-all inline-flex items-center justify-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span>Kalender Bulan</span>
+                            </button>
+                            <button type="button" @click="agendaView = 'list'" :class="agendaView === 'list' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'" class="flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-all inline-flex items-center justify-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                                </svg>
+                                <span>Daftar List</span>
+                            </button>
                         </div>
 
                         {{-- Info badge ketika filter aktif --}}
                         <div x-show="agendaScheduleFilter !== 'all'" class="sm:col-span-2 flex items-center gap-2 rounded-xl bg-blue-50 border border-blue-100 px-3 py-2 text-xs text-blue-700 font-semibold">
-                            <span x-show="agendaScheduleFilter === 'mine'">✓ Menampilkan jadwal yang sudah kamu ikuti</span>
-                            <span x-show="agendaScheduleFilter === 'popular'">🔥 Menampilkan jadwal dengan kepadatan peserta ≥50%</span>
+                            <span x-show="agendaScheduleFilter === 'mine'" class="inline-flex items-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span>Menampilkan jadwal yang sudah kamu ikuti</span>
+                            </span>
+                            <span x-show="agendaScheduleFilter === 'popular'" class="inline-flex items-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                                </svg>
+                                <span>Menampilkan jadwal dengan kepadatan peserta &ge;50%</span>
+                            </span>
                             <button type="button" @click="agendaScheduleFilter = 'all'" class="ml-auto text-[11px] underline text-blue-500">Reset</button>
                         </div>
                     </div>
@@ -812,9 +884,24 @@
                             </div>
                         </div>
                         <div class="flex flex-wrap gap-2 text-[11px] font-semibold text-slate-600">
-                            <span class="rounded-full bg-blue-50 border border-blue-100 px-2.5 py-1 text-blue-700">● Latihan Rutin</span>
-                            <span class="rounded-full bg-cyan-50 border border-cyan-100 px-2.5 py-1 text-cyan-700">● Fun Match</span>
-                            <span class="rounded-full bg-amber-50 border border-amber-100 px-2.5 py-1 text-amber-700">● Turnamen</span>
+                            <span class="rounded-full bg-blue-50 border border-blue-100 px-2.5 py-1 text-blue-700 inline-flex items-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 shrink-0" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                                    <circle cx="4" cy="4" r="4"/>
+                                </svg>
+                                <span>Latihan Rutin</span>
+                            </span>
+                            <span class="rounded-full bg-cyan-50 border border-cyan-100 px-2.5 py-1 text-cyan-700 inline-flex items-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 shrink-0" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                                    <circle cx="4" cy="4" r="4"/>
+                                </svg>
+                                <span>Fun Match</span>
+                            </span>
+                            <span class="rounded-full bg-amber-50 border border-amber-100 px-2.5 py-1 text-amber-700 inline-flex items-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 shrink-0" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                                    <circle cx="4" cy="4" r="4"/>
+                                </svg>
+                                <span>Turnamen</span>
+                            </span>
                         </div>
                     </div>
                     <div class="grid grid-cols-7 gap-1.5 sm:gap-2">
@@ -865,8 +952,18 @@
                                     <div class="flex items-center gap-1.5 flex-wrap">
                                         <span :class="agendaSelectedItem.type === 'latihan_rutin' ? 'bg-blue-100 text-blue-700' : 'bg-cyan-100 text-cyan-700'" class="rounded-full px-3 py-1 text-[10px] font-bold" x-text="agendaSelectedItem.type === 'latihan_rutin' ? 'Latihan Rutin' : agendaSelectedItem.type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')"></span>
                                         <span x-show="agendaSelectedItem.level_label" :class="agendaSelectedItem.level_badge_class || 'bg-slate-100 text-slate-700 border-slate-200'" class="rounded-full px-2.5 py-0.5 text-[10px] font-bold border" x-text="agendaSelectedItem.level_label"></span>
-                                        <span x-show="agendaSelectedItem.is_recurring" class="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700">🔗 Seri</span>
-                                        <span x-show="agendaSelectedItem.streak_enabled" class="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">🔥 Streak Aktif</span>
+                                        <span x-show="agendaSelectedItem.is_recurring" class="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700 inline-flex items-center gap-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                            </svg>
+                                            <span>Seri</span>
+                                        </span>
+                                        <span x-show="agendaSelectedItem.streak_enabled" class="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 inline-flex items-center gap-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                                            </svg>
+                                            <span>Streak Aktif</span>
+                                        </span>
                                     </div>
                                     <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-600" x-text="agendaSelectedItem.sport"></span>
                                 </div>
@@ -884,7 +981,11 @@
                                     <div x-show="isJoinedItem(agendaSelectedItem)"
                                          class="flex items-center justify-between gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
                                         <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
-                                            <span class="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
+                                            <span class="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                            </span>
                                             <span x-text="agendaSelectedItem.is_finished ? 'Terdaftar (Selesai)' : 'Terdaftar'"></span>
                                         </div>
                                         <template x-if="agendaSelectedItem && agendaSelectedItem.kind === 'schedule' && !agendaSelectedItem.is_finished">
@@ -928,7 +1029,11 @@
                             </div>
                         </template>
                         <div x-show="!agendaSelectedItem" class="py-8 text-center">
-                            <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-xl text-blue-600 border border-blue-100">▦</div>
+                            <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                            </div>
                             <h4 class="font-bold text-slate-800">Pilih tanggal agenda</h4>
                             <p class="mt-1 text-xs text-slate-500">Pilih tanggal pada kalender untuk melihat detail kegiatan.</p>
                         </div>
@@ -960,9 +1065,24 @@
                         <div class="flex items-center gap-2 flex-wrap pr-8">
                             <span :class="modalScheduleItem.type === 'latihan_rutin' ? 'bg-blue-100 text-blue-700' : 'bg-cyan-100 text-cyan-700'" class="rounded-full px-2.5 py-0.5 text-[10px] font-bold" x-text="modalScheduleItem.type === 'latihan_rutin' ? 'Latihan Rutin' : modalScheduleItem.type"></span>
                             <span x-show="modalScheduleItem.level_label" :class="modalScheduleItem.level_badge_class || 'bg-slate-100 text-slate-700 border-slate-200'" class="rounded-full px-2.5 py-0.5 text-[10px] font-bold border" x-text="modalScheduleItem.level_label"></span>
-                            <span x-show="modalScheduleItem.is_recurring" class="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700">🔗 Seri</span>
-                            <span x-show="modalScheduleItem.streak_enabled" class="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">🔥 Streak Aktif</span>
-                            <span x-show="modalScheduleItem.is_finished" class="rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">✓ Selesai</span>
+                            <span x-show="modalScheduleItem.is_recurring" class="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700 inline-flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                </svg>
+                                <span>Seri</span>
+                            </span>
+                            <span x-show="modalScheduleItem.streak_enabled" class="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700 inline-flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                                </svg>
+                                <span>Streak Aktif</span>
+                            </span>
+                            <span x-show="modalScheduleItem.is_finished" class="rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600 inline-flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span>Selesai</span>
+                            </span>
                         </div>
 
                         {{-- Judul & Deskripsi --}}
@@ -974,7 +1094,11 @@
                         {{-- Detail Box --}}
                         <div class="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 space-y-3 text-xs">
                             <div class="flex items-start gap-2.5">
-                                <span class="text-base shrink-0">📅</span>
+                                <span class="text-base shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </span>
                                 <div>
                                     <span class="block font-bold text-slate-900" x-text="modalScheduleItem.date_formatted || (modalScheduleItem.date ? new Date(`${modalScheduleItem.date}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : `${modalScheduleItem.start} WIB`)"></span>
                                     <span class="text-slate-500 font-medium" x-text="`${modalScheduleItem.start}${modalScheduleItem.end ? ` – ${modalScheduleItem.end}` : ''} WIB`"></span>
@@ -982,7 +1106,12 @@
                             </div>
 
                             <div class="flex items-start gap-2.5">
-                                <span class="text-base shrink-0">📍</span>
+                                <span class="text-base shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                </span>
                                 <div class="space-y-1">
                                     <span class="block font-bold text-slate-900" x-text="modalScheduleItem.location || 'Lokasi belum ditentukan'"></span>
                                     <span class="text-slate-500 block" x-text="modalScheduleItem.community"></span>
@@ -998,7 +1127,11 @@
                             </div>
 
                             <div class="flex items-start gap-2.5">
-                                <span class="text-base shrink-0">👥</span>
+                                <span class="shrink-0 text-slate-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                </span>
                                 <div>
                                     <span class="block font-bold text-slate-900">Kapasitas Slot</span>
                                     <span class="text-slate-600" x-text="modalScheduleItem.capacity ? `${modalScheduleItem.filled || 0}/${modalScheduleItem.capacity} peserta terdaftar` : `${modalScheduleItem.filled || 0} peserta terdaftar · Tanpa batas slot`"></span>
@@ -1016,14 +1149,21 @@
                                 {{-- Jika sudah terdaftar --}}
                                 <template x-if="isJoinedItem(modalScheduleItem)">
                                     <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
-                                            ✓ Terdaftar
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            <span>Terdaftar</span>
                                         </span>
                                         <template x-if="modalScheduleItem && modalScheduleItem.kind === 'schedule' && modalScheduleItem.streak_enabled && (modalScheduleItem.is_today || modalScheduleItem.date === (new Date().toLocaleDateString('sv-SE')) || modalScheduleItem.date === agendaDateKey(new Date())) && !modalScheduleItem.is_finished">
                                             <button type="button"
                                                     @click="scheduleDetailModalOpen = false; qrOpenModal(parseInt(modalScheduleItem.raw_id || modalScheduleItem.id.replace('schedule-','')), modalScheduleItem.title)"
                                                     class="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:brightness-105 text-white text-xs font-black shadow-sm transition flex items-center gap-1.5">
-                                                📷 Tampilkan QR Check-in
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                </svg>
+                                                <span>Tampilkan QR Check-in</span>
                                             </button>
                                         </template>
                                         <template x-if="modalScheduleItem.kind === 'schedule' && !modalScheduleItem.is_finished">
@@ -1212,8 +1352,11 @@
                             <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
                             <span>Dashboard Aktivitas Olahraga</span>
                         </div>
-                        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                            Halo, {{ $user->name ?? 'Pegiat Olahraga' }}! 👋
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight inline-flex items-center gap-2">
+                            <span>Halo, {{ $user->name ?? 'Pegiat Olahraga' }}!</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"/>
+                            </svg>
                         </h2>
                         <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-xl leading-relaxed">
                             Pantau keaktifan komunitasmu, ikuti sesi latihan rutin pekan ini, atau temukan klub olahraga terbaik di sekitarmu.
@@ -1222,14 +1365,22 @@
 
                     <div class="flex flex-wrap items-center gap-3">
                         <div class="flex items-center gap-2 bg-white/90 border border-blue-100 rounded-2xl px-3.5 py-2.5 shadow-2xs">
-                            <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">⚡</span>
+                            <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                            </span>
                             <div>
                                 <span class="block text-[10px] uppercase font-bold text-slate-400">Poin Gerak</span>
                                 <strong class="text-xs font-bold text-slate-800">{{ number_format($user->total_points ?? 0, 0, ',', '.') }} PTS</strong>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 bg-white/90 border border-blue-100 rounded-2xl px-3.5 py-2.5 shadow-2xs">
-                            <span class="w-8 h-8 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center font-bold text-sm">🔥</span>
+                            <span class="w-8 h-8 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center font-bold text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                                </svg>
+                            </span>
                             <div>
                                 <span class="block text-[10px] uppercase font-bold text-slate-400">Streak</span>
                                 <strong class="text-xs font-bold text-slate-800">{{ $streakStats['current'] ?? 0 }} Hari</strong>
@@ -1248,7 +1399,10 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                            <span>🏆 Komunitas Terbaik &amp; Terpopuler</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 21h8m-4-4v4m-5-9a5 5 0 01-5-5h4m10 5a5 5 0 005-5h-4M7 4h10v5a5 5 0 01-10 0V4z"/>
+                            </svg>
+                            <span>Komunitas Terbaik &amp; Terpopuler</span>
                         </h3>
                         <p class="text-xs text-slate-500 mt-0.5">Pilihan klub teratas berdasarkan status verifikasi dan jumlah anggota terbanyak</p>
                     </div>
@@ -1342,7 +1496,12 @@
                                     @if(in_array($comm->id, $followedCommunityIds, true))
                                         <form method="POST" action="{{ route('user.communities.unfollow', $comm) }}">
                                             @csrf @method('DELETE')
-                                            <button type="submit" class="btn-outline text-[11px] py-1.5 px-3 rounded-lg">✓ Mengikuti</button>
+                                            <button type="submit" class="btn-outline text-[11px] py-1.5 px-3 rounded-lg inline-flex items-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                                <span>Mengikuti</span>
+                                            </button>
                                         </form>
                                     @else
                                         <form method="POST" action="{{ route('user.communities.follow', $comm) }}">
@@ -1365,7 +1524,12 @@
                         <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                             <div>
                                 <h3 class="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                                    <span>📅 Event Olahraga Mendatang</span>
+                                    <span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                         Event Olahraga Mendatang
+                                    </span>
                                 </h3>
                                 <p class="text-xs text-slate-500 mt-0.5">Kompetisi, turnamen, dan fun gathering terbuka</p>
                             </div>
@@ -1405,7 +1569,12 @@
                         <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                             <div>
                                 <h3 class="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                                    <span>⏰ Sesi Latihan Rutin Komunitas</span>
+                                    <span>
+                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Sesi Latihan Rutin Komunitas
+                                    </span>
                                 </h3>
                                 <p class="text-xs text-slate-500 mt-0.5">Jadwal latihan mingguan bersama rekan komunitas</p>
                             </div>
@@ -1436,12 +1605,16 @@
                                                 </span>
                                                 @if($sch->series_id)
                                                     <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[9px] font-bold">
-                                                        🔗 Seri
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                                        </svg> Seri
                                                     </span>
                                                 @endif
                                                 @if($sch->streak_enabled)
                                                     <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold">
-                                                        🔥 Streak
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                                                        </svg> Streak
                                                     </span>
                                                 @endif
                                             </div>
@@ -1452,7 +1625,17 @@
                                         </div>
                                         @if($schParticipant)
                                             <span class="flex-shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold {{ $schParticipant->status === 'waiting_list' ? 'text-amber-700 bg-amber-50' : 'text-emerald-700 bg-emerald-50' }} rounded-lg px-2.5 py-1.5 border {{ $schParticipant->status === 'waiting_list' ? 'border-amber-100' : 'border-emerald-100' }}">
-                                                {{ $schParticipant->status === 'waiting_list' ? '⏳ Menunggu' : '✓ Terdaftar' }}
+                                                @if($schParticipant->status === 'waiting_list')
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                    </svg>
+                                                    <span>Menunggu</span>
+                                                @else
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                                    </svg>
+                                                    <span>Terdaftar</span>
+                                                @endif
                                             </span>
                                         @elseif($isFull)
                                             <span class="flex-shrink-0 inline-flex items-center text-[10px] font-bold text-slate-500 bg-slate-100 rounded-lg px-2.5 py-1.5 border border-slate-200">
@@ -1474,9 +1657,11 @@
 
             {{-- 4. Pintasan Cepat Fitur --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                <div @click="setSection('agenda')" class="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-xs cursor-pointer hover:border-blue-300 transition-all flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl flex-shrink-0 border border-blue-100">
-                        ▦
+               <div @click="setSection('agenda')" class="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-xs cursor-pointer hover:border-blue-300 transition-all flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0 border border-blue-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
                     </div>
                     <div>
                         <h4 class="text-sm font-bold text-slate-900">Agenda Kalender Latihan</h4>
@@ -1484,8 +1669,10 @@
                     </div>
                 </div>
                 <div @click="setSection('bmi')" class="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-xs cursor-pointer hover:border-emerald-300 transition-all flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0 border border-emerald-100">
-                        ⚖️
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 border border-emerald-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                        </svg>
                     </div>
                     <div>
                         <h4 class="text-sm font-bold text-slate-900">Kalkulator Body Mass Index (BMI)</h4>
@@ -1575,16 +1762,26 @@
                                             'attended'        => 'bg-cyan-50 border-cyan-200 text-cyan-800',
                                             default           => 'bg-slate-50 border-slate-200 text-slate-600',
                                         };
-                                        $statusIcon = match($eventParticipant->status) {
-                                            'waiting_payment' => '💳',
-                                            'waiting_list'    => '⏳',
-                                            'registered', 'attended' => '✓',
-                                            default => '•',
-                                        };
                                     @endphp
                                     <div class="flex flex-col gap-1.5 w-full">
                                         <div class="flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold {{ $statusColor }}">
-                                            <span>{{ $statusIcon }}</span>
+                                            @if($eventParticipant->status === 'waiting_payment')
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                                </svg>
+                                            @elseif($eventParticipant->status === 'waiting_list')
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                            @elseif(in_array($eventParticipant->status, ['registered', 'attended']))
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                            @else
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 shrink-0" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                                                    <circle cx="4" cy="4" r="4"/>
+                                                </svg>
+                                            @endif
                                             <span>{{ $eventParticipant->statusLabel() }}</span>
                                         </div>
                                         @if($eventParticipant->status === 'waiting_payment')
@@ -1609,21 +1806,23 @@
                                         @endif
                                     </div>
                                 @else
-                                @if($event->isFull())
-                                    <span class="text-[11px] font-bold text-slate-400 px-3 py-1.5 rounded-lg bg-slate-100">Penuh</span>
-                                @else
-                                    <form method="POST" action="{{ route('user.events.join', $event) }}">
-                                        @csrf
-                                        @if($event->registration_fee > 0)
-                                            <button type="submit" class="btn-primary text-[11px] py-1.5 px-3 flex items-center gap-1">
-                                                <span>💳</span>
-                                                <span>Daftar · Rp {{ number_format($event->registration_fee, 0, ',', '.') }}</span>
-                                            </button>
-                                        @else
-                                            <button type="submit" class="btn-primary text-[11px] py-1.5 px-3">Daftar Event (Gratis)</button>
-                                        @endif
-                                    </form>
-                                @endif
+                                    @if($event->isFull())
+                                        <span class="text-[11px] font-bold text-slate-400 px-3 py-1.5 rounded-lg bg-slate-100">Penuh</span>
+                                    @else
+                                        <form method="POST" action="{{ route('user.events.join', $event) }}">
+                                            @csrf
+                                            @if($event->registration_fee > 0)
+                                                <button type="submit" class="btn-primary text-[11px] py-1.5 px-3 flex items-center gap-1">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                                    </svg>
+                                                    <span>Daftar &middot; Rp {{ number_format($event->registration_fee, 0, ',', '.') }}</span>
+                                                </button>
+                                            @else
+                                                <button type="submit" class="btn-primary text-[11px] py-1.5 px-3">Daftar Event (Gratis)</button>
+                                            @endif
+                                        </form>
+                                    @endif
                                 @endif
                             </div>
                             </div>
@@ -2055,7 +2254,13 @@
                                     :class="bmiSavedFlash
                                         ? 'bg-emerald-600 text-white shadow-xs'
                                         : (bmiGender === 'l' ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs' : 'bg-pink-600 hover:bg-pink-700 text-white shadow-xs')">
-                                    <span x-text="bmiSavedFlash ? '✓ Tersimpan di Tabel Riwayat' : 'Simpan Hasil Cek'"></span>
+                                    <span x-show="bmiSavedFlash" class="inline-flex items-center gap-1.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        <span>Tersimpan di Tabel Riwayat</span>
+                                    </span>
+                                    <span x-show="!bmiSavedFlash">Simpan Hasil Cek</span>
                                 </button>
                             </div>
                         </div>
@@ -2248,8 +2453,12 @@
                         @php $tjsId = $todayJoinedSchedule->id; $tjsTitle = $todayJoinedSchedule->title; @endphp
                         <button type="button"
                             @click="qrOpenModal({{ $tjsId }}, '{{ addslashes($tjsTitle) }}')"
-                            class="rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-3 text-sm font-bold text-white shadow-sm hover:brightness-105">
-                            📷 Tampilkan QR Check-in Sesi Hari Ini
+                            class="rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-3 text-sm font-bold text-white shadow-sm hover:brightness-105 inline-flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <span>Tampilkan QR Check-in Sesi Hari Ini</span>
                         </button>
                     @elseif($todayJoinedSchedule && !$todayJoinedSchedule->streak_enabled)
                         <p class="text-sm text-slate-500 font-semibold py-2">Sesi hari ini tidak mengaktifkan fitur streak (presensi QR tidak diperlukan).</p>
@@ -2260,7 +2469,22 @@
                 <div class="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-7 sm:gap-3">
                     @foreach($weeklyStreakDays as $day)
                         <div class="rounded-xl {{ $day['completed'] ? 'bg-cyan-100 text-cyan-800' : ($day['is_today'] ? 'bg-blue-600 text-white' : 'bg-blue-50 text-slate-500') }} p-3 text-center">
-                            <span class="block text-[10px] font-bold uppercase">{{ $day['label'] }}</span><span class="mx-auto mt-2 flex h-7 w-7 items-center justify-center rounded-full {{ $day['completed'] ? 'bg-cyan-500 text-white' : ($day['is_today'] ? 'bg-white/20 text-white' : 'bg-white text-slate-400') }}">{{ $day['completed'] ? '✓' : ($day['is_today'] ? '⚡' : '·') }}</span>
+                            <span class="block text-[10px] font-bold uppercase">{{ $day['label'] }}</span>
+                            <span class="mx-auto mt-2 flex h-7 w-7 items-center justify-center rounded-full {{ $day['completed'] ? 'bg-cyan-500 text-white' : ($day['is_today'] ? 'bg-white/20 text-white' : 'bg-white text-slate-400') }}">
+                                @if($day['completed'])
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                @elseif($day['is_today'])
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                @else
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-2 h-2 shrink-0" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                                        <circle cx="4" cy="4" r="4"/>
+                                    </svg>
+                                @endif
+                            </span>
                             <span class="mt-1 block text-[10px]">{{ $day['completed'] ? 'Tercapai' : ($day['is_today'] ? 'Hari ini' : '—') }}</span>
                         </div>
                     @endforeach
@@ -2349,8 +2573,26 @@
                     <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         @foreach($pointRewards as $reward)
                             <article class="flex flex-col justify-between rounded-2xl bg-blue-50 p-4">
-                                <div><div class="flex items-start justify-between gap-3"><span class="rounded-lg bg-white p-2 text-xl text-blue-600">🎁</span><strong class="text-sm font-extrabold text-cyan-700">{{ number_format($reward->points_cost, 0, ',', '.') }} PTS</strong></div><h5 class="mt-3 font-bold text-blue-800">{{ $reward->name }}</h5><p class="mt-1 text-xs text-slate-500">{{ $reward->partner ?: 'Mitra Bugar.in' }}</p><p class="mt-2 text-xs leading-relaxed text-slate-600">{{ $reward->description }}</p></div>
-                                <div class="mt-4 flex items-center justify-between gap-3"><span class="text-[11px] text-slate-500">Stok {{ $reward->stock }}</span><form method="POST" action="{{ route('user.rewards.redeem', $reward) }}">@csrf<button type="submit" @disabled($pointsStats['balance'] < $reward->points_cost) class="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">Tukar</button></form></div>
+                                <div>
+                                    <div class="flex items-start justify-between gap-3">
+                                        <span class="rounded-lg bg-white p-2 text-blue-600 inline-flex items-center justify-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                                            </svg>
+                                        </span>
+                                        <strong class="text-sm font-extrabold text-cyan-700">{{ number_format($reward->points_cost, 0, ',', '.') }} PTS</strong>
+                                    </div>
+                                    <h5 class="mt-3 font-bold text-blue-800">{{ $reward->name }}</h5>
+                                    <p class="mt-1 text-xs text-slate-500">{{ $reward->partner ?: 'Mitra Bugar.in' }}</p>
+                                    <p class="mt-2 text-xs leading-relaxed text-slate-600">{{ $reward->description }}</p>
+                                </div>
+                                <div class="mt-4 flex items-center justify-between gap-3">
+                                    <span class="text-[11px] text-slate-500">Stok {{ $reward->stock }}</span>
+                                    <form method="POST" action="{{ route('user.rewards.redeem', $reward) }}">
+                                        @csrf
+                                        <button type="submit" @disabled($pointsStats['balance'] < $reward->points_cost) class="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">Tukar</button>
+                                    </form>
+                                </div>
                             </article>
                         @endforeach
                     </div>
@@ -2659,7 +2901,11 @@
                 <div class="flex items-center justify-between bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-4 text-white shrink-0">
                     <div class="min-w-0 pr-2">
                         <h2 id="qr-modal-title" class="text-base font-extrabold text-white flex items-center gap-2">
-                            <span>📷 QR Code Check-in</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <span>QR Code Check-in</span>
                         </h2>
                         <p class="mt-0.5 text-xs text-blue-100 font-semibold truncate" x-text="qrScheduleTitle"></p>
                     </div>
@@ -2682,8 +2928,10 @@
 
                     {{-- Success (checked in) --}}
                     <div x-show="!qrLoading && qrCheckedIn" class="flex flex-col items-center gap-4 py-3">
-                        <div class="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl shadow-xs">
-                            ✅
+                        <div class="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shadow-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                            </svg>
                         </div>
                         <div>
                             <span class="inline-block text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 tracking-wider mb-1">
@@ -2735,8 +2983,13 @@
                         </div>
 
                         {{-- Warning Box --}}
-                        <div class="rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2.5 text-[11px] text-amber-900 font-medium text-left leading-relaxed w-full">
-                            ⚠️ <strong>Penting:</strong> Tunjukkan layar ini secara langsung ke kamera penyedia. Jangan membagikan tangkapan layar (*screenshot*) karena kode QR berputar otomatis demi keamanan.
+                        <div class="rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2.5 text-[11px] text-amber-900 font-medium text-left leading-relaxed w-full flex items-start gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0 text-amber-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <span>
+                                <strong>Penting:</strong> Tunjukkan layar ini secara langsung ke kamera penyedia. Jangan membagikan tangkapan layar (*screenshot*) karena kode QR berputar otomatis demi keamanan.
+                            </span>
                         </div>
 
                         {{-- Polling status indicator --}}
