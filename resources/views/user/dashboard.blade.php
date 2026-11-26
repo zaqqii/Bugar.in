@@ -1386,10 +1386,14 @@
                                 <strong class="text-xs font-bold text-slate-800">{{ $streakStats['current'] ?? 0 }} Hari</strong>
                             </div>
                         </div>
-                        <a href="{{ route('user.explore') }}" class="btn-primary text-xs font-bold py-2.5 px-4 rounded-xl flex items-center gap-1.5 shadow-xs">
+                        <button type="button"
+                            @click="setSection('eksplor')"
+                            class="btn-primary text-xs font-bold py-2.5 px-4 rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer">
                             <span>Eksplor Semua Komunitas</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                        </a>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1681,6 +1685,590 @@
                 </div>
             </div>
 
+        </section>
+
+        {{-- ============================================================
+            MODUL EKSPLORASI KOMUNITAS (TAB SIDEBAR)
+            ============================================================ --}}
+        <section x-show="activeSection === 'eksplor'" x-cloak class="space-y-6">
+           <div class="space-y-8">
+                @if(auth()->check() && auth()->user()->isJoinBlocked())
+                    <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-3 shadow-xs">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        <div>
+                            <strong class="font-bold text-sm block mb-0.5">Pendaftaran Jadwal Dibatasi Sementara</strong>
+                            Akun Anda sedang dibatasi dari mendaftar ke jadwal hingga <strong>{{ auth()->user()->join_blocked_until->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d F Y, H:i') }} WIB</strong> karena akumulasi ketidakhadiran (no-show).
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Hero Header: Human & Editorial -->
+                <div>
+                    <div class="flex flex-col md:flex-row md:items-end justify-between gap-5">
+                        <div class="max-w-2xl">
+                            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-bold mb-3 shadow-2xs">
+                                <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                                <span>Eksplorasi Komunitas Lokal</span>
+                            </div>
+                            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                                Temukan Ritme &amp; Rekan Olahragamu
+                            </h2>
+                            <p class="text-slate-600 text-sm sm:text-base mt-2 leading-relaxed">
+                                Bergabunglah dalam sesi lari pagi, fun match badminton, futsal, renang, atau yoga bersama pegiat olahraga di sekitarmu.
+                            </p>
+                        </div>
+
+                        {{-- Highlight Sesi Aktif --}}
+                        <div class="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white border border-slate-200/90 shadow-xs self-start md:self-auto">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="text-xs font-semibold text-slate-500 block leading-tight">Aktivitas Pekan Ini</span>
+                                <span class="text-sm font-extrabold text-slate-900 leading-tight">{{ $totalActiveSessions ?? 0 }} Sesi Terjadwal</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if(session('error'))
+                    <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center justify-between shadow-xs">
+                        <div class="flex items-center gap-2.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-rose-600 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <span>{{ session('error') }}</span>
+                        </div>
+                        <button type="button" onclick="this.parentElement.remove()" class="text-rose-600 hover:text-rose-800 font-bold p-1" aria-label="Tutup pesan">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                @endif
+
+                @if(session('success'))
+                    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-xs">
+                        <div class="flex items-center gap-2.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-600 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span>{{ session('success') }}</span>
+                        </div>
+                        <button type="button" onclick="this.parentElement.remove()" class="text-emerald-600 hover:text-emerald-800 font-bold p-1" aria-label="Tutup pesan">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                @endif
+
+                @if(session('info'))
+                    <div class="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold flex items-center justify-between shadow-xs">
+                        <div class="flex items-center gap-2.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                            <span>{{ session('info') }}</span>
+                        </div>
+                        <button type="button" onclick="this.parentElement.remove()" class="text-blue-600 hover:text-blue-800 font-bold p-1" aria-label="Tutup pesan">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                @endif
+
+                <!-- Main Grid: Filter Aside & Community Cards -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start"
+                    x-data="{
+                        exploreSearch: '',
+                        exploreCity: '',
+                        exploreCategories: [],
+                        showExploreFilterDropdown: false,
+                        exploreScheduleModalOpen: false,
+                        exploreModalSchedule: null,
+                        openExploreScheduleModal(data) {
+                            this.exploreModalSchedule = data;
+                            this.exploreScheduleModalOpen = true;
+                            if (data.availabilityUrl) {
+                                fetch(data.availabilityUrl)
+                                    .then(res => res.json())
+                                    .then(res => {
+                                        if (this.exploreModalSchedule && this.exploreModalSchedule.id === data.id) {
+                                            this.exploreModalSchedule.registeredCount = res.registered_count;
+                                            this.exploreModalSchedule.remaining = res.remaining;
+                                            this.exploreModalSchedule.capacity = res.capacity;
+                                            this.exploreModalSchedule.isFull = res.is_full;
+                                        }
+                                    })
+                                    .catch(() => {});
+                            }
+                        },
+                        resetExploreFilters() {
+                            this.exploreSearch = '';
+                            this.exploreCity = '';
+                            this.exploreCategories = [];
+                        }
+                    }">
+
+                    <!-- Filter Aside -->
+                    <aside class="lg:col-span-1 space-y-6">
+                        <div class="glass-card rounded-2xl p-5 space-y-5">
+                            <div class="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                                <div class="flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                                    </svg>
+                                    <span class="font-bold text-slate-900 text-sm">Cari Komunitas</span>
+                                </div>
+                                <button type="button" @click="resetExploreFilters()" class="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">
+                                    Reset
+                                </button>
+                            </div>
+
+                            <!-- Search keyword -->
+                            <div class="space-y-1.5">
+                                <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Pencarian</label>
+                                <div class="relative">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+                                    </svg>
+                                    <input type="text" x-model="exploreSearch" placeholder="Nama komunitas atau kota..." class="glass-input w-full pl-8 pr-3 py-2 text-xs rounded-xl text-slate-700">
+                                </div>
+                            </div>
+
+                            <!-- Toggle Dropdown Filter (Kota & Kategori) -->
+                            <div class="pt-1">
+                                <button type="button"
+                                        @click="showExploreFilterDropdown = !showExploreFilterDropdown"
+                                        :aria-expanded="showExploreFilterDropdown"
+                                        class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-50 hover:bg-blue-50/70 border border-slate-200/80 text-xs font-bold text-slate-700 transition-colors cursor-pointer">
+                                    <span class="flex items-center gap-2">
+                                        <span>Filter Kota &amp; Kategori</span>
+                                        <span x-show="exploreCity !== '' || exploreCategories.length > 0"
+                                            class="w-2 h-2 rounded-full bg-blue-600"></span>
+                                    </span>
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        class="w-4 h-4 text-slate-500 transition-transform duration-300 ease-out"
+                                        :class="showExploreFilterDropdown ? 'rotate-180' : ''"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+
+                                <div class="grid transition-[grid-template-rows,opacity] duration-300 ease-out"
+                                    :class="showExploreFilterDropdown ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'">
+                                    <div class="overflow-hidden">
+                                        <div class="space-y-5 pt-4">
+                                            <!-- Kota / Wilayah Filter -->
+                                            <div class="space-y-1.5 pt-3 border-t border-slate-100">
+                                                <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kota / Wilayah</label>
+                                                <select x-model="exploreCity" class="glass-input w-full px-3 py-2 text-xs rounded-xl text-slate-700 font-medium">
+                                                    <option value="">Semua Wilayah</option>
+                                                    @foreach($cities ?? [] as $city)
+                                                        <option value="{{ strtolower($city) }}">{{ ucfirst($city) }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <!-- Kategori Olahraga Checklist -->
+                                            <div class="space-y-2 pt-3 border-t border-slate-100">
+                                                <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kategori Olahraga</label>
+                                                <div class="space-y-1.5 text-xs max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                                                    @php
+                                                        [$otherCats, $regularCats] = collect($sportCategories ?? [])->partition(fn($cat) => strtolower(trim($cat)) === 'other');
+                                                        $sortedCategories = $regularCats->concat($otherCats);
+                                                    @endphp
+                                                    @foreach($sortedCategories as $cat)
+                                                        @php $catLower = strtolower(trim($cat)); @endphp
+                                                        <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-blue-50/50 cursor-pointer transition-colors text-slate-700">
+                                                            <span class="flex items-center gap-2.5">
+                                                                <input type="checkbox"
+                                                                    value="{{ $catLower }}"
+                                                                    x-model="exploreCategories"
+                                                                    class="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer">
+                                                                <span class="font-medium">{{ ucfirst($cat) }}</span>
+                                                            </span>
+                                                        </label>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bantuan / Host Baru -->
+                            <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100 text-xs space-y-1.5">
+                                <span class="font-bold text-blue-900 block">Punya Komunitas?</span>
+                                <p class="text-[11px] text-blue-700 leading-relaxed">Daftarkan komunitasmu dan undang atlet lokal untuk bergabung.</p>
+                                <a href="{{ route('auth.penyedia-komunitas.register') }}" class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline pt-0.5">
+                                    <span>Daftar sebagai Penyelenggara</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <!-- Community Cards Grid -->
+                    <div class="lg:col-span-3 space-y-6">
+                        @php $exploreCommunities = $communities ?? collect(); @endphp
+
+                        <!-- Result Count Bar -->
+                        <div class="glass-card rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                <span class="text-xs font-bold text-slate-700">
+                                    @if(method_exists($exploreCommunities, 'firstItem'))
+                                        Menampilkan {{ $exploreCommunities->firstItem() ?? 0 }} - {{ $exploreCommunities->lastItem() ?? 0 }} dari total {{ $exploreCommunities->total() }} Komunitas Aktif
+                                    @else
+                                        Menampilkan {{ $exploreCommunities->count() }} Komunitas Aktif
+                                    @endif
+                                </span>
+                            </div>
+                            <span class="text-[11px] text-slate-400 font-medium">Bugar.in Verified Communities</span>
+                        </div>
+
+                        @if($exploreCommunities->isEmpty())
+                            <div class="glass-card rounded-2xl p-12 text-center max-w-md mx-auto">
+                                <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4 border border-blue-100">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                                    </svg>
+                                </div>
+                                <h4 class="text-base font-bold text-slate-900 mb-1">Belum Ada Komunitas Terdaftar</h4>
+                                <p class="text-xs text-slate-500 leading-relaxed">Komunitas olahraga baru akan muncul di sini setelah didaftarkan oleh host.</p>
+                            </div>
+                        @else
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                                @foreach($exploreCommunities as $comm)
+                                    @php
+                                        $commName = strtolower($comm->name ?? '');
+                                        $commCat = strtolower(trim($comm->sport_category ?? ''));
+                                        $commCity = strtolower($comm->city ?? '');
+
+                                        $sportCoverClass = match($commCat) {
+                                            'futsal'                => 'sport-cover-futsal',
+                                            'basket', 'basketball'  => 'sport-cover-basket',
+                                            'badminton'             => 'sport-cover-badminton',
+                                            'lari', 'running'       => 'sport-cover-lari',
+                                            'renang', 'swimming'    => 'sport-cover-renang',
+                                            'yoga', 'pilates'       => 'sport-cover-yoga',
+                                            default                 => 'sport-cover-default',
+                                        };
+
+                                        $hasCustomCover = !empty($comm->cover_image);
+                                        $isMember = $comm->members()->where('user_id', auth()->id())->exists();
+                                    @endphp
+
+                                    <div x-show="
+                                        (!exploreSearch || '{{ $commName }}'.includes(exploreSearch.toLowerCase()) || '{{ $commCat }}'.includes(exploreSearch.toLowerCase()) || '{{ $commCity }}'.includes(exploreSearch.toLowerCase())) &&
+                                        (!exploreCity || '{{ $commCity }}' === exploreCity) &&
+                                        (exploreCategories.length === 0 || exploreCategories.includes('{{ $commCat }}'))
+                                    " class="community-card flex flex-col justify-between">
+
+                                        <div>
+                                            <!-- Cover Image & Sport Category Badge -->
+                                            <a href="{{ route('user.communities.show', $comm->id) }}" class="relative h-40 overflow-hidden {{ $sportCoverClass }} block group cursor-pointer">
+                                                @if($hasCustomCover)
+                                                    <img src="{{ \Illuminate\Support\Str::startsWith($comm->cover_image, ['http://', 'https://']) ? $comm->cover_image : \Illuminate\Support\Facades\Storage::url($comm->cover_image) }}"
+                                                        alt="{{ $comm->name }}"
+                                                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                        loading="lazy"
+                                                        onerror="this.style.display='none'">
+                                                @endif
+
+                                                <span class="absolute top-3 left-3 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold tracking-wide">
+                                                    {{ ucfirst($comm->sport_category ?? 'Umum') }}
+                                                </span>
+
+                                                <span class="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow-xs">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                                    Open Slot
+                                                </span>
+
+                                                <div class="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-white text-[11px] font-medium bg-slate-950/65 backdrop-blur-xs px-2.5 py-1.5 rounded-xl border border-white/10">
+                                                    <div class="flex items-center gap-1.5 truncate">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-cyan-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                        </svg>
+                                                        <span class="truncate">{{ $comm->city ?? $comm->location ?? 'Indonesia' }}</span>
+                                                    </div>
+                                                    <span class="text-[10px] text-white/80 font-bold shrink-0">Bugar.in</span>
+                                                </div>
+                                            </a>
+
+                                            <!-- Card Content -->
+                                            <div class="p-4 space-y-2.5">
+                                                <h3 class="font-bold text-slate-900 text-base leading-snug line-clamp-1 group-hover:text-blue-600 transition-colors">
+                                                    <a href="{{ route('user.communities.show', $comm->id) }}" class="hover:text-blue-600 transition-colors">
+                                                        {{ $comm->name }}
+                                                    </a>
+                                                </h3>
+                                                <p class="text-slate-500 text-xs line-clamp-2 leading-relaxed">
+                                                    {{ $comm->description ?? 'Komunitas olahraga aktif yang rutin berkumpul untuk latihan bersama dan membangun kebugaran.' }}
+                                                </p>
+
+                                                <!-- Next Session Pill -->
+                                                <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px] text-slate-600">
+                                                    <div class="flex items-center gap-1.5 truncate">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                        </svg>
+                                                        <span class="truncate flex items-center gap-1.5 flex-wrap">
+                                                            @if($comm->schedules && $comm->schedules->isNotEmpty())
+                                                                @php
+                                                                    $firstSch = $comm->schedules->first();
+                                                                    $dateFormatted = $firstSch->date ? $firstSch->date->locale('id')->isoFormat('ddd, D MMM Y') : $firstSch->dayLabel();
+                                                                    $schDateFull = $firstSch->date ? $firstSch->date->locale('id')->isoFormat('dddd, D MMMM Y') : $firstSch->dayLabel();
+                                                                    $schIsJoined = in_array($firstSch->id, $joinedScheduleIds ?? []);
+                                                                    $initRegistered = $firstSch->activeParticipantsCount();
+                                                                    $initCapacity = $firstSch->capacity;
+                                                                    $initRemaining = $firstSch->remainingSlots();
+                                                                    $initIsFull = $initCapacity !== null && $initRegistered >= $initCapacity;
+                                                                @endphp
+                                                                <span>{{ $dateFormatted }} · {{ substr($firstSch->start_time, 0, 5) }} WIB</span>
+                                                                @if($firstSch->series_id)
+                                                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[9px] font-bold">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                                                        </svg>
+                                                                        <span>Seri</span>
+                                                                    </span>
+                                                                @endif
+                                                                @if($firstSch->streak_enabled)
+                                                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                                                                        </svg>
+                                                                        <span>Streak</span>
+                                                                    </span>
+                                                                @endif
+                                                            @else
+                                                                <span>Jadwal Sesi Mendatang</span>
+                                                            @endif
+                                                        </span>
+                                                    </div>
+
+                                                    @if($comm->schedules && $comm->schedules->isNotEmpty())
+                                                        <div class="flex items-center gap-1 shrink-0">
+                                                            @if($schIsJoined)
+                                                                <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                                                    </svg>
+                                                                    <span>Terdaftar</span>
+                                                                </span>
+                                                            @endif
+                                                            <button type="button"
+                                                                    @click="openExploreScheduleModal({
+                                                                        id: {{ $firstSch->id }},
+                                                                        title: '{{ addslashes($firstSch->title) }}',
+                                                                        dateFull: '{{ $schDateFull }}',
+                                                                        time: '{{ substr($firstSch->start_time, 0, 5) }} - {{ substr($firstSch->end_time, 0, 5) }} WIB',
+                                                                        location: '{{ addslashes($firstSch->location) }}',
+                                                                        mapsUrl: '{{ $firstSch->maps_url }}',
+                                                                        description: '{{ addslashes($firstSch->description ?? '') }}',
+                                                                        levelLabel: '{{ $firstSch->levelLabel() }}',
+                                                                        levelBadgeClass: '{{ $firstSch->levelBadgeClass() }}',
+                                                                        streakEnabled: {{ $firstSch->streak_enabled ? 'true' : 'false' }},
+                                                                        seriesId: '{{ $firstSch->series_id }}',
+                                                                        capacity: {{ $initCapacity !== null ? $initCapacity : 'null' }},
+                                                                        registeredCount: {{ $initRegistered }},
+                                                                        remaining: {{ $initRemaining !== null ? $initRemaining : 'null' }},
+                                                                        isFull: {{ $initIsFull ? 'true' : 'false' }},
+                                                                        isJoined: {{ $schIsJoined ? 'true' : 'false' }},
+                                                                        availabilityUrl: '{{ route('user.schedules.availability', $firstSch->id) }}',
+                                                                        joinUrl: '{{ route('user.schedules.join', $firstSch->id) }}'
+                                                                    })"
+                                                                    class="px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold transition">
+                                                                Detail
+                                                            </button>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Card Footer: Members count & Action CTA -->
+                                        <div class="p-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2 mt-auto">
+                                            <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                </svg>
+                                                <span>{{ number_format($comm->members_count ?? $comm->members()->count() ?? 0) }} Member</span>
+                                            </div>
+
+                                            <div class="flex items-center gap-2">
+                                                @if($isMember)
+                                                    <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                                        </svg>
+                                                        <span>Tergabung</span>
+                                                    </span>
+                                                @else
+                                                    <form action="{{ route('user.communities.join', $comm->id) }}" method="POST" class="m-0">
+                                                        @csrf
+                                                        <button type="submit" class="btn-primary text-xs px-3.5 py-1.5">
+                                                            Gabung
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @if(method_exists($exploreCommunities, 'links'))
+                                <div class="pt-6 border-t border-slate-200/80">
+                                    {{ $exploreCommunities->links() }}
+                                </div>
+                            @endif
+                        @endif
+                    </div>
+
+                    <!-- Modal Detail Jadwal di Tab Eksplor -->
+                    <div x-show="exploreScheduleModalOpen"
+                        x-cloak
+                        class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+                        @keydown.escape.window="exploreScheduleModalOpen = false">
+                        <template x-if="exploreModalSchedule">
+                            <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 relative space-y-5"
+                                @click.away="exploreScheduleModalOpen = false">
+
+                                <button type="button" @click="exploreScheduleModalOpen = false" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition" aria-label="Tutup modal">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+
+                                <div class="flex items-center gap-2 flex-wrap pr-8">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border"
+                                        :class="exploreModalSchedule.levelBadgeClass"
+                                        x-text="exploreModalSchedule.levelLabel"></span>
+
+                                    <template x-if="exploreModalSchedule.seriesId">
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                            </svg>
+                                            <span>Seri Rutin</span>
+                                        </span>
+                                    </template>
+
+                                    <template x-if="exploreModalSchedule.streakEnabled">
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                                            </svg>
+                                            <span>Streak Aktif</span>
+                                        </span>
+                                    </template>
+                                </div>
+
+                                <div>
+                                    <h3 class="text-xl font-extrabold text-slate-900 leading-snug" x-text="exploreModalSchedule.title"></h3>
+                                    <p class="text-xs text-slate-500 mt-1" x-text="exploreModalSchedule.description || 'Latihan bersama rekan komunitas olahraga.'"></p>
+                                </div>
+
+                                <div class="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 space-y-3 text-xs">
+                                    <div class="flex items-start gap-2.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                        <div>
+                                            <span class="block font-bold text-slate-900" x-text="exploreModalSchedule.dateFull"></span>
+                                            <span class="text-slate-500 font-medium" x-text="exploreModalSchedule.time"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-start gap-2.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                        <div class="space-y-1">
+                                            <span class="block font-bold text-slate-900" x-text="exploreModalSchedule.location"></span>
+                                            <template x-if="exploreModalSchedule.mapsUrl">
+                                                <a :href="exploreModalSchedule.mapsUrl" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-blue-600 hover:underline font-bold">
+                                                    <span>Buka di Google Maps</span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                    </svg>
+                                                </a>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-start gap-2.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                        <div>
+                                            <span class="block font-bold text-slate-900">Kapasitas Slot</span>
+                                            <span class="text-slate-600" x-text="exploreModalSchedule.capacity ? `${exploreModalSchedule.registeredCount || 0}/${exploreModalSchedule.capacity} peserta terdaftar` : `${exploreModalSchedule.registeredCount || 0} peserta terdaftar · Tanpa batas slot`"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+                                    <button type="button" @click="exploreScheduleModalOpen = false" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition">
+                                        Tutup
+                                    </button>
+
+                                    <div>
+                                        <template x-if="exploreModalSchedule.isJoined">
+                                            <div class="flex items-center gap-2">
+                                                <span class="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                                    </svg>
+                                                    <span>Terdaftar</span>
+                                                </span>
+                                                <form method="POST" action="{{ route('user.participation.cancel') }}" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan keikutsertaan dalam jadwal ini?')">
+                                                    @csrf
+                                                    <input type="hidden" name="type" value="schedule">
+                                                    <input type="hidden" name="id" :value="exploreModalSchedule.id">
+                                                    <button type="submit" class="px-4 py-2.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">
+                                                        Batalkan Pendaftaran
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="!exploreModalSchedule.isJoined">
+                                            <form method="POST" :action="exploreModalSchedule.joinUrl">
+                                                @csrf
+                                                <button type="submit"
+                                                        :disabled="exploreModalSchedule.isFull"
+                                                        :class="exploreModalSchedule.isFull ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'btn-primary'"
+                                                        class="px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-xs inline-flex items-center gap-1.5">
+                                                    <span x-text="exploreModalSchedule.isFull ? 'Kuota Penuh' : 'Ikuti Sesi Ini'"></span>
+                                                    <svg x-show="!exploreModalSchedule.isFull" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        </template>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
         </section>
 
         {{-- ============================================================
