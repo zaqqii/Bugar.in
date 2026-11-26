@@ -847,9 +847,46 @@ class DashboardController extends Controller
         $userParticipants = ($user instanceof User)
             ? Participant::where('user_id', $user->id)
                 ->whereIn('status', ['waiting_list', 'waiting_payment', 'registered', 'attended'])
+                ->with('participatable.community')
                 ->get()
                 ->keyBy(fn($p) => $p->participatable_type . '-' . $p->participatable_id)
             : collect();
+
+        $participantStatusLabels = [
+            'registered' => 'Terdaftar',
+            'attended' => 'Hadir',
+            'waiting_list' => 'Waiting List',
+            'waiting_payment' => 'Menunggu Pembayaran',
+        ];
+
+        $joinedActivitiesByCommunity = $userParticipants
+            ->filter(fn($p) => $p->participatable !== null && $p->participatable->community_id !== null)
+            ->groupBy(fn($p) => (int) $p->participatable->community_id)
+            ->map(function ($items) use ($participantStatusLabels) {
+                return $items->map(function ($p) use ($participantStatusLabels) {
+                    $item = $p->participatable;
+                    $isEvent = $item instanceof Event;
+                    $rawDate = $isEvent ? $item->event_date : $item->date;
+                    $dateCarbon = $rawDate ? Carbon::parse($rawDate) : null;
+                    $start = $item->start_time ? substr($item->start_time, 0, 5) : null;
+                    $end = $item->end_time ? substr($item->end_time, 0, 5) : null;
+
+                    return [
+                        'id' => $item->id,
+                        'kind' => $isEvent ? 'Event' : 'Jadwal Latihan',
+                        'title' => $item->title ?? ($isEvent ? 'Event Komunitas' : 'Sesi Latihan'),
+                        'date_raw' => $dateCarbon ? $dateCarbon->format('Y-m-d') : '',
+                        'date_formatted' => $dateCarbon
+                            ? $dateCarbon->locale('id')->isoFormat('dddd, D MMMM Y')
+                            : (!$isEvent && method_exists($item, 'dayLabel') ? $item->dayLabel() : '-'),
+                        'time' => $start ? ($end ? "{$start} - {$end} WIB" : "{$start} WIB") : '-',
+                        'location' => $item->location ?? '-',
+                        'status_raw' => $p->status,
+                        'status_label' => $participantStatusLabels[$p->status] ?? ucfirst($p->status),
+                        'is_active_session' => method_exists($item, 'isFinished') ? !$item->isFinished() : true,
+                    ];
+                })->sortByDesc('date_raw')->values();
+            });
 
         // Agregasi Statistik Asli
         $userCommunitiesCount = $userMemberships->count();
@@ -905,7 +942,8 @@ class DashboardController extends Controller
             'cities',
             'topCommunities',
             'userParticipants',
-            'joinedScheduleIds'
+            'joinedScheduleIds',
+            'joinedActivitiesByCommunity'
         ));
     }
 
