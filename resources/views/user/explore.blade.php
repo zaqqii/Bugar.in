@@ -29,6 +29,7 @@
           searchQuery: '',
           selectedCity: '',
           selectedCategories: [],
+          showFilterDropdown: false,
           scheduleModalOpen: false,
           modalSchedule: null,
           openScheduleModal(data) {
@@ -46,14 +47,6 @@
                           }
                       })
                       .catch(() => {});
-              }
-          },
-          toggleCategory(cat) {
-              const idx = this.selectedCategories.indexOf(cat);
-              if (idx > -1) {
-                  this.selectedCategories.splice(idx, 1);
-              } else {
-                  this.selectedCategories.push(cat);
               }
           },
           resetFilters() {
@@ -189,25 +182,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Quick Category Selector Pills -->
-                <div class="mt-6 flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                    <button type="button"
-                            @click="selectedCategories = []"
-                            :class="selectedCategories.length === 0 ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/25' : 'bg-white text-slate-600 hover:bg-blue-50 hover:text-blue-600 border border-slate-200'"
-                            class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer">
-                        ✨ Semua Kategori
-                    </button>
-                    @foreach($sportCategories ?? [] as $cat)
-                        @php $catLower = strtolower(trim($cat)); @endphp
-                        <button type="button"
-                                @click="toggleCategory('{{ $catLower }}')"
-                                :class="selectedCategories.includes('{{ $catLower }}') ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/25' : 'bg-white text-slate-600 hover:bg-blue-50 hover:text-blue-600 border border-slate-200'"
-                                class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer">
-                            {{ ucfirst($cat) }}
-                        </button>
-                    @endforeach
-                </div>
             </div>
 
             @if(session('error'))
@@ -260,14 +234,14 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
                                 </svg>
-                                <span class="font-bold text-slate-900 text-sm">Filter Komunitas</span>
+                                <span class="font-bold text-slate-900 text-sm">Cari Komunitas</span>
                             </div>
                             <button type="button" @click="resetFilters()" class="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">
                                 Reset
                             </button>
                         </div>
 
-                        <!-- Search keyword -->
+                        <!-- Search keyword (selalu tampil) -->
                         <div class="space-y-1.5">
                             <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Pencarian</label>
                             <div class="relative">
@@ -278,33 +252,61 @@
                             </div>
                         </div>
 
-                        <!-- Kota / Wilayah Filter -->
-                        <div class="space-y-1.5 pt-3 border-t border-slate-100">
-                            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kota / Wilayah</label>
-                            <select x-model="selectedCity" class="glass-input w-full px-3 py-2 text-xs rounded-xl text-slate-700 font-medium">
-                                <option value="">Semua Wilayah</option>
-                                @foreach($cities ?? [] as $city)
-                                    <option value="{{ strtolower($city) }}">{{ ucfirst($city) }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                        <!-- Toggle Dropdown Filter (Kota & Kategori) -->
+                        <div class="pt-1">
+                            <button type="button"
+                                    @click="showFilterDropdown = !showFilterDropdown"
+                                    :aria-expanded="showFilterDropdown"
+                                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-50 hover:bg-blue-50/70 border border-slate-200/80 text-xs font-bold text-slate-700 transition-colors cursor-pointer">
+                                <span class="flex items-center gap-2">
+                                    <span>Filter Kota &amp; Kategori</span>
+                                    <span x-show="selectedCity !== '' || selectedCategories.length > 0"
+                                          class="w-2 h-2 rounded-full bg-blue-600"></span>
+                                </span>
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="w-4 h-4 text-slate-500 transition-transform duration-300 ease-out"
+                                     :class="showFilterDropdown ? 'rotate-180' : ''"
+                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
 
-                        <!-- Kategori Olahraga Checklist -->
-                        <div class="space-y-2 pt-3 border-t border-slate-100">
-                            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kategori Olahraga</label>
-                            <div class="space-y-1.5 text-xs max-h-56 overflow-y-auto custom-scrollbar pr-1">
-                                @foreach($sportCategories ?? [] as $cat)
-                                    @php $catLower = strtolower(trim($cat)); @endphp
-                                    <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-blue-50/50 cursor-pointer transition-colors text-slate-700">
-                                        <span class="flex items-center gap-2.5">
-                                            <input type="checkbox"
-                                                   value="{{ $catLower }}"
-                                                   x-model="selectedCategories"
-                                                   class="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer">
-                                            <span class="font-medium">{{ ucfirst($cat) }}</span>
-                                        </span>
-                                    </label>
-                                @endforeach
+                            <!-- Filter Dropdown Content (Smooth accordion, hidden by default) -->
+                            <div class="grid transition-[grid-template-rows,opacity] duration-300 ease-out"
+                                 :class="showFilterDropdown ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'">
+                                <div class="overflow-hidden">
+                                    <div class="space-y-5 pt-4">
+                                        <!-- Kota / Wilayah Filter -->
+                                        <div class="space-y-1.5 pt-3 border-t border-slate-100">
+                                            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kota / Wilayah</label>
+                                            <select x-model="selectedCity" class="glass-input w-full px-3 py-2 text-xs rounded-xl text-slate-700 font-medium">
+                                                <option value="">Semua Wilayah</option>
+                                                @foreach($cities ?? [] as $city)
+                                                    <option value="{{ strtolower($city) }}">{{ ucfirst($city) }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <!-- Kategori Olahraga Checklist -->
+                                        <div class="space-y-2 pt-3 border-t border-slate-100">
+                                            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kategori Olahraga</label>
+                                            <div class="space-y-1.5 text-xs max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                                                @foreach($sportCategories ?? [] as $cat)
+                                                    @php $catLower = strtolower(trim($cat)); @endphp
+                                                    <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-blue-50/50 cursor-pointer transition-colors text-slate-700">
+                                                        <span class="flex items-center gap-2.5">
+                                                            <input type="checkbox"
+                                                                   value="{{ $catLower }}"
+                                                                   x-model="selectedCategories"
+                                                                   class="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer">
+                                                            <span class="font-medium">{{ ucfirst($cat) }}</span>
+                                                        </span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
