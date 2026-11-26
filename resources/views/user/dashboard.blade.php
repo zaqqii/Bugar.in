@@ -104,6 +104,23 @@
             return this.userParticipantKeys.includes(`App\\Models\\Event-${realId}`);
         },
         leaderboardMetric: 'points',
+        activityDetailModalOpen: false,
+        selectedMembershipDetail: null,
+        joinedActivitiesByCommunity: @js($joinedActivitiesByCommunity),
+        openMembershipDetail(communityId, communityName, sportCategory, city, membershipStatus) {
+            const activities = this.joinedActivitiesByCommunity[communityId] || [];
+            this.selectedMembershipDetail = {
+                communityId,
+                communityName,
+                sportCategory,
+                city,
+                membershipStatus,
+                activities,
+                activeCount: activities.filter(a => a.is_active_session).length,
+                attendedCount: activities.filter(a => a.status_raw === 'attended').length,
+            };
+            this.activityDetailModalOpen = true;
+        },
         leaderboardUsers: @js($leaderboardUsers->map(fn($rankedUser) => [
             'id' => $rankedUser->id,
             'name' => $rankedUser->name,
@@ -1773,7 +1790,15 @@
                                             </span>
                                         </td>
                                         <td class="py-3 px-5 text-right">
-                                            <button type="button" @click="setSection('komunitas')" class="text-blue-600 hover:text-blue-800 font-semibold text-xs transition-colors">
+                                            <button type="button"
+                                                    @click="openMembershipDetail(
+                                                        {{ (int) ($m->community?->id ?? 0) }},
+                                                        @js($m->community?->name ?? 'Komunitas'),
+                                                        @js(ucfirst($m->community?->sport_category ?? '-')),
+                                                        @js($m->community?->city ?? '-'),
+                                                        @js(ucfirst($m->status ?? 'Aktif'))
+                                                    )"
+                                                    class="text-blue-600 hover:text-blue-800 font-semibold text-xs transition-colors cursor-pointer">
                                                 Lihat Detail &rarr;
                                             </button>
                                         </td>
@@ -1785,6 +1810,102 @@
                 </div>
             @endif
         </section>
+
+        {{-- ============================================================
+             DETAIL RIWAYAT AKTIVITAS & REKAP SESI MODAL
+             ============================================================ --}}
+        <div
+            x-show="activityDetailModalOpen"
+            x-cloak
+            @keydown.escape.window="activityDetailModalOpen = false"
+            class="fixed inset-0 z-[998] flex items-center justify-center p-4 sm:p-6"
+            role="dialog" aria-modal="true" aria-labelledby="activity-detail-modal-title">
+
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="activityDetailModalOpen = false"></div>
+
+            <div class="relative z-10 w-full max-w-2xl rounded-3xl bg-white shadow-2xl ring-1 ring-blue-100 overflow-hidden transform transition-all my-auto max-h-[88vh] flex flex-col">
+                <div class="flex items-center justify-between bg-gradient-to-r from-blue-600 to-cyan-500 px-5 sm:px-6 py-4 text-white shrink-0">
+                    <div class="min-w-0 pr-3">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 id="activity-detail-modal-title" class="text-base sm:text-lg font-extrabold text-white truncate" x-text="selectedMembershipDetail?.communityName || 'Detail Aktivitas'"></h2>
+                            <span class="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold text-white" x-text="selectedMembershipDetail?.membershipStatus || 'Aktif'"></span>
+                        </div>
+                        <p class="mt-0.5 text-xs text-blue-100 font-medium">
+                            <span x-text="selectedMembershipDetail?.sportCategory || '-'"></span> &bull; <span x-text="selectedMembershipDetail?.city || '-'"></span>
+                        </p>
+                    </div>
+                    <button type="button" @click="activityDetailModalOpen = false" class="rounded-xl p-1.5 text-white/80 hover:bg-white/20 hover:text-white transition shrink-0 cursor-pointer" aria-label="Tutup">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="p-5 sm:p-6 overflow-y-auto space-y-5">
+                    {{-- Rekap singkat --}}
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100 text-center">
+                            <span class="text-[11px] font-semibold text-slate-500 block">Total Event Diikuti</span>
+                            <span class="text-lg font-extrabold text-slate-900" x-text="selectedMembershipDetail?.activities?.length || 0">0</span>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-center">
+                            <span class="text-[11px] font-semibold text-slate-500 block">Sesi Aktif</span>
+                            <span class="text-lg font-extrabold text-emerald-700" x-text="selectedMembershipDetail?.activeCount || 0">0</span>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-cyan-50/70 border border-cyan-100 text-center">
+                            <span class="text-[11px] font-semibold text-slate-500 block">Sudah Hadir</span>
+                            <span class="text-lg font-extrabold text-cyan-700" x-text="selectedMembershipDetail?.attendedCount || 0">0</span>
+                        </div>
+                    </div>
+
+                    {{-- Daftar jadwal / event yang diikuti --}}
+                    <div class="space-y-2.5">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Daftar Jadwal &amp; Event yang Diikuti</h4>
+
+                        <template x-if="!selectedMembershipDetail || selectedMembershipDetail.activities.length === 0">
+                            <div class="p-8 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
+                                <p class="text-sm font-bold text-slate-700">Belum ada jadwal atau event yang diikuti</p>
+                                <p class="text-xs text-slate-500">Kamu belum mendaftar ke sesi latihan atau event apa pun di komunitas ini.</p>
+                            </div>
+                        </template>
+
+                        <template x-for="act in (selectedMembershipDetail?.activities || [])" :key="act.kind + '-' + act.id">
+                            <div class="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-blue-50/30 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="space-y-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                                              :class="act.kind === 'Event' ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700'"
+                                              x-text="act.kind"></span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                                              :class="act.is_active_session ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
+                                              x-text="act.is_active_session ? 'Aktif' : 'Selesai'"></span>
+                                    </div>
+                                    <h5 class="text-sm font-bold text-slate-900 truncate" x-text="act.title"></h5>
+                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                                        <span x-text="act.date_formatted"></span>
+                                        <span x-text="act.time"></span>
+                                        <span class="truncate" x-text="act.location"></span>
+                                    </div>
+                                </div>
+                                <div class="shrink-0">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold"
+                                          :class="{
+                                              'bg-emerald-100 text-emerald-700': act.status_raw === 'attended',
+                                              'bg-blue-100 text-blue-700': act.status_raw === 'registered',
+                                              'bg-amber-100 text-amber-700': act.status_raw === 'waiting_list' || act.status_raw === 'waiting_payment'
+                                          }"
+                                          x-text="act.status_label"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="px-5 sm:px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end shrink-0">
+                    <button type="button" @click="activityDetailModalOpen = false" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold transition-colors cursor-pointer">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
 
         {{-- ============================================================
              QR CHECK-IN MODAL (User side) — Berada di dalam x-data
