@@ -2,7 +2,7 @@
 
 DBMS: PostgreSQL (Neon). Framework: Laravel 13 (PHP 8.3). Deploy: Render. Storage: Cloudflare R2.
 
-Ringkasan schema diperbarui 2026-11-18 berdasarkan audit repository (branch `deploy`, commit `aaa3d7e`, 13 November 2026). **Sumber kebenaran tetap `database/migrations/`**; kalau dokumen ini beda dengan migration, migration yang menang dan perbedaannya **wajib dilaporkan** ke pengguna.
+Ringkasan schema diperbarui 2026-11-24 berdasarkan audit repository (branch `deploy`, commit `aaa3d7e`, 13 November 2026). **Sumber kebenaran tetap `database/migrations/`**; kalau dokumen ini beda dengan migration, migration yang menang dan perbedaannya **wajib dilaporkan** ke pengguna.
 
 > **STOP. BACA BAGIAN 0 SEBELUM MELAKUKAN APA PUN.**
 > Database Neon ini berisi data nyata yang dipakai bersama tim. Sudah dua kali agent menjalankan `php artisan migrate:fresh` saat mengerjakan task. Hal itu tidak boleh terulang.
@@ -162,6 +162,9 @@ users 1─N notifications                  (di kode dipakai lewat model UserAnno
 users 1─N audit_logs                     (auditable_* -> objek yang diubah)
 users 1─N contents                       (created_by)
 users 1─N bmi_records
+users 1─N payments                       (payments.payer_id, payments.reviewed_by)
+communities 1─N payments                 (payments.community_id)
+participants 1─N payments                (payments.participant_id)
 ```
 
 ## 4. Nilai enum (CHECK constraint)
@@ -183,6 +186,9 @@ users 1─N bmi_records
 | `contents.type` | `article`, `announcement`, `tip`, `news` |
 | `contents.status` | `draft`, `published`, `archived` |
 | `bmi_records.category` | `underweight`, `normal`, `overweight`, `obese` |
+| `payments.purpose` | `event_registration`, `community_verification` |
+| `payments.method` | `virtual_account`, `qris` |
+| `payments.status` | `awaiting_proof`, `proof_uploaded`, `approved`, `rejected`, `expired` |
 
 Nilai lain yang belum terverifikasi dari migration (cek langsung di migration sebelum dipakai): `schedules.level` (default `all_levels`), `communities.verification_type` (`paid`, `free_followers`), `events.payment_category`, `events.payment_method`, dan nilai string `notifications.type` (konstanta `NotificationType`: ANNOUNCEMENT, EVENT_PUBLISHED, EVENT_CANCELLED, EVENT_REMINDER, SCHEDULE_REMINDER, SCHEDULE_CANCELLED).
 
@@ -238,6 +244,7 @@ Nilai lain yang belum terverifikasi dari migration (cek langsung di migration se
 | verification_requested_at | timestamp | opsional |
 | rejection_reason | text | opsional |
 | verified_at | timestamp | opsional |
+| payment_bank, payment_account, payment_account_name, payment_qris_image | varchar(255) | opsional, rekening/tujuan bayar untuk event berbayar komunitas; migration `2026_11_24_173734` |
 | is_active | boolean | wajib, default true |
 | is_public | boolean | wajib, default true |
 | created_at, updated_at, deleted_at | timestamp | soft delete |
@@ -333,6 +340,7 @@ Indeks: (`community_id`, `date`). **Belum ada** UNIQUE untuk (`community_id`, `d
 | capacity | integer | opsional |
 | registration_fee | numeric(10,2) | wajib, default 0 |
 | payment_category, payment_method, payment_account | varchar(255) | info pembayaran event berbayar; cek migration |
+| payment_account_name | varchar(255) | opsional, nama pemilik rekening (tujuan transfer); migration `2026_11_24_173734` |
 | organizer_contact | varchar(255) | cek migration |
 | rundown | text | cek migration |
 | requirements, prizes | text | opsional |
@@ -358,6 +366,34 @@ Indeks: (`community_id`, `date`). **Belum ada** UNIQUE untuk (`community_id`, `d
 | created_at, updated_at | timestamp | |
 
 Unik `unique_participant`: (`user_id`, `participatable_id`, `participatable_type`). Indeks: (`participatable_type`, `participatable_id`).
+
+### payments
+| Kolom | Tipe | Catatan |
+|---|---|---|
+| id | bigserial | PK |
+| purpose | enum | wajib (`event_registration`, `community_verification`) |
+| method | enum | wajib (`virtual_account`, `qris`) |
+| status | enum | wajib, default `awaiting_proof` (`awaiting_proof`, `proof_uploaded`, `approved`, `rejected`, `expired`) |
+| payer_id | bigint | opsional, FK `users` (ON DELETE SET NULL), terindeks |
+| participant_id | bigint | opsional, FK `participants` (ON DELETE SET NULL), terindeks |
+| community_id | bigint | opsional, FK `communities` (ON DELETE SET NULL), terindeks |
+| amount | numeric(10,2) | wajib, nominal pembayaran |
+| destination_bank | varchar(255) | opsional, snapshot nama bank tujuan |
+| destination_account | varchar(255) | opsional, snapshot nomor rekening tujuan |
+| destination_name | varchar(255) | opsional, snapshot nama pemilik rekening tujuan |
+| destination_qris | varchar(255) | opsional, snapshot path gambar QRIS tujuan |
+| proof_path | varchar(255) | opsional, path file bukti transfer di storage privat |
+| proof_uploaded_at | timestamp | opsional, waktu unggah bukti transfer terakhir |
+| proof_attempts | smallint | wajib, default 0, batas percobaan unggah bukti |
+| sender_name | varchar(255) | opsional, nama pengirim yang dimasukkan pembayar |
+| transferred_at | timestamp | opsional, waktu transfer sesuai klaim pembayar |
+| expires_at | timestamp | opsional, tenggat waktu pembayaran / unggah bukti |
+| reviewed_by | bigint | opsional, FK `users` (penyedia/admin pemeriksa; ON DELETE SET NULL) |
+| reviewed_at | timestamp | opsional, waktu persetujuan atau penolakan |
+| rejection_reason | text | opsional, alasan penolakan bukti bayar |
+| created_at, updated_at | timestamp | |
+
+Indeks gabungan: (`purpose`, `status`). Indeks: `payer_id`, `participant_id`, `community_id`. Tanpa soft delete (`deleted_at`).
 
 ### attendances
 | Kolom | Tipe | Catatan |
@@ -395,9 +431,10 @@ Unik: (`user_id`, `sport_category`). Belum ada indeks pada `last_activity_date`.
 | pointable_type, pointable_id | varchar(255), bigint | wajib, objek pemicu poin |
 | description | text | opsional |
 | balance_after | integer | wajib, saldo poin setelah transaksi |
+| dedupe_key | varchar(191) | opsional, unik; kunci idempotensi pemberian poin (migration `2026_11_26_020000_add_dedupe_key_to_points_histories_table`) |
 | created_at, updated_at | timestamp | |
 
-Belum ada UNIQUE di level database untuk mencegah poin ganda; idempotensi saat ini hanya lewat pengecekan di kode.
+Catatan desain `dedupe_key`: Kolom `dedupe_key` mencegah poin ganda akibat race condition atau double-submit (idempotensi). Format kunci: `login:{user_id}:{Y-m-d}` (zona Asia/Jakarta) untuk login harian, `attendance:{participant_id}` untuk kehadiran, dan `attendance-reversal:{participant_id}` untuk pembatalan/pembalikan kehadiran. Query insert menggunakan `ON CONFLICT DO NOTHING` (`insertOrIgnore`) pada transaksi terisolasi tanpa menangkap exception PostgreSQL.
 
 ### reports
 | Kolom | Tipe | Catatan |
@@ -506,6 +543,10 @@ Belum ada model/controller yang memakai tabel ini.
 | events.community_id | communities | CASCADE |
 | notifications.user_id | users | CASCADE |
 | participants.user_id | users | CASCADE |
+| payments.payer_id | users | SET NULL |
+| payments.participant_id | participants | SET NULL |
+| payments.community_id | communities | SET NULL |
+| payments.reviewed_by | users | SET NULL |
 | points_histories.user_id | users | CASCADE |
 | reports.reporter_id | users | CASCADE |
 | reports.handled_by | users | SET NULL |
@@ -554,9 +595,14 @@ Level MVP (akumulatif, poin tidak berkurang): 1 Pemula 0–199, 2 Aktif 200–49
 - Tidak ada waiting list otomatis untuk MVP.
 
 ### 6.6 Pembayaran event dan verifikasi komunitas
-- Pembayaran event berbayar **bukan prioritas MVP**. Schema hanya menyimpan `qris_image`, `registration_fee`, `payment_*`, dan status `waiting_payment`. Belum ada tabel bukti bayar, peninjauan, tenggat, snapshot harga, atau refund. Jangan membangun sistem pembayaran otomatis dan jangan menampilkan proses pembayaran seolah sudah berfungsi.
-- Bukti pembayaran (jika kelak dibuat) **harus** disimpan di storage privat (`AWS_PRIVATE_BUCKET`), bukan bucket publik.
-- Komunitas baru berstatus `pending`. **Hanya admin yang boleh mengubah menjadi `verified`.** Alur `AkunController@verify` dengan `verification_type = paid` yang langsung menjadikan komunitas `verified` adalah celah keamanan yang sedang diperbaiki; jangan ditiru atau diperluas.
+- Alur pembayaran MVP menggunakan transfer manual (Virtual Account / nomor rekening bank atau gambar QRIS), tanpa payment gateway otomatis, tanpa refund, tanpa kode unik, dan tanpa OCR.
+- Transaksi dikelola oleh satu tabel `payments` untuk dua tujuan: (A) pendaftaran event berbayar (user membayar ke penyedia), dan (B) verifikasi komunitas (penyedia membayar ke admin).
+- Seluruh alur pembuatan transaksi, unggah bukti bayar, dan peninjauan dikelola terpusat via `PaymentService` milik Rifat.
+- Siklus status pembayaran: `awaiting_proof` -> `proof_uploaded` -> `approved` / `rejected` / `expired`.
+- Bukti transfer berupa gambar diunggah ke storage privat (`AWS_PRIVATE_BUCKET`) demi keamanan, dengan pembatasan percobaan unggah (`proof_attempts`).
+- Transaksi memiliki tenggat waktu (`expires_at`). Transaksi yang melewati batas kedaluwarsa akan ditolak atau diproses sebagai `expired`.
+- Persetujuan pembayaran event dilakukan oleh penyedia komunitas terkait. Persetujuan pembayaran verifikasi komunitas dilakukan oleh admin.
+- Status `verified` pada tabel `communities` **HANYA** diberikan oleh admin secara eksplisit setelah meninjau bukti pembayaran verifikasi komunitas (bukan otomatis saat pembayaran berhasil/diunggah).
 
 ## 7. Catatan desain (baca sebelum membangun fitur terkait)
 
@@ -572,6 +618,7 @@ Level MVP (akumulatif, poin tidak berkurang): 1 Pemula 0–199, 2 Aktif 200–49
 10. **`markNoShows()` hanya dipanggil saat penyedia membuka halaman detail jadwal**, dan `SCHEDULE_NO_SHOW_ENFORCEMENT` default `false`. Tidak ada job otomatis.
 11. **Storage.** File di R2 memakai disk publik. `AWS_PRIVATE_BUCKET` tersedia untuk file privat.
 12. **Tabel tanpa fitur.** `community_ratings`, `audit_logs`, `contents`, `bmi_records`, dan `reports` sudah ada di schema tetapi belum dipakai kode. Jangan menghapusnya dan jangan menganggap sudah berfungsi.
+13. **Snapshot data rekening dan kedaluwarsa transaksi payments.** (a) Tabel `payments` menyimpan snapshot data tujuan bayar pada kolom `destination_bank`, `destination_account`, `destination_name`, dan `destination_qris` saat record transaksi dibuat, sehingga perubahan data rekening/QRIS di `communities` atau `events` tidak memengaruhi transaksi yang sedang berjalan; (b) evaluasi kedaluwarsa transaksi (`expires_at`) dilakukan saat record dibaca (lazy evaluation) atau melalui scheduler/cron job di aplikasi (bukan trigger database).
 
 ## 8. Usulan perubahan schema (BELUM dibuat, keputusan Rifat)
 
@@ -583,7 +630,6 @@ Jangan dibuat oleh agent tanpa instruksi Rifat. Setiap item harus berupa **migra
 | Pengaman idempotensi poin di level DB pada `points_histories` | Cegah poin ganda akibat race condition |
 | Penyesuaian `streaks` untuk streak global per user | Keputusan produk MVP |
 | Indeks `streaks.last_activity_date` | Performa |
-| Tabel bukti pembayaran (`payment_proofs`) | Hanya jika pembayaran event masuk scope; storage privat |
 
 ## 9. Cara mengubah schema
 

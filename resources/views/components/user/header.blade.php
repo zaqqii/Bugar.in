@@ -58,8 +58,8 @@
            title="Edit Profil Saya"
            id="header-profile-link">
             <div class="w-8 h-8 rounded-lg overflow-hidden bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow-xs flex-shrink-0">
-                @if($authUser?->avatar)
-                    <img src="{{ \Illuminate\Support\Str::startsWith($authUser->avatar, ['http://', 'https://']) ? $authUser->avatar : \Illuminate\Support\Facades\Storage::url($authUser->avatar) }}" alt="{{ $authUser->name }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
+                @if($authUser?->avatar_url)
+                    <img src="{{ $authUser->avatar_url }}" alt="{{ $authUser->name }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
                 @else
                     {{ $initials }}
                 @endif

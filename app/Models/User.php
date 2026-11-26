@@ -53,6 +53,10 @@ class User extends Authenticatable
             return $this->avatar;
         }
 
+        if (str_starts_with($this->avatar, '/storage/') || str_starts_with($this->avatar, 'storage/')) {
+            return asset(ltrim($this->avatar, '/'));
+        }
+
         return \Illuminate\Support\Facades\Storage::url($this->avatar);
     }
 
@@ -116,6 +120,22 @@ class User extends Authenticatable
     public function isJoinBlocked(): bool
     {
         return $this->join_blocked_until !== null && $this->join_blocked_until->isFuture();
+    }
+
+    public function joinBlockedUntilFormatted(): ?string
+    {
+        if (! $this->join_blocked_until) {
+            return null;
+        }
+
+        return $this->join_blocked_until
+            ->timezone(config('app.timezone', 'Asia/Jakarta'))
+            ->translatedFormat('d F Y, H:i');
+    }
+
+    public function hasActivityConflict(\Carbon\Carbon $start, \Carbon\Carbon $end, $exclude = null): ?array
+    {
+        return app(\App\Services\ActivityOverlapService::class)->userConflict($this, $start, $end, $exclude);
     }
 
     public function isCommunityOwner(): bool

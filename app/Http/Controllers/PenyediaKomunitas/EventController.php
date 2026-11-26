@@ -10,6 +10,7 @@ use App\Models\Participant;
 use App\Models\UserAnnouncement;
 use App\Services\AttendanceService;
 use App\Support\NotificationType;
+use App\Support\ProviderActivityOverlap;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -76,6 +77,16 @@ class EventController extends Controller
                         ->paginate(10)
                         ->withQueryString();
 
+        $events->getCollection()->each(function (Event $event): void {
+            $filled = (int) $event->participants_count;
+            $capacity = $event->capacity;
+
+            $event->setAttribute('capacity_filled', $filled);
+            $event->setAttribute('capacity_is_full', $event->isFull());
+            $event->setAttribute('capacity_percentage', $capacity === null ? null : $event->fillPercentage());
+            $event->setAttribute('capacity_remaining', $capacity === null ? null : max(0, $capacity - $filled));
+        });
+
         return view('penyedia-komunitas.events.index', compact(
             'community', 'events', 'counts', 'selectedStatus', 'search'
         ));
@@ -102,31 +113,77 @@ class EventController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:80',
             'type' => 'required|string|in:fun_match,tournament,gathering,workshop,other',
-            'description' => 'required|string',
-            'rundown' => 'nullable|string',
+            'description' => 'required|string|max:5000',
+            'rundown' => 'nullable|string|max:5000',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'qris_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'event_date' => $r . '|date',
-            'registration_close_at' => $r . '|date',
+            'registration_close_at' => $r . '|date|before_or_equal:event_date',
             'timezone' => 'nullable|in:WIB,WITA,WIT',
             'start_time' => $r,
-            'end_time' => 'nullable',
+            'end_time' => 'nullable|date_format:H:i|after:start_time',
             'location' => $r . '|string|max:255',
-            'maps_url' => 'nullable|url|max:500',
+            'maps_url' => 'nullable|url|max:255',
             'capacity_type' => 'nullable|in:limited,unlimited',
-            'capacity' => 'nullable|integer|min:1',
+            'capacity' => 'nullable|integer|min:1|max:100000',
             'is_paid' => 'nullable|in:0,1',
-            'registration_fee' => 'nullable|numeric|min:0',
+            'registration_fee' => 'nullable|numeric|min:0|max:99999999',
             'payment_category' => 'nullable|in:bank,qris,ewallet,cash',
             'payment_method' => 'nullable|string|max:100',
             'payment_account' => 'nullable|string|max:255',
-            'requirements' => 'nullable|string',
+            'requirements' => 'nullable|string|max:5000',
             'organizer_contact' => 'nullable|string|max:255',
             'action' => 'nullable|string|in:draft,publish',
             'status' => 'nullable|string|in:draft,published',
         ], [
+            'title.required' => 'Nama event wajib diisi.',
             'title.max' => 'Nama event tidak boleh lebih dari 80 karakter agar tampilan tetap rapi.',
+            'type.required' => 'Pilih salah satu jenis event.',
+            'type.in' => 'Jenis event yang dipilih tidak valid.',
+            'description.required' => 'Deskripsi event wajib diisi.',
+            'description.max' => 'Deskripsi event tidak boleh melebihi 5.000 karakter.',
+            'rundown.max' => 'Susunan rundown acara tidak boleh melebihi 5.000 karakter.',
+            'cover_image.image' => 'File foto sampul harus berupa gambar.',
+            'cover_image.mimes' => 'Format gambar sampul harus bertipe JPG, JPEG, PNG, atau WEBP.',
+            'cover_image.max' => 'Ukuran foto sampul maksimal 2MB. Foto yang Anda pilih terlalu besar dan ditolak.',
+            'qris_image.image' => 'File barcode QRIS harus berupa gambar.',
+            'qris_image.mimes' => 'Format foto barcode QRIS harus JPG, PNG, atau WEBP.',
+            'qris_image.max' => 'Ukuran barcode QRIS maksimal 2MB.',
+            'event_date.required' => 'Tanggal pelaksanaan event wajib diisi.',
+            'event_date.date' => 'Format tanggal pelaksanaan event tidak valid.',
+            'registration_close_at.required' => 'Batas penutupan pendaftaran wajib diisi.',
+            'registration_close_at.date' => 'Format batas penutupan pendaftaran tidak valid.',
+            'registration_close_at.before_or_equal' => 'Batas penutupan pendaftaran tidak boleh melewati tanggal acara.',
+            'start_time.required' => 'Waktu mulai event wajib diisi.',
+            'location.required' => 'Nama tempat / lokasi event wajib diisi.',
+            'location.max' => 'Nama lokasi tidak boleh lebih dari 255 karakter.',
+            'maps_url.url' => 'Format link Google Maps tidak valid (harus diawali http:// atau https://).',
+            'maps_url.max' => 'Link Google Maps maksimal 255 karakter sesuai batas database.',
+            'capacity.min' => 'Kuota peserta minimal 1 orang.',
+            'capacity.max' => 'Kuota peserta maksimal 100.000 orang.',
+            'registration_fee.min' => 'Biaya pendaftaran tidak boleh bernilai negatif.',
+            'registration_fee.max' => 'Biaya pendaftaran maksimal Rp 99.999.999.',
+            'payment_method.max' => 'Metode / nama bank maksimal 100 karakter.',
+            'payment_account.max' => 'Nomor rekening / akun pembayaran maksimal 255 karakter.',
+            'requirements.max' => 'Syarat & ketentuan peserta maksimal 5.000 karakter.',
+            'organizer_contact.max' => 'Kontak penyelenggara maksimal 255 karakter.',
         ]);
+
+        $overlapChecker = app(ProviderActivityOverlap::class);
+        $overlapWarnings = [];
+        if (!empty($validated['event_date']) && !empty($validated['start_time'])) {
+            $overlaps = $overlapChecker->inspect(
+                (int) $community->id,
+                $validated['event_date'],
+                $validated['start_time'],
+                $validated['end_time'] ?? null,
+                $validated['location'] ?? '',
+            );
+            if ($overlaps['blocking'] !== []) {
+                return back()->withInput()->withErrors(['event_date' => implode(' ', $overlaps['blocking'])]);
+            }
+            $overlapWarnings = $overlaps['warnings'];
+        }
 
         // Verifikasi Komunitas: Hanya jika mempublikasikan event berbayar
         $isPaidEvent = ($request->is_paid === '1') || ((float) ($validated['registration_fee'] ?? 0) > 0);
@@ -195,34 +252,61 @@ class EventController extends Controller
         $slug = Str::slug($validated['title']) . '-' . Str::lower(Str::random(6));
 
         // Create Event
-        Event::create([
-            'community_id' => $community->id,
-            'title' => $validated['title'],
-            'slug' => $slug,
-            'description' => $description,
-            'cover_image' => $coverPath,
-            'qris_image' => $qrisPath,
-            'type' => $validated['type'],
-            'location' => $validated['location'],
-            'maps_url' => $validated['maps_url'] ?? null,
-            'event_date' => $validated['event_date'],
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'] ?? null,
-            'capacity' => $capacity,
-            'registration_fee' => $registrationFee,
-            'requirements' => $requirements ?: null,
-            'registration_open_at' => $isDraft ? null : now(),
-            'registration_close_at' => $validated['registration_close_at'],
-            'status' => $initialStatus,
-            'participants_count' => 0,
-            'is_active' => true,
-        ]);
+        $blockingOverlaps = [];
+        DB::transaction(function () use ($community, $validated, $overlapChecker, &$blockingOverlaps, $slug, $description, $coverPath, $qrisPath, $capacity, $registrationFee, $requirements, $isDraft, $initialStatus) {
+            Community::whereKey($community->id)->lockForUpdate()->firstOrFail();
+
+            if (!empty($validated['event_date']) && !empty($validated['start_time'])) {
+                $overlaps = $overlapChecker->inspect(
+                    (int) $community->id,
+                    $validated['event_date'],
+                    $validated['start_time'],
+                    $validated['end_time'] ?? null,
+                    $validated['location'] ?? '',
+                );
+                $blockingOverlaps = $overlaps['blocking'];
+                if ($blockingOverlaps !== []) {
+                    return;
+                }
+            }
+
+            Event::create([
+                'community_id' => $community->id,
+                'title' => $validated['title'],
+                'slug' => $slug,
+                'description' => $description,
+                'cover_image' => $coverPath,
+                'qris_image' => $qrisPath,
+                'type' => $validated['type'],
+                'location' => $validated['location'],
+                'maps_url' => $validated['maps_url'] ?? null,
+                'event_date' => $validated['event_date'] ?? null,
+                'start_time' => $validated['start_time'] ?? null,
+                'end_time' => $validated['end_time'] ?? null,
+                'capacity' => $capacity,
+                'registration_fee' => $registrationFee,
+                'requirements' => $requirements ?: null,
+                'registration_open_at' => $isDraft ? null : now(),
+                'registration_close_at' => $validated['registration_close_at'] ?? null,
+                'status' => $initialStatus,
+                'participants_count' => 0,
+                'is_active' => true,
+            ]);
+        });
+
+        if ($blockingOverlaps !== []) {
+            return back()->withInput()->withErrors(['event_date' => implode(' ', $blockingOverlaps)]);
+        }
 
         $message = $isDraft
             ? 'Draft event "' . $validated['title'] . '" berhasil disimpan!'
             : 'Event "' . $validated['title'] . '" berhasil dipublikasikan!';
 
-        return redirect()->route('penyedia-komunitas.events.index')->with('success', $message);
+        $redirect = redirect()->route('penyedia-komunitas.events.index')->with('success', $message);
+
+        return $overlapWarnings !== []
+            ? $redirect->with('warning', implode(' ', array_unique($overlapWarnings)))
+            : $redirect;
     }
 
     public function edit(Event $event)
@@ -259,29 +343,70 @@ class EventController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:80',
             'type' => 'required|string|in:fun_match,tournament,gathering,workshop,other',
-            'description' => 'required|string',
-            'rundown' => 'nullable|string',
+            'description' => 'required|string|max:5000',
+            'rundown' => 'nullable|string|max:5000',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'event_date' => 'required|date',
-            'registration_close_at' => 'required|date',
+            'registration_close_at' => 'required|date|before_or_equal:event_date',
             'timezone' => 'nullable|string|in:WIB,WITA,WIT',
             'start_time' => 'required',
-            'end_time' => 'nullable',
+            'end_time' => 'nullable|date_format:H:i|after:start_time',
             'location' => 'required|string|max:255',
-            'maps_url' => 'nullable|url|max:500',
+            'maps_url' => 'nullable|url|max:255',
             'capacity_type' => 'nullable|string|in:limited,unlimited',
-            'capacity' => 'nullable|integer|min:1',
+            'capacity' => 'nullable|integer|min:1|max:100000',
             'is_paid' => 'nullable|string|in:0,1',
-            'registration_fee' => 'nullable|numeric|min:0',
+            'registration_fee' => 'nullable|numeric|min:0|max:99999999',
             'payment_method' => 'nullable|string|max:100',
             'payment_account' => 'nullable|string|max:255',
-            'requirements' => 'nullable|string',
+            'requirements' => 'nullable|string|max:5000',
             'organizer_contact' => 'nullable|string|max:255',
             'action' => 'nullable|string|in:draft,publish',
             'status' => 'nullable|string|in:draft,published',
         ], [
+            'title.required' => 'Nama event wajib diisi.',
             'title.max' => 'Nama event tidak boleh lebih dari 80 karakter agar tampilan tetap rapi.',
+            'type.required' => 'Pilih jenis event.',
+            'type.in' => 'Jenis event yang dipilih tidak valid.',
+            'description.required' => 'Deskripsi event wajib diisi.',
+            'description.max' => 'Deskripsi event tidak boleh melebihi 5.000 karakter.',
+            'rundown.max' => 'Susunan rundown acara tidak boleh melebihi 5.000 karakter.',
+            'cover_image.image' => 'File foto sampul harus berupa gambar.',
+            'cover_image.mimes' => 'Format gambar sampul harus bertipe JPG, JPEG, PNG, atau WEBP.',
+            'cover_image.max' => 'Ukuran foto sampul maksimal 2MB. Foto yang Anda pilih terlalu besar dan ditolak.',
+            'event_date.required' => 'Tanggal pelaksanaan event wajib diisi.',
+            'event_date.date' => 'Format tanggal pelaksanaan event tidak valid.',
+            'registration_close_at.required' => 'Batas penutupan pendaftaran wajib diisi.',
+            'registration_close_at.date' => 'Format batas penutupan pendaftaran tidak valid.',
+            'registration_close_at.before_or_equal' => 'Batas penutupan pendaftaran tidak boleh melewati tanggal acara.',
+            'start_time.required' => 'Waktu mulai event wajib diisi.',
+            'location.required' => 'Nama tempat / lokasi event wajib diisi.',
+            'location.max' => 'Nama lokasi tidak boleh lebih dari 255 karakter.',
+            'maps_url.url' => 'Format link Google Maps tidak valid (harus diawali http:// atau https://).',
+            'maps_url.max' => 'Link Google Maps maksimal 255 karakter sesuai batas database.',
+            'capacity.min' => 'Kuota peserta minimal 1 orang.',
+            'capacity.max' => 'Kuota peserta maksimal 100.000 orang.',
+            'registration_fee.min' => 'Biaya pendaftaran tidak boleh bernilai negatif.',
+            'registration_fee.max' => 'Biaya pendaftaran maksimal Rp 99.999.999.',
+            'payment_method.max' => 'Metode / nama bank maksimal 100 karakter.',
+            'payment_account.max' => 'Nomor rekening / akun pembayaran maksimal 255 karakter.',
+            'requirements.max' => 'Syarat & ketentuan peserta maksimal 5.000 karakter.',
+            'organizer_contact.max' => 'Kontak penyelenggara maksimal 255 karakter.',
         ]);
+
+        $overlapChecker = app(ProviderActivityOverlap::class);
+        $overlaps = $overlapChecker->inspect(
+            (int) $community->id,
+            $validated['event_date'],
+            $validated['start_time'],
+            $validated['end_time'] ?? null,
+            $validated['location'],
+            ignoreEventId: (int) $event->id,
+        );
+        if ($overlaps['blocking'] !== []) {
+            return back()->withInput()->withErrors(['event_date' => implode(' ', $overlaps['blocking'])]);
+        }
+        $overlapWarnings = $overlaps['warnings'];
 
         $isDraftAction = ($request->input('action') === 'draft') || ($request->input('status') === 'draft');
 
@@ -377,10 +502,35 @@ class EventController extends Controller
             $updateData['registration_open_at'] = now();
         }
 
-        $event->update($updateData);
+        $blockingOverlaps = [];
+        DB::transaction(function () use ($community, $event, $updateData, $overlapChecker, &$blockingOverlaps) {
+            Community::whereKey($community->id)->lockForUpdate()->firstOrFail();
+            $overlaps = $overlapChecker->inspect(
+                (int) $community->id,
+                $updateData['event_date'],
+                $updateData['start_time'],
+                $updateData['end_time'],
+                $updateData['location'],
+                ignoreEventId: (int) $event->id,
+            );
+            $blockingOverlaps = $overlaps['blocking'];
+            if ($blockingOverlaps !== []) {
+                return;
+            }
 
-        return redirect()->route('penyedia-komunitas.events.index')
+            $event->update($updateData);
+        });
+
+        if ($blockingOverlaps !== []) {
+            return back()->withInput()->withErrors(['event_date' => implode(' ', $blockingOverlaps)]);
+        }
+
+        $redirect = redirect()->route('penyedia-komunitas.events.index')
             ->with('success', 'Perubahan event "' . $validated['title'] . '" berhasil disimpan!');
+
+        return $overlapWarnings !== []
+            ? $redirect->with('warning', implode(' ', array_unique($overlapWarnings)))
+            : $redirect;
     }
 
     public function publish(Event $event)
@@ -509,7 +659,7 @@ class EventController extends Controller
         }
 
         $requirements = $event->requirements ?? '';
-        $timezone = 'WIB';
+        $timezone = $event->timezone ?: 'WIB';
         $paymentMethod = '';
         $paymentAccount = '';
         $organizerContact = '';
@@ -537,7 +687,7 @@ class EventController extends Controller
             'description' => $description,
             'rundown' => $rundown,
             'requirements' => $requirements,
-            'timezone' => $timezone,
+            'timezone' => in_array($timezone, ['WIB', 'WITA', 'WIT'], true) ? $timezone : 'WIB',
             'payment_method' => $paymentMethod,
             'payment_account' => $paymentAccount,
             'organizer_contact' => $organizerContact,

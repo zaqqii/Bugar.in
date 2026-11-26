@@ -37,3 +37,18 @@ Cypress.Commands.add('openSidebarSection', (sectionName) => {
   cy.get(selector, { timeout: 8000 }).should('exist').click();
   cy.get(selector).should('have.class', 'nav-item--active');
 });
+
+/**
+ * Command untuk login sebagai Administrator Console Ops Bugar.in
+ */
+Cypress.Commands.add('loginAdmin', (email = 'admin@bugar.in', password = 'Admin123!') => {
+  cy.visit('/admin/login');
+  cy.url().then((url) => {
+    if (!url.includes('/admin/dashboard')) {
+      cy.get('#email', { timeout: 10000 }).should('be.visible').clear().type(email);
+      cy.get('#password').should('be.visible').clear().type(password);
+      cy.get('button.admin-submit').should('be.visible').click();
+      cy.url({ timeout: 15000 }).should('include', '/admin/dashboard');
+    }
+  });
+});

@@ -42,5 +42,8 @@ return [
 
     // Jumlah Gerak Poin yang didapatkan peserta saat check-in terverifikasi
     'attendance_points' => 30,
+
+    // Durasi default event (dalam menit) jika end_time tidak diisi, khusus untuk validasi bentrok waktu
+    'default_event_duration_minutes' => 120,
 ];
 

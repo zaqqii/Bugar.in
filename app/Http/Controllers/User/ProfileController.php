@@ -148,10 +148,19 @@ class ProfileController extends Controller
 
         if ($request->hasFile('avatar')) {
             $disk = config('filesystems.default');
-            if ($user->avatar && Storage::disk($disk)->exists($user->avatar)) {
-                Storage::disk($disk)->delete($user->avatar);
+            try {
+                if ($user->avatar && !str_starts_with($user->avatar, 'http') && Storage::disk($disk)->exists($user->avatar)) {
+                    Storage::disk($disk)->delete($user->avatar);
+                }
+                $avatarPath = $request->file('avatar')->store('users/avatars', $disk);
+            } catch (\Throwable $e) {
+                // Fallback jika disk default (misal S3/R2) error/offline, simpan ke disk public lokal
+                $disk = 'public';
+                if ($user->avatar && !str_starts_with($user->avatar, 'http') && Storage::disk('public')->exists($user->avatar)) {
+                    Storage::disk('public')->delete($user->avatar);
+                }
+                $avatarPath = $request->file('avatar')->store('users/avatars', 'public');
             }
-            $avatarPath = $request->file('avatar')->store('users/avatars', $disk);
             $validated['avatar'] = $avatarPath;
         }
 

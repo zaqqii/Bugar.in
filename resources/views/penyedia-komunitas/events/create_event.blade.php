@@ -76,6 +76,14 @@
         </p>
     </div>
 
+    @if($errors->any())
+        <div role="alert" class="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">
+            @foreach($errors->all() as $message)
+                <p>{{ $message }}</p>
+            @endforeach
+        </div>
+    @endif
+
     {{-- WIZARD STEPPER & ANIMATED PROGRESS BAR --}}
     <div class="bg-white rounded-2xl border border-slate-200 p-6 mb-8 shadow-sm">
         <div class="relative">
@@ -163,7 +171,7 @@
             <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <div>
+            <div class="flex-1">
                 <span class="font-bold">Ada beberapa data yang perlu diperiksa:</span>
                 <ul class="list-disc list-inside mt-1 font-normal text-xs text-red-700 space-y-0.5">
                     @foreach ($errors->all() as $error)
@@ -220,7 +228,7 @@
                                 Nama Event <span class="text-red-500">*</span>
                             </label>
                             <span class="text-xs font-semibold tabular-nums"
-                                  :class="(form.title ? form.title.length : 0) > 80 ? 'text-rose-600 font-bold' : 'text-slate-400'">
+                                  :class="(form.title ? form.title.length : 0) >= 80 ? 'text-rose-600 font-bold' : 'text-slate-400'">
                                 <span x-text="form.title ? form.title.length : 0">0</span>/80 karakter
                             </span>
                         </div>
@@ -235,6 +243,9 @@
                                required>
                         <div class="flex items-center justify-between mt-1.5 text-xs">
                             <p x-show="errors.title" x-text="errors.title" class="text-red-500 font-medium"></p>
+                            @error('title')
+                                <p class="text-red-500 font-medium" x-show="!errors.title">{{ $message }}</p>
+                            @enderror
                             <p class="text-slate-400 ml-auto text-[11px]">Batas maksimal 80 karakter agar judul tampil rapi dan proporsional.</p>
                         </div>
                     </div>
@@ -273,6 +284,9 @@
                         
                         <input type="hidden" name="type" :value="form.type ?? ''">
                         <p x-show="errors.type" x-text="errors.type" class="text-xs text-red-500 mt-2 font-medium"></p>
+                        @error('type')
+                            <p class="text-xs text-red-500 mt-1 font-medium" x-show="!errors.type">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- 3. Deskripsi Event --}}
@@ -281,16 +295,22 @@
                             <label for="description" class="block text-sm font-semibold text-slate-700">
                                 Deskripsi Event <span class="text-red-500">*</span>
                             </label>
-                            <span class="text-xs text-slate-400" x-text="(form.description ? form.description.length : 0) + ' karakter'"></span>
+                            <span class="text-xs tabular-nums"
+                                  :class="(form.description ? form.description.length : 0) >= 5000 ? 'text-rose-600 font-bold' : 'text-slate-400'"
+                                  x-text="(form.description ? form.description.length : 0) + '/5000 karakter'"></span>
                         </div>
                         <textarea id="description"
                                   name="description"
                                   rows="4"
+                                  maxlength="5000"
                                   x-model="form.description"
                                   placeholder="Jelaskan gambaran umum kegiatan, fasilitas yang didapat, dan informasi terkait lainnya.."
                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
                                   :class="errors.description ? 'border-red-400 ring-2 ring-red-100' : ''"></textarea>
                         <p x-show="errors.description" x-text="errors.description" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                        @error('description')
+                            <p class="text-xs text-red-500 mt-1.5 font-medium" x-show="!errors.description">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- 4. Rundown / Susunan Acara --}}
@@ -299,22 +319,31 @@
                             <label for="rundown" class="block text-sm font-semibold text-slate-700">
                                 Rundown / Susunan Acara (Opsional)
                             </label>
-                            <button type="button"
-                                    @click="insertRundownTemplate()"
-                                    class="text-xs text-primary-600 hover:text-primary-700 font-semibold inline-flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                                </svg>
-                                Gunakan Template
-                            </button>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs tabular-nums"
+                                      :class="(form.rundown ? form.rundown.length : 0) >= 5000 ? 'text-rose-600 font-bold' : 'text-slate-400'"
+                                      x-text="(form.rundown ? form.rundown.length : 0) + '/5000 karakter'"></span>
+                                <button type="button"
+                                        @click="insertRundownTemplate()"
+                                        class="text-xs text-primary-600 hover:text-primary-700 font-semibold inline-flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Gunakan Template
+                                </button>
+                            </div>
                         </div>
                         <textarea id="rundown"
                                   name="rundown"
                                   rows="4"
+                                  maxlength="5000"
                                   x-model="form.rundown"
                                   placeholder="Contoh format :&#10;06.00 - 06.30 : Registrasi Ulang & Pemanasan&#10;06.30 - 08.00 : Sesi Olahraga Bersama&#10;08.00 - 08.30 : Cooling Down & Sesi Foto Bersama"
                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm font-mono placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"></textarea>
                         <p class="text-xs text-slate-400 mt-1.5">Informasikan alur kegiatan agar peserta hadir tepat waktu.</p>
+                        @error('rundown')
+                            <p class="text-xs text-red-500 mt-1.5 font-medium" x-show="!errors.rundown">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- 5. Cover Banner --}}
@@ -328,7 +357,7 @@
                         
                         {{-- Dropzone / Upload Area --}}
                         <div class="relative rounded-2xl border-2 border-dashed border-slate-200 hover:border-primary-400 bg-slate-50/50 hover:bg-primary-50/20 transition-all duration-200 p-6 text-center cursor-pointer group"
-                             :class="previewUrl ? 'border-primary-400 bg-white' : ''"
+                             :class="errors.cover_image ? 'border-red-400 bg-red-50/20 ring-2 ring-red-100' : (previewUrl ? 'border-primary-400 bg-white' : '')"
                              @click="$refs.coverFileInput.click()"
                              @dragover.prevent="isDragging = true"
                              @dragleave.prevent="isDragging = false"
@@ -339,7 +368,7 @@
                                    name="cover_image"
                                    x-ref="coverFileInput"
                                    @change="handleFileSelect($event)"
-                                   accept="image/png, image/jpeg, image/webp"
+                                   accept="image/png, image/jpeg, image/jpg, image/webp"
                                    class="hidden">
 
                             {{-- PREVIEW JIKA ADA FOTO --}}
@@ -373,6 +402,9 @@
 
                         </div>
                         <p x-show="errors.cover_image" x-text="errors.cover_image" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                        @error('cover_image')
+                            <p class="text-xs text-red-500 mt-1.5 font-medium" x-show="!errors.cover_image">{{ $message }}</p>
+                        @enderror
                     </div>
 
                 </div>
@@ -436,6 +468,9 @@
                                    :class="errors.event_date ? 'border-red-400 ring-2 ring-red-100' : ''"
                                    required>
                             <p x-show="errors.event_date" x-text="errors.event_date" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                            @error('event_date')
+                                <p class="text-xs text-red-500 mt-1.5 font-medium" x-show="!errors.event_date">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         {{-- Batas Akhir Registrasi --}}
@@ -451,6 +486,9 @@
                                    :class="errors.registration_close_at ? 'border-red-400 ring-2 ring-red-100' : ''"
                                    required>
                             <p x-show="errors.registration_close_at" x-text="errors.registration_close_at" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                            @error('registration_close_at')
+                                <p class="text-xs text-red-500 mt-1.5 font-medium" x-show="!errors.registration_close_at">{{ $message }}</p>
+                            @enderror
                         </div>
 
                     </div>
@@ -471,6 +509,9 @@
                                    :class="errors.start_time ? 'border-red-400 ring-2 ring-red-100' : ''"
                                    required>
                             <p x-show="errors.start_time" x-text="errors.start_time" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                            @error('start_time')
+                                <p class="text-xs text-red-500 mt-1.5 font-medium" x-show="!errors.start_time">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         {{-- Jam Selesai --}}
@@ -482,7 +523,12 @@
                                    id="end_time"
                                    name="end_time"
                                    x-model="form.end_time"
-                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200">
+                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
+                                   :class="errors.end_time ? 'border-red-400 ring-2 ring-red-100' : ''">
+                            <p x-show="errors.end_time" x-text="errors.end_time" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                            @error('end_time')
+                                <p class="text-xs text-red-500 mt-1.5 font-medium" x-show="!errors.end_time">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         {{-- Zona Waktu --}}
@@ -498,20 +544,30 @@
                                 <option value="WITA">WITA (Waktu Indonesia Tengah)</option>
                                 <option value="WIT">WIT (Waktu Indonesia Timur)</option>
                             </select>
+                            @error('timezone')
+                                <p class="text-xs text-red-500 mt-1.5 font-medium">{{ $message }}</p>
+                            @enderror
                         </div>
 
                     </div>
 
                     {{-- Nama Tempat / Lokasi --}}
                     <div>
-                        <label for="location" class="block text-sm font-semibold text-slate-700 mb-2">
-                            Nama Tempat / Lokasi <span class="text-red-500">*</span>
-                        </label>
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="location" class="block text-sm font-semibold text-slate-700">
+                                Nama Tempat / Lokasi <span class="text-red-500">*</span>
+                            </label>
+                            <span class="text-xs tabular-nums"
+                                  :class="(form.location ? form.location.length : 0) >= 255 ? 'text-rose-600 font-bold' : 'text-slate-400'">
+                                <span x-text="form.location ? form.location.length : 0">0</span>/255 karakter
+                            </span>
+                        </div>
                         <div class="relative">
                             <input type="text"
                                    id="location"
                                    name="location"
                                    x-model="form.location"
+                                   maxlength="255"
                                    placeholder="Contoh : Lapangan Futsal Champion Court 2, Jakarta Barat"
                                    class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
                                    :class="errors.location ? 'border-red-400 ring-2 ring-red-100' : ''"
@@ -524,27 +580,42 @@
                             </div>
                         </div>
                         <p x-show="errors.location" x-text="errors.location" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                        @error('location')
+                            <p class="text-xs text-red-500 mt-1.5 font-medium" x-show="!errors.location">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- Google Maps URL --}}
                     <div>
-                        <label for="maps_url" class="block text-sm font-semibold text-slate-700 mb-2">
-                            Link Google Maps (Opsional)
-                        </label>
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="maps_url" class="block text-sm font-semibold text-slate-700">
+                                Link Google Maps (Opsional)
+                            </label>
+                            <span class="text-xs tabular-nums"
+                                  :class="(form.maps_url ? form.maps_url.length : 0) >= 255 ? 'text-rose-600 font-bold' : 'text-slate-400'">
+                                <span x-text="form.maps_url ? form.maps_url.length : 0">0</span>/255 karakter
+                            </span>
+                        </div>
                         <div class="relative">
                             <input type="url"
                                    id="maps_url"
                                    name="maps_url"
                                    x-model="form.maps_url"
+                                   maxlength="255"
                                    placeholder="https://maps.google.com/..."
-                                   class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200">
+                                   class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
+                                   :class="errors.maps_url ? 'border-red-400 ring-2 ring-red-100' : ''">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                 </svg>
                             </div>
                         </div>
-                        <p class="text-xs text-slate-400 mt-1.5">Memudahkan peserta menavigasi rute langsung dari aplikasi.</p>
+                        <p x-show="errors.maps_url" x-text="errors.maps_url" class="text-xs text-red-500 mt-1.5 font-medium"></p>
+                        @error('maps_url')
+                            <p class="text-xs text-red-500 mt-1.5 font-medium" x-show="!errors.maps_url">{{ $message }}</p>
+                        @enderror
+                        <p class="text-xs text-slate-400 mt-1.5">Memudahkan peserta menavigasi rute langsung dari aplikasi (maksimal 255 karakter).</p>
                     </div>
 
                 </div>
@@ -678,6 +749,9 @@
                                 <input type="hidden" name="registration_fee" :value="form.registration_fee">
                             </div>
                             <p x-show="errors.registration_fee" x-text="errors.registration_fee" class="text-xs text-red-500 mt-1 font-medium"></p>
+                            @error('registration_fee')
+                                <p class="text-xs text-red-500 mt-1 font-medium" x-show="!errors.registration_fee">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         {{-- Metode & Rekening Pembayaran --}}
@@ -689,26 +763,44 @@
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label for="payment_method" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                        Metode / Nama Bank <span class="text-red-500">*</span>
-                                    </label>
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <label for="payment_method" class="block text-xs font-semibold text-slate-700">
+                                            Metode / Nama Bank <span class="text-red-500">*</span>
+                                        </label>
+                                        <span class="text-[10px] text-slate-400" x-text="(form.payment_method ? form.payment_method.length : 0) + '/100'"></span>
+                                    </div>
                                     <input type="text"
                                            id="payment_method"
                                            name="payment_method"
                                            x-model="form.payment_method"
+                                           maxlength="100"
                                            placeholder="Contoh : Transfer BCA / Mandiri / GoPay"
-                                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-primary-500">
+                                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-primary-500"
+                                           :class="errors.payment_method ? 'border-red-400 ring-2 ring-red-100' : ''">
+                                    <p x-show="errors.payment_method" x-text="errors.payment_method" class="text-xs text-red-500 mt-1 font-medium"></p>
+                                    @error('payment_method')
+                                        <p class="text-xs text-red-500 mt-1 font-medium" x-show="!errors.payment_method">{{ $message }}</p>
+                                    @enderror
                                 </div>
                                 <div>
-                                    <label for="payment_account" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                        Nomor Rekening / No. HP <span class="text-red-500">*</span>
-                                    </label>
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <label for="payment_account" class="block text-xs font-semibold text-slate-700">
+                                            Nomor Rekening / No. HP <span class="text-red-500">*</span>
+                                        </label>
+                                        <span class="text-[10px] text-slate-400" x-text="(form.payment_account ? form.payment_account.length : 0) + '/255'"></span>
+                                    </div>
                                     <input type="text"
                                            id="payment_account"
                                            name="payment_account"
                                            x-model="form.payment_account"
+                                           maxlength="255"
                                            placeholder="1234567890 a/n Nama Penyelenggara"
-                                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-primary-500">
+                                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-primary-500"
+                                           :class="errors.payment_account ? 'border-red-400 ring-2 ring-red-100' : ''">
+                                    <p x-show="errors.payment_account" x-text="errors.payment_account" class="text-xs text-red-500 mt-1 font-medium"></p>
+                                    @error('payment_account')
+                                        <p class="text-xs text-red-500 mt-1 font-medium" x-show="!errors.payment_account">{{ $message }}</p>
+                                    @enderror
                                 </div>
                             </div>
                         </div>
@@ -740,6 +832,7 @@
                                        name="capacity"
                                        x-model="form.capacity"
                                        min="1"
+                                       max="100000"
                                        placeholder="Contoh : 30"
                                        class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500"
                                        :class="errors.capacity ? 'border-red-400 ring-2 ring-red-100' : ''">
@@ -751,6 +844,9 @@
                                 </p>
                             @endif
                             <p x-show="errors.capacity" x-text="errors.capacity" class="text-xs text-red-500 mt-1 font-medium"></p>
+                            @error('capacity')
+                                <p class="text-xs text-red-500 mt-1 font-medium" x-show="!errors.capacity">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
 
@@ -760,37 +856,51 @@
                             <label for="requirements" class="block text-sm font-semibold text-slate-700">
                                 Syarat &amp; Ketentuan Peserta (Opsional)
                             </label>
-                            <button type="button"
-                                    @click="insertRequirementsTemplate()"
-                                    class="text-xs text-primary-600 hover:text-primary-700 font-semibold inline-flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                                </svg>
-                                Gunakan Template
-                            </button>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-slate-400" x-text="(form.requirements ? form.requirements.length : 0) + '/5000 karakter'"></span>
+                                <button type="button"
+                                        @click="insertRequirementsTemplate()"
+                                        class="text-xs text-primary-600 hover:text-primary-700 font-semibold inline-flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Gunakan Template
+                                </button>
+                            </div>
                         </div>
                         <textarea id="requirements"
                                   name="requirements"
                                   rows="3"
+                                  maxlength="5000"
                                   x-model="form.requirements"
                                   placeholder="Contoh : Wajib memakai sepatu olahraga, membawa botol minum sendiri, dll."
                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm font-mono placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary-500"></textarea>
+                        @error('requirements')
+                            <p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- 4. Narahubung / Kontak Penyelenggara --}}
                     <div>
-                        <label for="organizer_contact" class="block text-sm font-semibold text-slate-700 mb-2">
-                            Kontak Penyelenggara / Narahubung <span class="text-red-500">*</span>
-                        </label>
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="organizer_contact" class="block text-sm font-semibold text-slate-700">
+                                Kontak Penyelenggara / Narahubung <span class="text-red-500">*</span>
+                            </label>
+                            <span class="text-xs text-slate-400" x-text="(form.organizer_contact ? form.organizer_contact.length : 0) + '/255 karakter'"></span>
+                        </div>
                         <input type="text"
                                id="organizer_contact"
                                name="organizer_contact"
                                x-model="form.organizer_contact"
+                               maxlength="255"
                                placeholder="WhatsApp 0812-3456-7890 (Admin Budi) / Instagram @komunitas"
                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/40 text-slate-800 text-sm focus:bg-white focus:outline-none focus:border-primary-500"
                                :class="errors.organizer_contact ? 'border-red-400 ring-2 ring-red-100' : ''"
                                required>
                         <p x-show="errors.organizer_contact" x-text="errors.organizer_contact" class="text-xs text-red-500 mt-1 font-medium"></p>
+                        @error('organizer_contact')
+                            <p class="text-xs text-red-500 mt-1 font-medium" x-show="!errors.organizer_contact">{{ $message }}</p>
+                        @enderror
                     </div>
 
                 </div>
@@ -843,11 +953,11 @@
 <script>
 function eventWizard() {
     return {
-        step: {{ $errors->hasAny(['capacity', 'registration_fee', 'payment_account', 'organizer_contact']) ? 3 : ($errors->hasAny(['event_date', 'registration_close_at', 'start_time', 'location', 'maps_url']) ? 2 : 1) }},
+        step: {{ $errors->hasAny(['capacity', 'registration_fee', 'payment_account', 'organizer_contact', 'requirements']) ? 3 : ($errors->hasAny(['event_date', 'registration_close_at', 'start_time', 'end_time', 'location', 'maps_url']) ? 2 : 1) }},
         isEdit: @json($isEdit),
         isDragging: false,
         previewUrl: @json($initialPreviewUrl),
-        errors: {},
+        errors: @json((object) array_map(fn($v) => is_array($v) ? $v[0] : $v, $errors->toArray())),
         formattedFee: '',
         submitAction: 'publish',
         isSubmitting: false,
@@ -882,6 +992,9 @@ function eventWizard() {
         init() {
             if (this.form.registration_fee && Number(this.form.registration_fee) > 0) {
                 this.formattedFee = Number(this.form.registration_fee).toLocaleString('id-ID');
+            }
+            if (Object.keys(this.errors).length > 0) {
+                this.scrollToFirstError();
             }
         },
         setPaymentCategory(value) {
@@ -918,6 +1031,11 @@ function eventWizard() {
                 }
                 if (!this.form.description || !this.form.description.trim()) {
                     this.errors.description = 'Deskripsi event wajib diisi.';
+                } else if (this.form.description.trim().length > 5000) {
+                    this.errors.description = 'Deskripsi event tidak boleh lebih dari 5000 karakter.';
+                }
+                if (this.form.rundown && this.form.rundown.length > 5000) {
+                    this.errors.rundown = 'Susunan acara tidak boleh lebih dari 5000 karakter.';
                 }
                 if (!this.isEdit && !this.previewUrl && !this.form.cover_image) {
                     this.errors.cover_image = 'Cover banner event wajib diunggah.';
@@ -940,6 +1058,11 @@ function eventWizard() {
                 }
                 if (!this.form.location || !this.form.location.trim()) {
                     this.errors.location = 'Nama tempat / lokasi event wajib diisi.';
+                } else if (this.form.location.trim().length > 255) {
+                    this.errors.location = 'Lokasi tidak boleh lebih dari 255 karakter.';
+                }
+                if (this.form.maps_url && this.form.maps_url.trim().length > 255) {
+                    this.errors.maps_url = 'Tautan Google Maps tidak boleh lebih dari 255 karakter. Gunakan tautan pendek (cth: https://maps.app.goo.gl/...)';
                 }
 
                 if (this.form.event_date && this.form.registration_close_at) {
@@ -965,18 +1088,29 @@ function eventWizard() {
             this.isDragging = false;
             const file = event.dataTransfer.files[0];
             if (file) {
-                this.$refs.coverFileInput.files = event.dataTransfer.files;
                 this.processFile(file);
+                if (this.errors.cover_image) {
+                    if (this.$refs.coverFileInput) this.$refs.coverFileInput.value = '';
+                } else {
+                    this.$refs.coverFileInput.files = event.dataTransfer.files;
+                }
             }
         },
         processFile(file) {
             if (!file) return;
             if (!file.type.match('image.*')) {
                 this.errors.cover_image = 'File harus berupa gambar (JPG, PNG, atau WEBP).';
+                if (this.$refs.coverFileInput) this.$refs.coverFileInput.value = '';
+                this.form.cover_image = null;
+                this.previewUrl = null;
                 return;
             }
             if (file.size > 2 * 1024 * 1024) {
-                this.errors.cover_image = 'Ukuran banner maksimal 2MB.';
+                const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+                this.errors.cover_image = `Ukuran foto (${sizeMb} MB) melebihi batas maksimal 2MB. Foto langsung ditolak, silakan pilih foto lain yang lebih kecil.`;
+                if (this.$refs.coverFileInput) this.$refs.coverFileInput.value = '';
+                this.form.cover_image = null;
+                this.previewUrl = null;
                 return;
             }
             this.errors.cover_image = null;
@@ -990,7 +1124,10 @@ function eventWizard() {
         removeImage() {
             this.previewUrl = null;
             this.form.cover_image = null;
-            this.$refs.coverFileInput.value = '';
+            if (this.$refs.coverFileInput) {
+                this.$refs.coverFileInput.value = '';
+            }
+            this.errors.cover_image = null;
         },
         handleQrisFileSelect(event) {
             const file = event.target.files[0];
@@ -1000,18 +1137,29 @@ function eventWizard() {
             this.isQrisDragging = false;
             const file = event.dataTransfer.files[0];
             if (file) {
-                this.$refs.qrisFileInput.files = event.dataTransfer.files;
                 this.processQrisFile(file);
+                if (this.errors.qris_image) {
+                    if (this.$refs.qrisFileInput) this.$refs.qrisFileInput.value = '';
+                } else {
+                    this.$refs.qrisFileInput.files = event.dataTransfer.files;
+                }
             }
         },
         processQrisFile(file) {
             if (!file) return;
             if (!file.type.match('image.*')) {
                 this.errors.qris_image = 'File harus berupa gambar (JPG, PNG, atau WEBP).';
+                if (this.$refs.qrisFileInput) this.$refs.qrisFileInput.value = '';
+                this.form.qris_image = null;
+                this.qrisPreviewUrl = null;
                 return;
             }
             if (file.size > 2 * 1024 * 1024) {
-                this.errors.qris_image = 'Ukuran barcode QRIS maksimal 2MB.';
+                const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+                this.errors.qris_image = `Ukuran foto barcode QRIS (${sizeMb} MB) melebihi batas maksimal 2MB. Foto langsung ditolak, silakan pilih foto lain yang lebih kecil.`;
+                if (this.$refs.qrisFileInput) this.$refs.qrisFileInput.value = '';
+                this.form.qris_image = null;
+                this.qrisPreviewUrl = null;
                 return;
             }
             this.errors.qris_image = null;
@@ -1028,6 +1176,7 @@ function eventWizard() {
             if (this.$refs.qrisFileInput) {
                 this.$refs.qrisFileInput.value = '';
             }
+            this.errors.qris_image = null;
         },
         insertRundownTemplate() {
             this.form.rundown = "06.00 - 06.30 : Registrasi Ulang & Pemanasan\n06.30 - 08.00 : Sesi Olahraga / Pertandingan\n08.00 - 08.30 : Cooling Down & Sesi Foto Bersama\n08.30 - 09.00 : Ramah Tamah & Penutupan";
@@ -1050,6 +1199,16 @@ function eventWizard() {
                     this.goToStep(1);
                     this.scrollToFirstError();
                     return;
+                }
+                if (this.$refs.coverFileInput && this.$refs.coverFileInput.files.length > 0) {
+                    if (this.$refs.coverFileInput.files[0].size > 2 * 1024 * 1024) {
+                        this.errors.cover_image = 'Ukuran cover banner maksimal 2MB. Foto langsung ditolak.';
+                        this.$refs.coverFileInput.value = '';
+                        this.previewUrl = null;
+                        this.goToStep(1);
+                        this.scrollToFirstError();
+                        return;
+                    }
                 }
                 this.isSubmitting = true;
                 const formElem = document.getElementById('eventForm');
@@ -1079,9 +1238,21 @@ function eventWizard() {
             }
             if (!this.form.description || !this.form.description.trim()) {
                 this.errors.description = 'Deskripsi event wajib diisi.';
+            } else if (this.form.description.trim().length > 5000) {
+                this.errors.description = 'Deskripsi event tidak boleh lebih dari 5000 karakter.';
+            }
+            if (this.form.rundown && this.form.rundown.length > 5000) {
+                this.errors.rundown = 'Susunan acara tidak boleh lebih dari 5000 karakter.';
             }
             if (!this.isEdit && !this.previewUrl && !this.form.cover_image) {
                 this.errors.cover_image = 'Cover banner event wajib diunggah.';
+            }
+            if (this.$refs.coverFileInput && this.$refs.coverFileInput.files.length > 0) {
+                if (this.$refs.coverFileInput.files[0].size > 2 * 1024 * 1024) {
+                    this.errors.cover_image = 'Ukuran cover banner maksimal 2MB. Foto langsung ditolak.';
+                    this.$refs.coverFileInput.value = '';
+                    this.previewUrl = null;
+                }
             }
 
             // Validasi Step 2
@@ -1091,40 +1262,72 @@ function eventWizard() {
             if (!this.form.registration_close_at) {
                 this.errors.registration_close_at = 'Batas akhir pendaftaran wajib diisi.';
             }
+            if (this.form.event_date && this.form.registration_close_at) {
+                const eventDate = new Date(this.form.event_date);
+                const regClose = new Date(this.form.registration_close_at);
+                if (regClose > eventDate) {
+                    this.errors.registration_close_at = 'Batas pendaftaran tidak boleh melewati tanggal acara.';
+                }
+            }
             if (!this.form.start_time) {
                 this.errors.start_time = 'Waktu mulai event wajib diisi.';
             }
             if (!this.form.location || !this.form.location.trim()) {
                 this.errors.location = 'Nama tempat / lokasi event wajib diisi.';
+            } else if (this.form.location.trim().length > 255) {
+                this.errors.location = 'Lokasi tidak boleh lebih dari 255 karakter.';
+            }
+            if (this.form.maps_url && this.form.maps_url.trim().length > 255) {
+                this.errors.maps_url = 'Tautan Google Maps tidak boleh lebih dari 255 karakter. Gunakan tautan pendek (cth: https://maps.app.goo.gl/...)';
             }
 
             // Validasi Step 3
-            if (this.form.capacity_type === 'limited' && (!this.form.capacity || this.form.capacity <= 0)) {
-                this.errors.capacity = 'Kuota peserta wajib diisi minimal 1.';
+            if (this.form.capacity_type === 'limited') {
+                if (!this.form.capacity || Number(this.form.capacity) <= 0) {
+                    this.errors.capacity = 'Kuota peserta wajib diisi minimal 1.';
+                } else if (Number(this.form.capacity) > 100000) {
+                    this.errors.capacity = 'Kuota peserta maksimal 100.000.';
+                }
             }
             if (this.form.is_paid === '1') {
                 if (!this.form.registration_fee || Number(this.form.registration_fee) <= 0) {
                     this.errors.registration_fee = 'Nominal biaya pendaftaran wajib diisi.';
+                } else if (Number(this.form.registration_fee) > 99999999) {
+                    this.errors.registration_fee = 'Biaya pendaftaran maksimal Rp 99.999.999.';
                 }
                 if (this.form.payment_method === 'QRIS') {
                     if (!this.qrisPreviewUrl && !this.form.qris_image) {
                         this.errors.qris_image = 'Foto barcode QRIS wajib diunggah.';
                     }
+                    if (this.$refs.qrisFileInput && this.$refs.qrisFileInput.files.length > 0) {
+                        if (this.$refs.qrisFileInput.files[0].size > 2 * 1024 * 1024) {
+                            this.errors.qris_image = 'Ukuran barcode QRIS maksimal 2MB. Foto langsung ditolak.';
+                            this.$refs.qrisFileInput.value = '';
+                            this.qrisPreviewUrl = null;
+                        }
+                    }
                 } else {
                     if (!this.form.payment_account || !this.form.payment_account.trim()) {
                         this.errors.payment_account = 'Nomor rekening / tujuan pembayaran wajib diisi.';
+                    } else if (this.form.payment_account.trim().length > 255) {
+                        this.errors.payment_account = 'Nomor rekening tidak boleh lebih dari 255 karakter.';
                     }
                 }
             }
             if (!this.form.organizer_contact || !this.form.organizer_contact.trim()) {
                 this.errors.organizer_contact = 'Kontak narahubung panitia wajib diisi.';
+            } else if (this.form.organizer_contact.trim().length > 255) {
+                this.errors.organizer_contact = 'Kontak narahubung tidak boleh lebih dari 255 karakter.';
+            }
+            if (this.form.requirements && this.form.requirements.length > 5000) {
+                this.errors.requirements = 'Ketentuan & persyaratan tidak boleh lebih dari 5000 karakter.';
             }
 
             if (Object.keys(this.errors).length > 0) {
                 event.preventDefault();
-                if (this.errors.title || this.errors.type || this.errors.description || this.errors.cover_image) {
+                if (this.errors.title || this.errors.type || this.errors.description || this.errors.rundown || this.errors.cover_image) {
                     this.goToStep(1);
-                } else if (this.errors.event_date || this.errors.registration_close_at || this.errors.start_time || this.errors.location) {
+                } else if (this.errors.event_date || this.errors.registration_close_at || this.errors.start_time || this.errors.location || this.errors.maps_url) {
                     this.goToStep(2);
                 } else {
                     this.goToStep(3);

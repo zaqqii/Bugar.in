@@ -65,6 +65,24 @@ class Community extends Model
         return ($this->followers_count ?? 0) >= 15;
     }
 
+    public function syncMembersCount(): int
+    {
+        $count = $this->members()->where('status', 'active')->count();
+        $this->members_count = $count;
+        $this->save();
+
+        return $count;
+    }
+
+    public function syncFollowersCount(): int
+    {
+        $count = $this->followers()->count();
+        $this->followers_count = $count;
+        $this->save();
+
+        return $count;
+    }
+
     public function followersNeededForVerification(): int
     {
         return max(0, 15 - (int) ($this->followers_count ?? 0));
@@ -104,6 +122,17 @@ class Community extends Model
     {
         $userId = $user instanceof User ? $user->id : $user;
         return $this->blocks()->where('user_id', $userId)->exists();
+    }
+
+    public function isUserBanned(int|User $user): bool
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+        return $this->members()->where('user_id', $userId)->where('status', 'banned')->exists();
+    }
+
+    public function isUserBlockedOrBanned(int|User $user): bool
+    {
+        return $this->isUserBlocked($user) || $this->isUserBanned($user);
     }
 
     public function scopeVerified($query)

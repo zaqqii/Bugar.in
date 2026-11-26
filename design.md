@@ -179,6 +179,14 @@ Load dari Google Fonts. Selalu gunakan Plus Jakarta Sans untuk semua halaman use
 - Gunakan aksen Cyan untuk pengingat event dan Royal Blue untuk jadwal rutin.
 - Job dijalankan setiap hari pukul 08.00 WIB; scheduler Laravel dan queue worker harus berjalan agar pengingat dibuat otomatis.
 
+### 4.9 Kapasitas Kegiatan Penyedia
+
+- Tampilkan jumlah peserta aktif, kapasitas maksimum, dan sisa slot dari nilai yang disediakan backend.
+- Tampilkan badge **Penuh** saat kapasitas tercapai; jangan mengganti status pendaftaran kegiatan di database hanya untuk tampilan.
+- Gunakan bar progres dengan Royal Blue saat masih tersedia, Amber saat mendekati penuh, dan Danger Red saat penuh.
+- Untuk kapasitas tanpa batas, tampilkan label yang jelas dan jangan tampilkan bar progres.
+- Pertahankan hitungan peserta di controller/model; Blade hanya menampilkan nilainya.
+
 ---
 
 ## 5. Spacing & Layout
@@ -239,3 +247,10 @@ Sidebar: 260px fixed, main area flex-1
 - Gunakan font Plus Jakarta Sans (sudah di-load di layout).
 - Pertahankan class `glass-card`, `glass-input`, `sidebar-glass` untuk konsistensi.
 - Setiap perubahan UI signifikan: update file ini di commit yang sama.
+
+## 9. Label Waktu dan Zona Waktu
+
+- Tampilkan singkatan zona waktu di dekat jam kegiatan agar waktu lokal mudah dipahami.
+- Untuk event, gunakan zona waktu yang dipilih dan disimpan bersama data event.
+- Untuk jadwal rutin, gunakan zona waktu aplikasi karena schema jadwal belum menyediakan kolom zona waktu.
+- Cocokkan label WIB/WITA/WIT dari zona waktu aplikasi; jangan mengubah penyimpanan waktu atau menebak zona dari nama lokasi.

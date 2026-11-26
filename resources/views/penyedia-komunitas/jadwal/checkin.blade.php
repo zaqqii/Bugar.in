@@ -89,7 +89,7 @@
             </h1>
             <p class="mt-1 text-sm text-slate-600 flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span>📅 {{ $schedule->date ? $schedule->date->locale('id')->isoFormat('dddd, D MMMM Y') : $schedule->dayLabel() }}</span>
-                <span>⏰ {{ substr($schedule->start_time, 0, 5) }} - {{ substr($schedule->end_time, 0, 5) }} WIB</span>
+                <span>⏰ {{ substr($schedule->start_time, 0, 5) }} - {{ substr($schedule->end_time, 0, 5) }} {{ $scheduleTimezone }}</span>
                 <span>📍 {{ $schedule->location }}</span>
             </p>
         </div>
@@ -116,7 +116,7 @@
             <span class="text-xl">ℹ️</span>
             <div>
                 <strong class="font-bold block">Jendela Check-in Belum Aktif atau Telah Berakhir</strong>
-                <span>Check-in dapat dilakukan mulai <strong>{{ $windowStart->format('H:i') }} WIB</strong> (30 menit sebelum sesi) hingga <strong>{{ $windowEnd->format('H:i') }} WIB</strong>.</span>
+                <span>Check-in dapat dilakukan mulai <strong>{{ $windowStart->format('H:i') }} {{ $scheduleTimezone }}</strong> (30 menit sebelum sesi) hingga <strong>{{ $windowEnd->format('H:i') }} {{ $scheduleTimezone }}</strong>.</span>
             </div>
         </div>
     @else
@@ -127,7 +127,7 @@
                     <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                 </span>
                 <strong class="font-bold">Jendela Check-in Sedang Aktif</strong>
-                <span class="text-xs text-emerald-700">(Batas waktu check-in: pukul {{ $windowEnd->format('H:i') }} WIB)</span>
+                <span class="text-xs text-emerald-700">(Batas waktu check-in: pukul {{ $windowEnd->format('H:i') }} {{ $scheduleTimezone }})</span>
             </div>
             <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">Siap Scan</span>
         </div>
@@ -275,7 +275,7 @@
                                 </span>
                                 <h3 class="text-lg font-black text-slate-900 truncate" x-text="scanResult.user.name"></h3>
                                 <p class="text-xs text-slate-500 font-semibold">
-                                    Jam Hadir: <span class="text-slate-800 font-bold" x-text="scanResult.check_in_at"></span> WIB
+                                    Jam Hadir: <span class="text-slate-800 font-bold" x-text="scanResult.check_in_at"></span> {{ $scheduleTimezone }}
                                 </p>
                             </div>
                         </div>
@@ -460,7 +460,7 @@
                                     <td class="py-3 px-3 whitespace-nowrap text-slate-500 font-medium">
                                         <template x-if="p.check_in_time">
                                             <span>
-                                                <strong class="text-slate-800" x-text="p.check_in_time"></strong> WIB
+                                                <strong class="text-slate-800" x-text="p.check_in_time"></strong> {{ $scheduleTimezone }}
                                                 <span class="text-[10px] text-slate-400 block" x-text="p.method === 'qr_scan' ? 'via QR' : 'Manual'"></span>
                                             </span>
                                         </template>

@@ -95,19 +95,19 @@
         <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-3 shadow-xs">
             <span class="text-xl">⚠️</span>
             <div>
-                <strong class="font-bold text-sm block mb-0.5">Pendaftaran Jadwal Dibatasi Sementara</strong>
-                Akun Anda sedang dibatasi dari mendaftar ke jadwal hingga <strong>{{ auth()->user()->join_blocked_until->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d F Y, H:i') }} WIB</strong> karena akumulasi ketidakhadiran (no-show).
+                <strong class="font-bold text-sm block mb-0.5">Pendaftaran Kegiatan Dibatasi Sementara</strong>
+                Akun Anda sedang dibatasi dari mendaftar kegiatan atau bergabung komunitas hingga <strong>{{ auth()->user()->join_blocked_until->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d F Y, H:i') }} WIB</strong> karena akumulasi ketidakhadiran (no-show).
             </div>
         </div>
     @endif
 
     {{-- Banner Jika User Diblokir di Komunitas Ini --}}
-    @if(auth()->check() && $community->isUserBlocked(auth()->user()))
+    @if(auth()->check() && $community->isUserBlockedOrBanned(auth()->user()))
         <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-3 shadow-xs">
             <span class="text-xl">🚫</span>
             <div>
                 <strong class="font-bold text-sm block mb-0.5">Akses Komunitas Dibatasi</strong>
-                Anda telah diblokir dari komunitas ini dan tidak dapat mendaftar ke jadwal kegiatan yang diselenggarakan oleh {{ $community->name }}.
+                Anda telah diblokir dari komunitas ini dan tidak dapat mendaftar ke kegiatan atau bergabung dengan {{ $community->name }}.
             </div>
         </div>
     @endif
@@ -256,6 +256,13 @@
                             </svg>
                             <span>Anggota Aktif</span>
                         </button>
+                    @elseif(auth()->check() && (auth()->user()->isJoinBlocked() || $community->isUserBlockedOrBanned(auth()->user())))
+                        <button type="button"
+                                disabled
+                                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 text-slate-400 border border-slate-200 text-xs sm:text-sm font-bold shadow-2xs cursor-not-allowed"
+                                title="Akses bergabung dibatasi">
+                            <span>Bergabung Dibatasi</span>
+                        </button>
                     @elseif($isPublic)
                         <form method="POST" action="{{ route('user.communities.join', $community->id ?? 1) }}" class="m-0">
                             @csrf
@@ -368,6 +375,17 @@
                                 Link Tersalin! ✓
                             </span>
                         </button>
+
+                        {{-- Tombol Laporkan Komunitas (AD-05) --}}
+                        @if(auth()->check() && auth()->id() !== ($community->owner_id ?? 0))
+                            <a href="{{ route('user.reports.community.create', $community->slug ?? $community->id) }}"
+                               title="Laporkan Komunitas Ini"
+                               class="w-9 h-9 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200/80 hover:border-rose-200 flex items-center justify-center transition-all shadow-2xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                </svg>
+                            </a>
+                        @endif
                     </div>
 
                 </div>
@@ -607,13 +625,20 @@
                                     <div class="text-[11px] font-semibold text-slate-500">
                                         Kuota: <span class="font-bold text-slate-700">{{ $event->capacity ? $event->participants_count . ' / ' . $event->capacity . ' Peserta' : 'Bebas' }}</span>
                                     </div>
-                                    <form method="POST" action="{{ route('user.events.join', $event->id) }}">
-                                        @csrf
-                                        <button type="submit"
-                                                class="w-full md:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-2xs transition-all active:scale-95 cursor-pointer text-center">
-                                            Daftar Kegiatan
+                                    @if($event->isFull())
+                                        <button type="button" disabled
+                                                class="w-full md:w-auto px-4 py-2 rounded-xl bg-slate-100 text-slate-400 font-bold text-xs cursor-not-allowed text-center">
+                                            Penuh
                                         </button>
-                                    </form>
+                                    @else
+                                        <form method="POST" action="{{ route('user.events.join', $event->id) }}">
+                                            @csrf
+                                            <button type="submit"
+                                                    class="w-full md:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-2xs transition-all active:scale-95 cursor-pointer text-center">
+                                                Daftar Kegiatan
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </div>
                         @empty
@@ -811,10 +836,14 @@
                             </div>
                             <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                                 <span class="font-bold text-blue-600">{{ $eventDate->translatedFormat('d M Y') }}, {{ substr($event->start_time, 0, 5) }} WIB</span>
-                                <form method="POST" action="{{ route('user.events.join', $event->id) }}">
-                                    @csrf
-                                    <button type="submit" class="btn-primary text-xs py-1.5 px-3 rounded-lg">Ikuti Event</button>
-                                </form>
+                                @if($event->isFull())
+                                    <span class="text-xs font-bold text-slate-400 px-3 py-1.5 rounded-lg bg-slate-100">Penuh</span>
+                                @else
+                                    <form method="POST" action="{{ route('user.events.join', $event->id) }}">
+                                        @csrf
+                                        <button type="submit" class="btn-primary text-xs py-1.5 px-3 rounded-lg">Ikuti Event</button>
+                                    </form>
+                                @endif
                             </div>
                         </div>
                     @empty
@@ -848,14 +877,21 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
                     {{-- Koordinator / Owner --}}
-                    <div class="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-200/80 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs">
-                            {{ $ownerInitials }}
+                    <div class="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-200/80 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs">
+                                {{ $ownerInitials }}
+                            </div>
+                            <div class="truncate">
+                                <div class="text-xs font-bold text-slate-900 truncate">{{ $owner?->name ?? 'Koordinator Komunitas' }}</div>
+                                <div class="text-[10px] font-bold text-blue-600">Founder &amp; Host</div>
+                            </div>
                         </div>
-                        <div class="truncate">
-                            <div class="text-xs font-bold text-slate-900 truncate">{{ $owner?->name ?? 'Koordinator Komunitas' }}</div>
-                            <div class="text-[10px] font-bold text-blue-600">Founder &amp; Host</div>
-                        </div>
+                        @if(auth()->check() && $owner && auth()->id() !== $owner->id)
+                            <a href="{{ route('user.reports.user.create', ['user' => $owner->id, 'community_id' => $community->id]) }}" class="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline flex-shrink-0">
+                                Laporkan
+                            </a>
+                        @endif
                     </div>
 
                     {{-- Real Members --}}
@@ -866,14 +902,21 @@
                                     ->map(fn($w) => strtoupper(substr($w, 0, 1)))
                                     ->take(2)->implode('');
                             @endphp
-                            <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
-                                    {{ $mInitials }}
+                            <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
+                                        {{ $mInitials }}
+                                    </div>
+                                    <div class="truncate">
+                                        <div class="text-xs font-bold text-slate-900 truncate">{{ $member->user->name }}</div>
+                                        <div class="text-[10px] text-slate-400 font-medium">Anggota Aktif</div>
+                                    </div>
                                 </div>
-                                <div class="truncate">
-                                    <div class="text-xs font-bold text-slate-900 truncate">{{ $member->user->name }}</div>
-                                    <div class="text-[10px] text-slate-400 font-medium">Anggota Aktif</div>
-                                </div>
+                                @if(auth()->check() && auth()->id() !== $member->user->id)
+                                    <a href="{{ route('user.reports.user.create', ['user' => $member->user->id, 'community_id' => $community->id]) }}" class="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline flex-shrink-0">
+                                        Laporkan
+                                    </a>
+                                @endif
                             </div>
                         @endif
                     @endforeach

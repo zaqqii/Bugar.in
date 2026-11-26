@@ -14,6 +14,7 @@ use App\Models\Streak;
 
 use App\Models\User;
 use App\Models\UserAnnouncement;
+use App\Services\ActivityOverlapService;
 use App\Services\CheckinTokenService;
 use App\Services\UserLevelService;
 use Carbon\Carbon;
@@ -23,6 +24,9 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        protected ActivityOverlapService $activityOverlapService
+    ) {}
     /**
      * Tampilkan halaman utama dashboard user.
      * Menggunakan data asli dari database sesuai kaidah MVC standard.
@@ -35,20 +39,15 @@ class DashboardController extends Controller
             abort(403);
         }
 
-        $community->followers()->syncWithoutDetaching([$user->id]);
-        $followersCount = $community->followers()->count();
-        $updateData = ['followers_count' => $followersCount];
-
-        // Otomatis verifikasi jika mencapai minimal 15 pengikut
-        if ($followersCount >= 15 && $community->verification_status !== 'verified') {
-            $updateData['verification_status'] = 'verified';
-            $updateData['verified_at'] = now();
-            if (\Illuminate\Support\Facades\Schema::hasColumn('communities', 'verification_type')) {
-                $updateData['verification_type'] = 'free_followers';
-            }
+        if (! $community->is_active) {
+            return back()->with('error', 'Komunitas ini sedang tidak aktif.');
         }
 
-        $community->update($updateData);
+        DB::transaction(function () use ($community, $user) {
+            $lockedCommunity = Community::where('id', $community->id)->lockForUpdate()->firstOrFail();
+            $lockedCommunity->followers()->syncWithoutDetaching([$user->id]);
+            $lockedCommunity->syncFollowersCount();
+        });
 
         return back()->with('success', 'Berhasil mengikuti komunitas.');
     }
@@ -61,10 +60,11 @@ class DashboardController extends Controller
             abort(403);
         }
 
-        $community->followers()->detach($user->id);
-        $community->update([
-            'followers_count' => $community->followers()->count(),
-        ]);
+        DB::transaction(function () use ($community, $user) {
+            $lockedCommunity = Community::where('id', $community->id)->lockForUpdate()->firstOrFail();
+            $lockedCommunity->followers()->detach($user->id);
+            $lockedCommunity->syncFollowersCount();
+        });
 
         return back()->with('success', 'Anda batal mengikuti komunitas.');
     }
@@ -82,6 +82,11 @@ class DashboardController extends Controller
         }
 
         return DB::transaction(function () use ($schedule, $user) {
+            // 0. Kunci baris user terlebih dahulu untuk menserialkan join paralel oleh user yang sama
+            /** @var User $lockedUser */
+            $lockedUser = User::whereKey($user->id)->lockForUpdate()->first();
+            $currentUser = $lockedUser ?? $user;
+
             /** @var Schedule $lockedSchedule */
             $lockedSchedule = Schedule::where('id', $schedule->id)->lockForUpdate()->firstOrFail();
 
@@ -101,31 +106,31 @@ class DashboardController extends Controller
             }
 
             // 4. Cek apakah user terkena join_blocked_until
-            if ($user->isJoinBlocked()) {
-                $until = $user->join_blocked_until->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d F Y, H:i');
+            if ($currentUser->isJoinBlocked()) {
+                $until = $currentUser->join_blocked_until->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d F Y, H:i');
                 return back()->with('error', "Pendaftaran jadwal untuk akun Anda sedang dibatasi hingga {$until} WIB karena akumulasi ketidakhadiran (no-show).");
             }
 
             // 5. Cek apakah user diblokir oleh komunitas ini
-            if (CommunityBlock::where('community_id', $lockedSchedule->community_id)->where('user_id', $user->id)->exists()) {
+            if (CommunityBlock::where('community_id', $lockedSchedule->community_id)->where('user_id', $currentUser->id)->exists()) {
                 return back()->with('error', 'Anda tidak dapat bergabung karena telah diblokir dari komunitas ini.');
             }
 
             // 6. Cek apakah sudah terdaftar aktif
-            $existing = Participant::where('user_id', $user->id)
+            $existing = Participant::where('user_id', $currentUser->id)
                 ->where('participatable_type', Schedule::class)
                 ->where('participatable_id', $lockedSchedule->id)
                 ->lockForUpdate()
                 ->first();
 
-            if ($existing && in_array($existing->status, ['registered', 'attended'], true)) {
+            if ($existing && in_array($existing->status, Participant::SEAT_STATUSES, true)) {
                 return back()->with('info', 'Kamu sudah terdaftar di sesi latihan ini.');
             }
 
             // 7. Cek batas maksimal pendaftaran jadwal aktif mendatang (max_active_bookings)
             $maxActiveBookings = (int) config('schedules.max_active_bookings', 3);
             $todayStr = Carbon::now(config('app.timezone', 'Asia/Jakarta'))->toDateString();
-            $activeBookingsCount = Participant::where('user_id', $user->id)
+            $activeBookingsCount = Participant::where('user_id', $currentUser->id)
                 ->where('participatable_type', Schedule::class)
                 ->where('status', 'registered')
                 ->whereHasMorph('participatable', [Schedule::class], function ($q) use ($todayStr) {
@@ -139,30 +144,21 @@ class DashboardController extends Controller
                 return back()->with('error', "Kamu telah mencapai batas maksimal ({$maxActiveBookings}) pendaftaran jadwal aktif mendatang.");
             }
 
-            // 8. Cek kuota / kapasitas (hanya jika capacity tidak NULL)
-            $activeParticipantsCount = $lockedSchedule->activeParticipantsCount();
-            if ($lockedSchedule->capacity !== null && $activeParticipantsCount >= $lockedSchedule->capacity) {
+            // 8. Cek kuota / kapasitas: kegiatan penuh DITOLAK
+            if ($lockedSchedule->isFull()) {
                 return back()->with('error', 'Mohon maaf, kuota peserta untuk sesi latihan ini sudah penuh.');
             }
 
-            // 9. Cek bentrok jam dengan jadwal lain di tanggal yang sama (startA < endB dan startB < endA)
-            $scheduleDateStr = $lockedSchedule->date instanceof Carbon ? $lockedSchedule->date->format('Y-m-d') : (string) $lockedSchedule->date;
-            $overlappingSchedule = Schedule::whereHas('participants', function ($q) use ($user) {
-                    $q->where('user_id', $user->id)
-                      ->where('status', 'registered');
-                })
-                ->where('id', '!=', $lockedSchedule->id)
-                ->whereDate('date', $scheduleDateStr)
-                ->whereNull('cancelled_at')
-                ->where('status', '!=', 'cancelled')
-                ->where('start_time', '<', $lockedSchedule->end_time)
-                ->where('end_time', '>', $lockedSchedule->start_time)
-                ->first();
+            // 9. Cek bentrok waktu dengan kegiatan lain (jadwal atau event)
+            $conflict = $this->activityOverlapService->userConflict(
+                $currentUser,
+                $lockedSchedule->startsAt(),
+                $lockedSchedule->endsAt(),
+                $lockedSchedule
+            );
 
-            if ($overlappingSchedule) {
-                $overlapStart = substr($overlappingSchedule->start_time, 0, 5);
-                $overlapEnd = substr($overlappingSchedule->end_time, 0, 5);
-                return back()->with('error', "Jadwal ini bertabrakan dengan jadwal '{$overlappingSchedule->title}' ({$overlapStart}-{$overlapEnd} WIB) yang sudah kamu ikuti pada tanggal yang sama.");
+            if ($conflict) {
+                return back()->with('error', "Waktu kegiatan ini bertabrakan dengan \"{$conflict['judul']}\" ({$conflict['jenis']}) pada {$conflict['tanggal']} pukul {$conflict['mulai']}-{$conflict['selesai']} {$conflict['zona']}.");
             }
 
             // 10. Simpan atau perbarui pendaftaran
@@ -174,7 +170,7 @@ class DashboardController extends Controller
                 ]);
             } else {
                 Participant::create([
-                    'user_id'             => $user->id,
+                    'user_id'             => $currentUser->id,
                     'participatable_type' => Schedule::class,
                     'participatable_id'   => $lockedSchedule->id,
                     'status'              => 'registered',
@@ -197,7 +193,16 @@ class DashboardController extends Controller
             abort(403);
         }
 
+        if (! $user instanceof User) {
+            $user = User::find(Auth::id());
+        }
+
         return DB::transaction(function () use ($event, $user) {
+            // 0. Kunci baris user terlebih dahulu untuk menserialkan join paralel oleh user yang sama
+            /** @var User $lockedUser */
+            $lockedUser = User::whereKey($user->id)->lockForUpdate()->first();
+            $currentUser = $lockedUser ?? $user;
+
             /** @var Event $lockedEvent */
             $lockedEvent = Event::where('id', $event->id)->lockForUpdate()->firstOrFail();
 
@@ -206,7 +211,17 @@ class DashboardController extends Controller
                 return back()->with('error', 'Pendaftaran untuk event ini tidak dibuka (status event: ' . ($lockedEvent->status) . ').');
             }
 
-            // 2. Tolak jika di luar jendela registration_open_at / registration_close_at (null-safe)
+            // 2. Tolak jika event sedang tidak aktif
+            if (! $lockedEvent->is_active) {
+                return back()->with('error', 'Event ini sedang tidak aktif atau tidak dibuka untuk pendaftaran.');
+            }
+
+            // 3. Tolak jika event sudah berakhir
+            if ($lockedEvent->isFinished()) {
+                return back()->with('error', 'Event ini sudah berakhir.');
+            }
+
+            // 4. Tolak jika di luar jendela registration_open_at / registration_close_at (null-safe)
             $now = now();
             if ($lockedEvent->registration_open_at && $now->lt($lockedEvent->registration_open_at)) {
                 return back()->with('error', 'Pendaftaran belum dibuka (dibuka pada ' . $lockedEvent->registration_open_at->translatedFormat('d M Y, H:i') . ').');
@@ -219,34 +234,59 @@ class DashboardController extends Controller
                 }
             }
 
-            // 3. Cek apakah sudah terdaftar aktif
-            $existing = Participant::where('user_id', $user->id)
+            // 5. Cek komunitas aktif
+            if (! $lockedEvent->community || ! $lockedEvent->community->is_active) {
+                return back()->with('error', 'Komunitas penyelenggara event ini sedang tidak aktif.');
+            }
+
+            // 6. Cek apakah user terkena join_blocked_until
+            if ($currentUser->isJoinBlocked()) {
+                $until = $currentUser->joinBlockedUntilFormatted() ?? $currentUser->join_blocked_until->timezone(config('app.timezone', 'Asia/Jakarta'))->translatedFormat('d F Y, H:i');
+                return back()->with('error', "Pendaftaran event untuk akun Anda sedang dibatasi hingga {$until} WIB karena akumulasi ketidakhadiran (no-show).");
+            }
+
+            // 7. Cek apakah user diblokir oleh komunitas ini
+            if (CommunityBlock::where('community_id', $lockedEvent->community_id)->where('user_id', $currentUser->id)->exists()) {
+                return back()->with('error', 'Anda tidak dapat bergabung karena telah diblokir dari komunitas ini.');
+            }
+
+            // 8. Cek apakah sudah terdaftar aktif
+            $existing = Participant::where('user_id', $currentUser->id)
                 ->where('participatable_type', Event::class)
                 ->where('participatable_id', $lockedEvent->id)
                 ->lockForUpdate()
                 ->first();
 
-            if ($existing && in_array($existing->status, ['registered', 'waiting_payment', 'waiting_list', 'attended'], true)) {
+            if ($existing && in_array($existing->status, array_merge(Participant::SEAT_STATUSES, ['waiting_list']), true)) {
                 $label = $existing->statusLabel();
                 return back()->with('info', "Kamu sudah terdaftar di event ini. Status saat ini: {$label}.");
             }
 
-            // 4. Hitung kursi terpakai dari participant berstatus registered dan waiting_payment
-            $usedSeats = Participant::where('participatable_type', Event::class)
-                ->where('participatable_id', $lockedEvent->id)
-                ->whereIn('status', ['registered', 'waiting_payment'])
-                ->count();
+            // 9. Cek bentrok waktu dengan kegiatan lain (jadwal atau event)
+            $eventStart = $lockedEvent->startsAt();
+            $eventEnd   = $lockedEvent->overlapEndsAt();
+            if ($eventStart && $eventEnd) {
+                $conflict = $this->activityOverlapService->userConflict(
+                    $currentUser,
+                    $eventStart,
+                    $eventEnd,
+                    $lockedEvent
+                );
 
-            $isFull = $lockedEvent->capacity !== null && $usedSeats >= $lockedEvent->capacity;
-
-            // 5. Tentukan status baru
-            if ($isFull) {
-                $newStatus = 'waiting_list';
-            } else {
-                $newStatus = (float) $lockedEvent->registration_fee > 0 ? 'waiting_payment' : 'registered';
+                if ($conflict) {
+                    return back()->with('error', "Waktu kegiatan ini bertabrakan dengan \"{$conflict['judul']}\" ({$conflict['jenis']}) pada {$conflict['tanggal']} pukul {$conflict['mulai']}-{$conflict['selesai']} {$conflict['zona']}.");
+                }
             }
 
-            // 6. Simpan / Perbarui pendaftaran
+            // 10. Cek kuota / kapasitas: kegiatan penuh DITOLAK (tidak ada waiting_list di MVP)
+            if ($lockedEvent->isFull()) {
+                return back()->with('error', 'Mohon maaf, kuota peserta untuk event ini sudah penuh.');
+            }
+
+            // 11. Tentukan status baru (hanya waiting_payment atau registered)
+            $newStatus = (float) $lockedEvent->registration_fee > 0 ? 'waiting_payment' : 'registered';
+
+            // 12. Simpan / Perbarui pendaftaran
             if ($existing) {
                 $existing->update([
                     'status'        => $newStatus,
@@ -255,7 +295,7 @@ class DashboardController extends Controller
                 ]);
             } else {
                 Participant::create([
-                    'user_id'              => $user->id,
+                    'user_id'              => $currentUser->id,
                     'participatable_type'  => Event::class,
                     'participatable_id'    => $lockedEvent->id,
                     'status'               => $newStatus,
@@ -263,14 +303,10 @@ class DashboardController extends Controller
                 ]);
             }
 
-            // 7. Increment events.participants_count hanya untuk status yang memakai kursi
-            if (in_array($newStatus, ['registered', 'waiting_payment'], true)) {
-                $lockedEvent->increment('participants_count');
-            }
+            // 13. Sinkronkan counter participants_count langsung dari hasil hitung riil kursi
+            $lockedEvent->syncParticipantsCount();
 
-            if ($newStatus === 'waiting_list') {
-                return back()->with('info', 'Kuota kursi event sudah penuh. Kamu dimasukkan ke dalam Waiting List (Daftar Tunggu).');
-            } elseif ($newStatus === 'waiting_payment') {
+            if ($newStatus === 'waiting_payment') {
                 $fee = 'Rp ' . number_format($lockedEvent->registration_fee, 0, ',', '.');
                 return back()->with('success', "Pendaftaran event berhasil! Silakan selesaikan pembayaran sebesar {$fee} kepada penyelenggara. Status: Menunggu Pembayaran.");
             } else {
@@ -291,11 +327,41 @@ class DashboardController extends Controller
 
         $morphType = $type === 'event' ? Event::class : Schedule::class;
 
-        return DB::transaction(function () use ($user, $morphType, $id, $type) {
-            $participant = Participant::where('user_id', $user->id)
-                ->where('participatable_type', $morphType)
-                ->where('participatable_id', $id)
-                ->whereIn('status', ['waiting_list', 'waiting_payment', 'registered'])
+        // 1. Baca participant tanpa lock terlebih dahulu untuk memvalidasi keberadaan target kegiatan
+        $unlockedParticipant = Participant::where('user_id', $user->id)
+            ->where('participatable_type', $morphType)
+            ->where('participatable_id', $id)
+            ->whereIn('status', Participant::CANCELLABLE_STATUSES)
+            ->first();
+
+        if (! $unlockedParticipant) {
+            return back()->with('info', 'Tidak ada pendaftaran aktif yang dapat dibatalkan.');
+        }
+
+        return DB::transaction(function () use ($user, $morphType, $id, $type, $unlockedParticipant) {
+            // 2. Kunci baris user terlebih dahulu (urutan lock baku #1)
+            /** @var User $lockedUser */
+            $lockedUser = User::whereKey($user->id)->lockForUpdate()->first();
+
+            // 3. Kunci baris kegiatan (urutan lock baku #2)
+            $lockedActivity = null;
+            if ($morphType === Schedule::class || $type === 'schedule') {
+                $lockedActivity = Schedule::where('id', $id)->lockForUpdate()->first();
+                if ($lockedActivity) {
+                    $deadlineHours = (int) config('schedules.cancel_deadline_hours', 2);
+                    $nowTz = Carbon::now(config('app.timezone', 'Asia/Jakarta'));
+                    if ($lockedActivity->startsAt()->isPast() || $nowTz->diffInMinutes($lockedActivity->startsAt(), false) < ($deadlineHours * 60)) {
+                        return back()->with('error', "Pembatalan jadwal hanya dapat dilakukan paling lambat {$deadlineHours} jam sebelum sesi dimulai.");
+                    }
+                }
+            } elseif ($morphType === Event::class || $type === 'event') {
+                $lockedActivity = Event::where('id', $id)->lockForUpdate()->first();
+            }
+
+            // 4. Ambil ulang baris participant dengan lock (urutan lock baku #3)
+            $participant = Participant::where('id', $unlockedParticipant->id)
+                ->where('user_id', $user->id)
+                ->whereIn('status', Participant::CANCELLABLE_STATUSES)
                 ->lockForUpdate()
                 ->first();
 
@@ -303,39 +369,17 @@ class DashboardController extends Controller
                 return back()->with('info', 'Tidak ada pendaftaran aktif yang dapat dibatalkan.');
             }
 
-            // Validasi batas waktu pembatalan untuk Schedule
-            if ($type === 'schedule' || $morphType === Schedule::class) {
-                $schedule = Schedule::where('id', $id)->lockForUpdate()->first();
-                if ($schedule) {
-                    $deadlineHours = (int) config('schedules.cancel_deadline_hours', 2);
-                    $nowTz = Carbon::now(config('app.timezone', 'Asia/Jakarta'));
-                    if ($schedule->startsAt()->isPast() || $nowTz->diffInMinutes($schedule->startsAt(), false) < ($deadlineHours * 60)) {
-                        return back()->with('error', "Pembatalan jadwal hanya dapat dilakukan paling lambat {$deadlineHours} jam sebelum sesi dimulai.");
-                    }
-                }
-            }
-
-            $oldStatus = $participant->status;
-
+            // 5. Ubah status menjadi cancelled
             $participant->update([
                 'status'       => 'cancelled',
                 'cancelled_at' => now(),
             ]);
 
-            // Jika pembatalan event dan sebelumnya memakai kursi, kurangi participants_count
-            if ($type === 'event' && in_array($oldStatus, ['registered', 'waiting_payment'], true)) {
-                $event = Event::where('id', $id)->lockForUpdate()->first();
-                if ($event && $event->participants_count > 0) {
-                    $event->decrement('participants_count');
-                }
-            }
-
-            // Jika pembatalan jadwal, sinkronkan status jadwal
-            if ($type === 'schedule' || $morphType === Schedule::class) {
-                $schedule = Schedule::where('id', $id)->lockForUpdate()->first();
-                if ($schedule) {
-                    $schedule->syncStatus();
-                }
+            // 6. Hitung ulang counter kursi event atau sinkronkan status jadwal
+            if ($lockedActivity instanceof Event) {
+                $lockedActivity->syncParticipantsCount();
+            } elseif ($lockedActivity instanceof Schedule) {
+                $lockedActivity->syncStatus();
             }
 
             return back()->with('success', 'Pendaftaran berhasil dibatalkan.');
@@ -362,66 +406,6 @@ class DashboardController extends Controller
         return back()->with('info', 'Fitur penukaran reward sedang dalam tahap pengembangan.');
     }
 
-    /**
-     * Catat check-in harian user (streak login harian) untuk poin gerak.
-     * Berbeda dengan QR check-in penyedia — ini reward kehadiran aktif tiap hari.
-     * Menggunakan tabel `streaks` (sport_category='daily') dan `total_points` di users.
-     */
-    public function streakCheckIn(Request $request)
-    {
-        $user = Auth::user();
-
-        $tz = config('app.timezone', 'Asia/Jakarta');
-        $today = Carbon::today($tz);
-
-        // Ambil atau buat streak harian user
-        $streak = Streak::firstOrNew([
-            'user_id'        => $user->id,
-            'sport_category' => 'daily',
-        ]);
-
-        // Sudah check-in hari ini?
-        if ($streak->last_activity_date && $streak->last_activity_date->toDateString() === $today->toDateString()) {
-            return back()->with('info', 'Kamu sudah check-in hari ini. Kembali besok untuk melanjutkan streak! 🔥');
-        }
-
-        $yesterday = Carbon::yesterday($tz);
-        $isConsecutive = $streak->last_activity_date
-            && $streak->last_activity_date->toDateString() === $yesterday->toDateString();
-
-        if ($isConsecutive) {
-            $streak->current_streak += 1;
-        } else {
-            // Streak terputus atau baru mulai
-            $streak->current_streak    = 1;
-            $streak->streak_started_at = $today;
-        }
-
-        if ($streak->current_streak > ($streak->longest_streak ?? 0)) {
-            $streak->longest_streak = $streak->current_streak;
-        }
-
-        $streak->last_activity_date = $today;
-        $streak->save();
-
-        // Tambah poin ke user
-        $poinBonus = 10;
-        $user->total_points = ($user->total_points ?? 0) + $poinBonus;
-        $user->save();
-
-        // Catat ke riwayat poin
-        PointsHistory::create([
-            'user_id'        => $user->id,
-            'points'         => $poinBonus,
-            'source'         => 'other',
-            'pointable_id'   => $streak->id,
-            'pointable_type' => Streak::class,
-            'description'    => "Check-in harian hari ke-{$streak->current_streak}",
-            'balance_after'  => $user->total_points,
-        ]);
-
-        return back()->with('success', "Streak hari ke-{$streak->current_streak}! +{$poinBonus} poin gerak 🔥");
-    }
 
     /**
      * Dapatkan token QR check-in untuk sesi jadwal hari ini.
@@ -593,9 +577,24 @@ class DashboardController extends Controller
             fn($a, $b) => ($b->followers_count ?? 0) <=> ($a->followers_count ?? 0),
         ])->take(3)->values();
 
-        // Data Asli Event Mendatang dari Database (Hanya yang berstatus published, registration_closed, atau ongoing)
+        $joinedEventIds = ($user instanceof User)
+            ? Participant::where('user_id', $user->id)
+                ->where('participatable_type', Event::class)
+                ->whereIn('status', ['registered', 'waiting_payment', 'waiting_list', 'attended'])
+                ->pluck('participatable_id')
+                ->all()
+            : [];
+
+        // Data Asli Event Mendatang dari Database (Hanya yang belum berakhir, ATAU seluruh event yang diikuti user)
         $events = Event::where('is_active', true)
-            ->active()
+            ->where(function ($query) use ($joinedEventIds) {
+                $query->where(function ($q) {
+                    $q->active()->notFinished();
+                });
+                if (!empty($joinedEventIds)) {
+                    $query->orWhereIn('id', $joinedEventIds);
+                }
+            })
             ->with('community')
             ->withCount(['participants' => fn($q) => $q->whereIn('status', ['registered', 'waiting_payment', 'attended'])])
             ->orderBy('event_date', 'asc')
@@ -652,7 +651,7 @@ class DashboardController extends Controller
             'filled' => (int) ($event->participants_count ?? $event->activeParticipantsCount()),
             'remaining' => $event->capacity !== null ? max(0, (int) $event->capacity - (int) ($event->participants_count ?? $event->activeParticipantsCount())) : null,
             'status' => $event->status,
-            'is_finished' => $event->event_date ? Carbon::parse($event->event_date->toDateString() . ' ' . ($event->end_time ?? '23:59:59'), config('app.timezone', 'Asia/Jakarta'))->isPast() : false,
+            'is_finished' => $event->isFinished(),
             'streak_enabled' => false,
         ]);
 

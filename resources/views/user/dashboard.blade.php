@@ -1305,6 +1305,9 @@
                                         @endif
                                     </div>
                                 @else
+                                @if($event->isFull())
+                                    <span class="text-[11px] font-bold text-slate-400 px-3 py-1.5 rounded-lg bg-slate-100">Penuh</span>
+                                @else
                                     <form method="POST" action="{{ route('user.events.join', $event) }}">
                                         @csrf
                                         @if($event->registration_fee > 0)
@@ -1316,6 +1319,7 @@
                                             <button type="submit" class="btn-primary text-[11px] py-1.5 px-3">Daftar Event (Gratis)</button>
                                         @endif
                                     </form>
+                                @endif
                                 @endif
                             </div>
                             </div>
@@ -1637,10 +1641,13 @@
         {{-- ============================================================
              7. MODUL 5: MENU EDUKASI KESEHATAN
              ============================================================ --}}
-        <section x-show="activeSection === 'edukasi'" x-cloak class="space-y-6">
-            <div class="glass-card rounded-2xl p-5 sm:p-6 border border-blue-100 shadow-xs">
-                <h3 class="text-lg font-bold text-slate-900 tracking-tight">Edukasi &amp; Tips Olahraga</h3>
-                <p class="text-xs text-slate-500 mt-0.5">Panduan praktis menjaga performa tubuh, hidrasi, dan pemulihan dari praktisi olahraga</p>
+       <section x-show="activeSection === 'edukasi'" x-cloak class="space-y-6">
+            <div class="glass-card rounded-2xl p-5 sm:p-6 border border-blue-100 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 tracking-tight">Edukasi &amp; Tips Olahraga</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Panduan praktis menjaga performa tubuh, hidrasi, dan pemulihan dari praktisi olahraga</p>
+                </div>
+                <a href="{{ route('user.edukasi.index') }}" class="text-xs font-bold text-blue-600 hover:underline">Buka Menu Edukasi &rarr;</a>
             </div>
 
             {{-- Editorial 3-col: variasi ukuran dan warna kartu --}}
@@ -1661,7 +1668,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 3 Menit Baca
                             </span>
-                            <span class="text-blue-600 font-semibold cursor-pointer hover:underline">Baca &rarr;</span>
+                            <a href="{{ route('user.edukasi.show', 'pemanasan-sebelum-lari-pagi') }}" class="text-blue-600 font-semibold hover:underline">Baca &rarr;</a>
                         </div>
                     </div>
                 </div>
@@ -1682,7 +1689,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 4 Menit Baca
                             </span>
-                            <span class="text-emerald-600 font-semibold cursor-pointer hover:underline">Baca &rarr;</span>
+                            <a href="{{ route('user.edukasi.show', 'panduan-hidrasi-iklim-tropis') }}" class="text-emerald-600 font-semibold hover:underline">Baca &rarr;</a>
                         </div>
                     </div>
                 </div>
@@ -1703,7 +1710,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 5 Menit Baca
                             </span>
-                            <span class="text-orange-600 font-semibold cursor-pointer hover:underline">Baca &rarr;</span>
+                            <a href="{{ route('user.edukasi.show', 'tidur-dan-manajemen-rest-day') }}" class="text-orange-600 font-semibold hover:underline">Baca &rarr;</a>
                         </div>
                     </div>
                 </div>

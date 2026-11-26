@@ -130,6 +130,11 @@ class Schedule extends Model
         return Carbon::parse("{$dateStr} {$timeStr}", $tz);
     }
 
+    public function timezoneLabel(): string
+    {
+        return 'WIB';
+    }
+
     public function isStarted(): bool
     {
         return Carbon::now(config('app.timezone', 'Asia/Jakarta'))->gte($this->startsAt());
@@ -147,7 +152,7 @@ class Schedule extends Model
 
     public function filledCount(): int
     {
-        return $this->participants()->whereIn('status', ['registered', 'attended'])->count();
+        return $this->activeParticipantsCount();
     }
 
     public function fillPercentage(): int
@@ -155,12 +160,12 @@ class Schedule extends Model
         if (!$this->capacity || $this->capacity === 0) {
             return 0;
         }
-        return (int) min(100, round(($this->filledCount() / $this->capacity) * 100));
+        return (int) min(100, round(($this->activeParticipantsCount() / $this->capacity) * 100));
     }
 
     public function activeParticipantsCount(): int
     {
-        return $this->participants()->whereIn('status', ['registered', 'attended'])->count();
+        return $this->participants()->holdingSeat()->count();
     }
 
     public function remainingSlots(): ?int
@@ -171,20 +176,27 @@ class Schedule extends Model
         return max(0, $this->capacity - $this->activeParticipantsCount());
     }
 
+    public function isFull(): bool
+    {
+        if ($this->capacity === null) {
+            return false;
+        }
+        return $this->activeParticipantsCount() >= $this->capacity;
+    }
+
     public function syncStatus(): void
     {
         if (in_array($this->status, ['cancelled', 'completed'], true)) {
             return;
         }
 
-        if ($this->capacity === null || $this->capacity <= 0) {
+        if ($this->capacity === null) {
             $newStatus = 'open';
         } else {
             $activeCount = $this->activeParticipantsCount();
-            $ratio = $activeCount / $this->capacity;
             if ($activeCount >= $this->capacity) {
                 $newStatus = 'full';
-            } elseif ($ratio >= 0.8) {
+            } elseif ($this->capacity > 0 && ($activeCount / $this->capacity) >= 0.8) {
                 $newStatus = 'almost_full';
             } else {
                 $newStatus = 'open';
