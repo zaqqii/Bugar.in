@@ -16,6 +16,7 @@ class PointsHistory extends Model
         'pointable_id',
         'description',
         'balance_after',
+        'dedupe_key',
     ];
 
     public function user()

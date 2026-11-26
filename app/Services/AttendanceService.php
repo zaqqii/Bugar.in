@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\DB;
 class AttendanceService
 {
     public function __construct(
-        protected StreakService $streakService
+        protected StreakService $streakService,
+        protected PointsAwardService $pointsAwardService
     ) {}
 
     /**
@@ -156,26 +157,16 @@ class AttendanceService
             $isStreakEnabled = (bool) $schedule->streak_enabled;
 
             if ($isVerified && $isStreakEnabled) {
-                $attendancePoints = (int) config('schedules.attendance_points', 30);
-                $newBalance = ((int) $user->total_points) + $attendancePoints;
-                $user->total_points = $newBalance;
-                $user->save();
-
-                $pointsHistory = new PointsHistory([
-                    'user_id' => $user->id,
-                    'points' => $attendancePoints,
-                    'source' => 'attendance',
-                    'description' => "Check-in sesi jadwal '{$schedule->title}' (+{$attendancePoints} Poin)",
-                    'balance_after' => $newBalance,
-                ]);
-                $pointsHistory->pointable()->associate($schedule);
-                $pointsHistory->save();
+                $pointsHistory = $this->pointsAwardService->awardAttendance($p);
 
                 $streak = $this->streakService->recordWeeklyAttendance($user, $community->sport_category);
                 $currentStreak = (int) $streak->current_streak;
 
-                $pointsAwarded = true;
-                $pointsAmount = $attendancePoints;
+                if ($pointsHistory) {
+                    $pointsAwarded = true;
+                    $pointsAmount = (int) $pointsHistory->points;
+                    $user->refresh();
+                }
             } else {
                 $existingStreak = $user->streaks()
                     ->where('sport_category', $community->sport_category ?? 'Kebugaran')
